@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#12151f" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/critical.css" />
+  <link rel="stylesheet" href="/mobile-ui.css" />
+  <title>GeoSafe — Sign In</title>
+</head>
+<body class="auth-page">
+  <div class="auth-bg" aria-hidden="true"></div>
+
+  <div class="auth-layout">
+    <header class="auth-header">
+      <a href="/" class="auth-logo">
+        <div class="auth-logo__icon">🧩</div>
+        <div>
+          <span class="auth-logo__text">GeoSafe</span>
+          <span class="auth-logo__sub">Emergency System</span>
+        </div>
+      </a>
+    </header>
+
+    <main class="auth-main">
+      <section class="auth-hero">
+        <h1>Disaster reporting &amp; emergency assistance</h1>
+        <p>
+          Report incidents with GPS, receive real-time BDRRMC alerts, navigate to evacuation routes, and track your family — all in one place.
+        </p>
+        <div class="auth-features">
+          <div class="auth-feature">
+            <span>📍</span>
+            <span>GPS disaster reporting</span>
+          </div>
+          <div class="auth-feature">
+            <span>📡</span>
+            <span>Live emergency alerts</span>
+          </div>
+          <div class="auth-feature">
+            <span>👨‍👩‍👧</span>
+            <span>Family safety tracker</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="auth-card">
+        <div class="auth-tabs" role="tablist">
+          <button type="button" class="auth-tab auth-tab--active" id="tab-login" role="tab" aria-selected="true">Sign In</button>
+          <button type="button" class="auth-tab" id="tab-register" role="tab" aria-selected="false">Register</button>
+        </div>
+
+        <div id="login-panel" class="auth-panel auth-panel--active" role="tabpanel">
+          <h2 class="auth-form-title">Welcome back</h2>
+          <p class="auth-form-sub">Sign in to access your dashboard</p>
+          <form id="login-form">
+            <div class="auth-field">
+              <label for="login-email">Email</label>
+              <input type="email" id="login-email" name="email" required autocomplete="email" placeholder="you@example.com" />
+            </div>
+            <div class="auth-field">
+              <label for="login-password">Password</label>
+              <input type="password" id="login-password" name="password" required autocomplete="current-password" placeholder="••••••••" />
+            </div>
+            <p id="login-error" class="auth-error hidden" role="alert"></p>
+            <button type="submit" class="auth-submit auth-submit--login" id="login-btn">Sign In</button>
+          </form>
+          <details class="auth-demo">
+            <summary>Quick demo login</summary>
+            <div class="auth-demo-grid">
+              <button type="button" class="auth-demo-btn" data-email="admin@geosafe.local" data-pass="admin123">
+                <span>🛡️ Admin</span>
+                <span>Tap to fill</span>
+              </button>
+              <button type="button" class="auth-demo-btn" data-email="responder@geosafe.local" data-pass="responder123">
+                <span>🚑 Responder</span>
+                <span>Tap to fill</span>
+              </button>
+            </div>
+          </details>
+        </div>
+
+        <div id="register-panel" class="auth-panel" role="tabpanel">
+          <h2 class="auth-form-title">Create account</h2>
+          <p class="auth-form-sub">Register as a resident to report emergencies</p>
+          <form id="register-form">
+            <div class="auth-field">
+              <label for="reg-name">Full name</label>
+              <input type="text" id="reg-name" name="name" required minlength="2" autocomplete="name" placeholder="Your name" />
+            </div>
+            <div class="auth-field">
+              <label for="reg-email">Email</label>
+              <input type="email" id="reg-email" name="email" required autocomplete="email" placeholder="you@example.com" />
+            </div>
+            <div class="auth-field">
+              <label for="reg-password">Password</label>
+              <input type="password" id="reg-password" name="password" required minlength="6" autocomplete="new-password" placeholder="Min. 6 characters" />
+            </div>
+            <p id="register-error" class="auth-error hidden" role="alert"></p>
+            <button type="submit" class="auth-submit auth-submit--register" id="register-btn">Create Account</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="auth-footer">
+      GeoSafe &copy; 2026 — Geolocation-Based Disaster Reporting System
+    </footer>
+  </div>
+
+  <script src="/app.js"></script>
+  <script>
+    const user = getUser();
+    if (user) redirectByRole(user.role);
+
+    const loginPanel = document.getElementById('login-panel');
+    const registerPanel = document.getElementById('register-panel');
+    const tabLogin = document.getElementById('tab-login');
+    const tabRegister = document.getElementById('tab-register');
+
+    function showLogin() {
+      loginPanel.classList.add('auth-panel--active');
+      registerPanel.classList.remove('auth-panel--active');
+      tabLogin.classList.add('auth-tab--active');
+      tabRegister.classList.remove('auth-tab--active');
+      tabLogin.setAttribute('aria-selected', 'true');
+      tabRegister.setAttribute('aria-selected', 'false');
+    }
+
+    function showRegister() {
+      registerPanel.classList.add('auth-panel--active');
+      loginPanel.classList.remove('auth-panel--active');
+      tabRegister.classList.add('auth-tab--active');
+      tabLogin.classList.remove('auth-tab--active');
+      tabRegister.setAttribute('aria-selected', 'true');
+      tabLogin.setAttribute('aria-selected', 'false');
+    }
+
+    tabLogin.addEventListener('click', showLogin);
+    tabRegister.addEventListener('click', showRegister);
+
+    if (location.hash === '#register') showRegister();
+    else showLogin();
+
+    document.querySelectorAll('.auth-demo-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.getElementById('login-email').value = btn.dataset.email;
+        document.getElementById('login-password').value = btn.dataset.pass;
+        showLogin();
+      });
+    });
+
+    async function handleSubmit(formId, endpoint, btnId, errId, onSuccess) {
+      const form = document.getElementById(formId);
+      const btn = document.getElementById(btnId);
+      const errEl = document.getElementById(errId);
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errEl.classList.add('hidden');
+        btn.disabled = true;
+        const prevText = btn.textContent;
+        btn.textContent = 'Please wait…';
+
+        const fd = new FormData(form);
+        const body = Object.fromEntries(fd.entries());
+
+        try {
+          const data = await api(endpoint, {
+            method: 'POST',
+            body: JSON.stringify(body),
+          });
+          setAuth(data.token, data.user);
+          btn.textContent = 'Success!';
+          onSuccess(data.user);
+        } catch (err) {
+          errEl.textContent = err.message;
+          errEl.classList.remove('hidden');
+          btn.disabled = false;
+          btn.textContent = prevText;
+        }
+      });
+    }
+
+    handleSubmit('login-form', '/api/login', 'login-btn', 'login-error', (u) => redirectByRole(u.role));
+    handleSubmit('register-form', '/api/register', 'register-btn', 'register-error', (u) => redirectByRole(u.role));
+  </script>
+</body>
+</html>

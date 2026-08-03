@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#12151f" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/critical.css" />
+  <link rel="stylesheet" href="/mobile-ui.css" />
+  <title>GeoSafe — Report</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body class="app-shell">
+  <div class="app-container">
+    <header class="page-header">
+      <div>
+        <div class="brand">GEOSAFE SYSTEM</div>
+        <h1 id="page-title">Report Incident</h1>
+      </div>
+      <button type="button" class="ui-btn-ghost" onclick="logout()">Logout</button>
+    </header>
+
+    <section class="ui-card">
+      <form id="report-form">
+        <label class="text-muted">Incident Type</label>
+        <select name="incident_type" required class="ui-select">
+          <option value="">Select type…</option>
+          <option value="Flood">Flood</option>
+          <option value="Earthquake">Earthquake</option>
+          <option value="Fire">Fire</option>
+          <option value="Landslide">Landslide</option>
+          <option value="Storm">Storm / Typhoon</option>
+          <option value="Medical">Medical Emergency</option>
+          <option value="SOS">SOS Rescue</option>
+          <option value="Other">Other</option>
+        </select>
+        <label class="text-muted">Description</label>
+        <textarea name="description" required minlength="10" rows="4" class="ui-textarea" placeholder="Describe the situation…"></textarea>
+        <button type="button" id="get-location" class="ui-btn ui-btn-secondary" style="margin-bottom:8px">📍 Capture GPS Location</button>
+        <p id="location-status" class="text-muted" style="margin-bottom:12px">Location not captured</p>
+        <details class="text-muted" style="margin-bottom:12px">
+          <summary style="cursor:pointer">Enter coordinates manually</summary>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+            <input type="number" id="manual-lat" step="any" placeholder="Latitude" class="ui-input" style="margin:0" />
+            <input type="number" id="manual-lng" step="any" placeholder="Longitude" class="ui-input" style="margin:0" />
+          </div>
+          <button type="button" id="use-manual" class="ui-btn ui-btn-secondary" style="margin-top:8px">Use coordinates</button>
+        </details>
+        <input type="hidden" name="latitude" id="latitude" />
+        <input type="hidden" name="longitude" id="longitude" />
+        <div id="map-preview" class="map-card" style="min-height:160px;margin-bottom:12px;display:none"></div>
+        <p id="report-error" class="text-error hidden"></p>
+        <button type="submit" class="ui-btn ui-btn-primary" id="submit-btn">Submit Report</button>
+      </form>
+    </section>
+
+    <section class="ui-card">
+      <h2>My Reports</h2>
+      <div id="reports-list"><p class="text-muted">Loading…</p></div>
+    </section>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+  <script>
+    const user = requireAuth(['resident']);
+    if (!user) throw new Error('unauthorized');
+    injectBottomNav('report');
+
+    const isSos = new URLSearchParams(location.search).get('sos') === '1';
+    if (isSos) {
+      document.getElementById('page-title').textContent = 'SOS Rescue Request';
+      document.querySelector('[name=incident_type]').value = 'SOS';
+      document.querySelector('[name=description]').value =
+        'SOS RESCUE REQUEST — Immediate assistance required at my GPS location.';
+      document.getElementById('submit-btn').textContent = 'Send SOS';
+    }
+
+    const statusEl = document.getElementById('location-status');
+
+    document.getElementById('get-location').addEventListener('click', async () => {
+      statusEl.textContent = 'Acquiring location…';
+      try {
+        const { latitude, longitude } = await getGeolocation();
+        setLocationOnForm(latitude, longitude, statusEl, 'map-preview');
+        document.getElementById('map-preview').style.display = 'block';
+      } catch (err) {
+        statusEl.textContent = err.message;
+        statusEl.classList.add('text-error');
+      }
+    });
+
+    document.getElementById('use-manual').addEventListener('click', () => {
+      const lat = parseFloat(document.getElementById('manual-lat').value);
+      const lng = parseFloat(document.getElementById('manual-lng').value);
+      if (Number.isNaN(lat) || Number.isNaN(lng)) {
+        statusEl.textContent = 'Enter valid coordinates';
+        return;
+      }
+      setLocationOnForm(lat, lng, statusEl, 'map-preview');
+      document.getElementById('map-preview').style.display = 'block';
+    });
+
+    document.getElementById('report-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('report-error');
+      errEl.classList.add('hidden');
+      const fd = new FormData(e.target);
+      const lat = parseFloat(fd.get('latitude'));
+      const lng = parseFloat(fd.get('longitude'));
+      if (!lat || !lng) {
+        errEl.textContent = 'Please capture GPS location first';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      try {
+        await api('/api/reports', {
+          method: 'POST',
+          body: JSON.stringify({
+            incident_type: fd.get('incident_type'),
+            description: fd.get('description'),
+            latitude: lat,
+            longitude: lng,
+          }),
+        });
+        showToast(isSos ? 'SOS sent!' : 'Report submitted', 'success');
+        e.target.reset();
+        if (isSos) {
+          document.querySelector('[name=incident_type]').value = 'SOS';
+        }
+        statusEl.textContent = 'Location not captured';
+        document.getElementById('map-preview').style.display = 'none';
+        loadReports();
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.classList.remove('hidden');
+      }
+    });
+
+    function renderReport(r) {
+      return `<div class="report-item">
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+          <strong>${escapeHtml(r.incident_type)}</strong>
+          <span>${r.severity ? severityBadge(r.severity) : ''} ${statusBadge(r.status)}</span>
+        </div>
+        <p class="text-muted" style="margin:0 0 6px">${escapeHtml(r.description)}</p>
+        <p class="text-muted" style="margin:0;font-size:0.75rem">📍 ${r.latitude}, ${r.longitude}</p>
+      </div>`;
+    }
+
+    async function loadReports() {
+      const el = document.getElementById('reports-list');
+      try {
+        const { reports } = await api('/api/reports');
+        el.innerHTML = reports.length ? reports.map(renderReport).join('') : '<p class="text-muted">No reports yet.</p>';
+      } catch (err) {
+        el.innerHTML = `<p class="text-error">${err.message}</p>`;
+      }
+    }
+
+    initSocket({
+      'status-update': (r) => {
+        if (r.user_id === user.id) loadReports();
+      },
+      'alert-broadcast': (a) => showToast(a.message, 'danger'),
+    });
+
+    loadReports();
+    if (isSos) document.getElementById('get-location').click();
+  </script>
+</body>
+</html>

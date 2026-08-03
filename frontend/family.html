@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#12151f" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/critical.css" />
+  <link rel="stylesheet" href="/mobile-ui.css" />
+  <title>GeoSafe — Family Tracker</title>
+</head>
+<body class="app-shell">
+  <div class="app-container">
+    <header class="page-header">
+      <div>
+        <div class="brand">GEOSAFE SYSTEM</div>
+        <h1>Family Tracker</h1>
+      </div>
+      <button type="button" class="ui-btn-ghost" onclick="logout()">Logout</button>
+    </header>
+
+    <main class="space-y-6">
+    <div id="no-family" class="hidden space-y-6">
+      <section class="ui-card">
+        <h2>👨‍👩‍👧 Create Family Group</h2>
+        <form id="create-family-form">
+          <label class="text-muted">Family Group Name</label>
+          <input name="name" required minlength="2" class="ui-input" placeholder="e.g. Malonzo Family" />
+          <label class="text-muted">Description (optional)</label>
+          <textarea name="description" rows="2" class="ui-textarea" placeholder="Optional note"></textarea>
+          <p id="create-error" class="text-error hidden"></p>
+          <button type="submit" class="ui-btn ui-btn-primary" style="background:#2563eb">Create Family Group</button>
+        </form>
+      </section>
+
+      <section class="ui-card">
+        <h2>🔗 Join Family Group</h2>
+        <form id="join-family-form">
+          <label class="text-muted">Invite Code</label>
+          <input name="invite_code" required class="ui-input uppercase" placeholder="e.g. A1B2C3D4" />
+          <label class="text-muted">Your Relationship</label>
+          <select name="relationship" class="ui-select">
+              <option>Spouse</option>
+              <option>Child</option>
+              <option>Parent</option>
+              <option>Sibling</option>
+              <option>Member</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <p id="join-error" class="text-error hidden"></p>
+          <button type="submit" class="ui-btn ui-btn-secondary">Join Family</button>
+        </form>
+      </section>
+    </div>
+
+    <div id="has-family" class="hidden space-y-6">
+      <section class="ui-card">
+        <div class="flex flex-wrap justify-between gap-3 mb-4">
+          <div>
+            <h2 id="family-name" class="text-xl font-semibold text-blue-300"></h2>
+            <p id="family-desc" class="text-sm text-slate-400 mt-1"></p>
+          </div>
+          <button type="button" id="leave-btn" class="ui-btn-ghost text-error">Leave</button>
+        </div>
+
+        <div id="head-tools" class="hidden border-t border-slate-700 pt-4 mt-4 space-y-4">
+          <div class="flex flex-wrap gap-4 items-start">
+            <div>
+              <p class="text-xs text-slate-500 mb-1">Invite Code</p>
+              <p id="invite-code" class="font-mono text-lg text-cyan-400"></p>
+            </div>
+            <div>
+              <p class="text-xs text-slate-500 mb-1">QR Code</p>
+              <img id="invite-qr" alt="Invite QR" class="w-28 h-28 rounded bg-white p-1" />
+            </div>
+            <button id="regen-invite" class="text-xs text-blue-400 hover:underline self-end">Regenerate code</button>
+          </div>
+          <form id="settings-form" class="grid md:grid-cols-2 gap-3 max-w-2xl">
+            <input name="name" id="settings-name" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-sm" />
+            <input name="description" id="settings-desc" placeholder="Description" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-sm" />
+            <button type="submit" class="md:col-span-2 text-sm px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 w-fit">Save Group Settings</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="ui-card">
+        <h2>My Status &amp; Location</h2>
+        <form id="my-status-form" class="flex flex-wrap gap-3 items-end">
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Safety Status</label>
+            <select name="safety_status" id="my-safety" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-sm">
+              <option value="safe">Safe</option>
+              <option value="need_help">Need Help</option>
+              <option value="injured">Injured</option>
+              <option value="no_response">No Response</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Relationship</label>
+            <input name="relationship" id="my-relationship" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-sm w-32" />
+          </div>
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Battery %</label>
+            <input type="number" name="battery_level" id="my-battery" min="0" max="100" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-sm w-20" />
+          </div>
+          <button type="button" id="share-location" class="px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm">📍 Share Location</button>
+          <button type="submit" class="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-sm">Update</button>
+        </form>
+      </section>
+
+      <section class="ui-card">
+        <h2>Family Members</h2>
+        <div id="members-grid" class="action-grid" style="grid-template-columns:1fr"></div>
+      </section>
+    </div>
+    </main>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+  <script>
+    const user = requireAuth(['resident']);
+    if (!user) throw new Error('unauthorized');
+    injectBottomNav('family');
+
+    let familyGroupId = null;
+
+    function renderMembers(members, isHead) {
+      const grid = document.getElementById('members-grid');
+      grid.innerHTML = members
+        .map((m) => {
+          const loc =
+            m.last_latitude != null
+              ? `${Number(m.last_latitude).toFixed(5)}, ${Number(m.last_longitude).toFixed(5)}`
+              : 'No location';
+          const updated = m.last_location_at ? formatDate(m.last_location_at) : 'Never';
+          const batt = m.battery_level != null ? `${m.battery_level}%` : '—';
+          const headBadge = m.is_family_head
+            ? '<span class="text-xs text-amber-400">Family Head</span>'
+            : '';
+          const removeBtn =
+            isHead && !m.is_family_head
+              ? `<button onclick="removeMember(${m.id})" class="text-xs text-red-400 mt-2">Remove</button>`
+              : '';
+          const transferBtn =
+            isHead && !m.is_family_head
+              ? `<button onclick="transferHead(${m.id})" class="text-xs text-blue-400 mt-2 ml-2">Make Head</button>`
+              : '';
+          return `
+          <div class="report-item ${safetyStatusCardClass(m.safety_status)}" style="text-align:left">
+            <div class="flex justify-between items-start gap-2 mb-2">
+              <div>
+                <p class="font-medium">${escapeHtml(m.name)}</p>
+                <p class="text-xs text-slate-400">${escapeHtml(m.relationship)} ${headBadge}</p>
+              </div>
+              ${safetyStatusBadge(m.safety_status)}
+            </div>
+            <dl class="text-xs text-slate-400 space-y-1">
+              <div>📍 ${loc}</div>
+              <div>🕐 ${updated}</div>
+              <div>🔋 ${batt}</div>
+            </dl>
+            ${removeBtn}${transferBtn}
+          </div>`;
+        })
+        .join('');
+    }
+
+    function showDashboard(data) {
+      const noFamily = document.getElementById('no-family');
+      const hasFamily = document.getElementById('has-family');
+
+      if (!data.family) {
+        noFamily.classList.remove('hidden');
+        hasFamily.classList.add('hidden');
+        familyGroupId = null;
+        return;
+      }
+
+      noFamily.classList.add('hidden');
+      hasFamily.classList.remove('hidden');
+      familyGroupId = data.family.id;
+
+      document.getElementById('family-name').textContent = data.family.name;
+      document.getElementById('family-desc').textContent = data.family.description || 'No description';
+      document.getElementById('family-desc').className = 'text-muted';
+
+      const headTools = document.getElementById('head-tools');
+      if (data.is_head) {
+        headTools.classList.remove('hidden');
+        document.getElementById('invite-code').textContent = data.family.invite_code;
+        document.getElementById('invite-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(data.family.invite_code)}`;
+        document.getElementById('settings-name').value = data.family.name;
+        document.getElementById('settings-desc').value = data.family.description || '';
+      } else {
+        headTools.classList.add('hidden');
+      }
+
+      const me = data.members.find((m) => m.id === user.id);
+      if (me) {
+        document.getElementById('my-safety').value = me.safety_status;
+        document.getElementById('my-relationship').value = me.relationship;
+        document.getElementById('my-battery').value = me.battery_level ?? '';
+      }
+
+      renderMembers(data.members, data.is_head);
+    }
+
+    async function loadFamily() {
+      const data = await api('/api/family');
+      showDashboard(data);
+      if (familyGroupId && socket) socket.emit('join-family', familyGroupId);
+      return data;
+    }
+
+    document.getElementById('create-family-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('create-error');
+      errEl.classList.add('hidden');
+      const fd = new FormData(e.target);
+      try {
+        const data = await api('/api/family', {
+          method: 'POST',
+          body: JSON.stringify({ name: fd.get('name'), description: fd.get('description') }),
+        });
+        showToast('Family group created', 'success');
+        showDashboard(data);
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('join-family-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('join-error');
+      errEl.classList.add('hidden');
+      const fd = new FormData(e.target);
+      try {
+        const data = await api('/api/family/join', {
+          method: 'POST',
+          body: JSON.stringify({
+            invite_code: fd.get('invite_code'),
+            relationship: fd.get('relationship'),
+          }),
+        });
+        showToast('Joined family group', 'success');
+        showDashboard(data);
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('leave-btn').addEventListener('click', async () => {
+      if (!confirm('Leave this family group?')) return;
+      await api('/api/family/leave', { method: 'POST' });
+      showToast('Left family group', 'info');
+      loadFamily();
+    });
+
+    document.getElementById('settings-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const data = await api('/api/family/settings', {
+        method: 'PUT',
+        body: JSON.stringify({ name: fd.get('name'), description: fd.get('description') }),
+      });
+      showDashboard(data);
+      showToast('Settings saved', 'success');
+    });
+
+    document.getElementById('regen-invite').addEventListener('click', async () => {
+      const { invite_code } = await api('/api/family/regenerate-invite', { method: 'POST' });
+      document.getElementById('invite-code').textContent = invite_code;
+      document.getElementById('invite-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(invite_code)}`;
+      showToast('New invite code generated', 'success');
+    });
+
+    document.getElementById('my-status-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        safety_status: document.getElementById('my-safety').value,
+        relationship: document.getElementById('my-relationship').value,
+      };
+      const batt = document.getElementById('my-battery').value;
+      if (batt !== '') body.battery_level = parseInt(batt, 10);
+      const data = await api('/api/family/me', { method: 'PUT', body: JSON.stringify(body) });
+      showDashboard(data);
+      showToast('Status updated', 'success');
+    });
+
+    document.getElementById('share-location').addEventListener('click', async () => {
+      try {
+        const { latitude, longitude } = await getGeolocation();
+        const data = await api('/api/family/me', {
+          method: 'PUT',
+          body: JSON.stringify({ latitude, longitude }),
+        });
+        showDashboard(data);
+        showToast('Location shared', 'success');
+      } catch (err) {
+        showToast(err.message, 'danger');
+      }
+    });
+
+    window.removeMember = async (id) => {
+      if (!confirm('Remove this member from the family?')) return;
+      const data = await api(`/api/family/members/${id}`, { method: 'DELETE' });
+      showDashboard(data);
+    };
+
+    window.transferHead = async (id) => {
+      if (!confirm('Transfer family head to this member?')) return;
+      const data = await api('/api/family/transfer-head', {
+        method: 'PUT',
+        body: JSON.stringify({ new_head_user_id: id }),
+      });
+      showDashboard(data);
+      showToast('Family head transferred', 'success');
+    };
+
+    initSocket({
+      'family-update': (payload) => {
+        if (payload.family || payload.members) showDashboard(payload);
+        else loadFamily();
+      },
+    });
+
+    loadFamily().then((data) => {
+      if (data.family && socket) socket.emit('join-family', data.family.id);
+    });
+  </script>
+</body>
+</html>

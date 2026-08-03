@@ -1,0 +1,17 @@
+/* Fallback styles when Tailwind CDN is slow/blocked (common on mobile tunnels) */
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background: #12151f;
+  color: #f1f5f9;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+a { color: #60a5fa; }
+input, select, textarea, button {
+  font-size: 16px; /* prevents iOS zoom on focus */
+}
+.hero-title {
+  color: #38bdf8;
+  font-size: 1.75rem;
+  font-weight: 700;
+}

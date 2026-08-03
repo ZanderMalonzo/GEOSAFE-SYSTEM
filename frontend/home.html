@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#12151f" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/critical.css" />
+  <link rel="stylesheet" href="/mobile-ui.css" />
+  <title>GeoSafe — Home</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body class="app-shell">
+  <div class="app-container">
+    <div id="broadcast-banner" class="broadcast-banner hidden">
+      <span class="broadcast-banner__icon">⚠️</span>
+      <div>
+        <p class="broadcast-banner__title">BDRRMC Broadcast</p>
+        <p id="broadcast-text" class="broadcast-banner__text"></p>
+      </div>
+    </div>
+
+    <div class="home-layout">
+      <section class="map-card">
+        <div class="map-card__badge">
+          <span class="map-card__badge-dot"></span>
+          <span id="coord-status">Device Coordinates: Acquiring…</span>
+        </div>
+        <div id="home-map"></div>
+        <div class="map-card__legend">
+          <span class="map-card__legend-dot"></span>
+          <span>Evacuation Safe Haven</span>
+        </div>
+      </section>
+
+      <nav class="action-grid" aria-label="Quick actions">
+        <a href="report.html" class="action-card">
+          <span class="action-card__icon">📝</span>
+          <span class="action-card__label">Report Incident</span>
+        </a>
+        <a href="report.html?sos=1" class="action-card action-card--sos">
+          <span class="action-card__icon">🚨</span>
+          <span class="action-card__label">SOS Rescue Request</span>
+        </a>
+        <a href="route.html" class="action-card">
+          <span class="action-card__icon">🧭</span>
+          <span class="action-card__label">Safe Navigation</span>
+        </a>
+        <a href="family.html" class="action-card">
+          <span class="action-card__icon">👨‍👩‍👧</span>
+          <span class="action-card__label">Family Tracker</span>
+        </a>
+      </nav>
+    </div>
+
+    <section class="ui-card">
+      <h2>Recent Alerts</h2>
+      <div id="alerts-preview" class="text-muted">Loading…</div>
+    </section>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/evacuation-routes.js"></script>
+  <script src="/app.js"></script>
+  <script>
+    const user = requireAuth(['resident']);
+    if (!user) throw new Error('unauthorized');
+    injectBottomNav('home');
+
+    let homeMap = null;
+    let homeLayers = null;
+
+    async function initHomeMap(lat, lng) {
+      if (!homeMap) {
+        homeMap = L.map('home-map', { zoomControl: false, attributionControl: false }).setView(
+          [lat, lng],
+          15
+        );
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          maxZoom: 19,
+        }).addTo(homeMap);
+      }
+
+      if (homeLayers) homeMap.removeLayer(homeLayers);
+      homeLayers = L.layerGroup();
+
+      const { haven } = getNearestHaven(lat, lng);
+      let routeData;
+      try {
+        routeData = await fetchWalkingRoute(lat, lng, haven.lat, haven.lng);
+        document.getElementById('coord-status').textContent =
+          `Active · ${formatDistance(routeData.distanceM)} · ${formatDuration(routeData.durationSec)} to ${haven.name}`;
+      } catch {
+        routeData = null;
+        document.getElementById('coord-status').textContent = `Active · Nearest: ${haven.name}`;
+      }
+
+      drawNavigationRoute(homeMap, lat, lng, haven, routeData, homeLayers);
+      homeLayers.addTo(homeMap);
+      fitMapToPath(homeMap, routeData?.coordinates || [[lat, lng], [haven.lat, haven.lng]]);
+      setTimeout(() => homeMap.invalidateSize(), 100);
+    }
+
+    async function loadCoords() {
+      try {
+        const { latitude, longitude } = await getGeolocation();
+        await initHomeMap(latitude, longitude);
+      } catch {
+        document.getElementById('coord-status').textContent = 'GPS unavailable · Bayanan routes shown';
+        await initHomeMap(BAYANAN_CENTER.lat, BAYANAN_CENTER.lng);
+      }
+    }
+
+    async function loadAlerts() {
+      const el = document.getElementById('alerts-preview');
+      const banner = document.getElementById('broadcast-banner');
+      try {
+        const { alerts } = await api('/api/alerts');
+        if (alerts.length) {
+          const latest = alerts[0];
+          banner.classList.remove('hidden');
+          document.getElementById('broadcast-text').textContent = latest.message;
+          el.innerHTML = alerts
+            .slice(0, 3)
+            .map(
+              (a) =>
+                `<div class="report-item"><div class="flex gap-2 mb-1">${severityBadge(a.severity)}</div><p class="text-sm" style="margin:0">${escapeHtml(a.message)}</p><p class="text-muted">${formatDate(a.created_at)}</p></div>`
+            )
+            .join('');
+        } else {
+          banner.classList.add('hidden');
+          el.innerHTML = '<p class="text-muted">No active broadcasts.</p>';
+        }
+      } catch {
+        el.innerHTML = '<p class="text-muted">Unable to load alerts.</p>';
+      }
+    }
+
+    initSocket({
+      'alert-broadcast': (alert) => {
+        document.getElementById('broadcast-banner').classList.remove('hidden');
+        document.getElementById('broadcast-text').textContent = alert.message;
+        showToast(alert.message, 'danger');
+        loadAlerts();
+      },
+    });
+
+    loadCoords();
+    loadAlerts();
+    window.addEventListener('resize', () => homeMap?.invalidateSize());
+  </script>
+</body>
+</html>
