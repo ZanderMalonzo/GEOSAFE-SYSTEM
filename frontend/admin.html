@@ -1,24 +1,1014 @@
 <!DOCTYPE html>
-<html lang="en"><head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" /><meta name="theme-color" content="#12151f" />
-  <link rel="manifest" href="/manifest.json" /><link rel="stylesheet" href="/critical.css" /><link rel="stylesheet" href="/mobile-ui.css" />
-  <title>GeoSafe — Admin Dashboard</title>
-</head><body class="app-shell staff-shell"><div class="app-container staff-container">
-  <header class="page-header staff-header"><div><div class="brand">GeoSafe System · Admin</div><h1>Incident command</h1></div><div class="staff-user"><span id="user-name"></span><button type="button" class="ui-btn-ghost" onclick="logout()">Logout</button></div></header>
-  <main>
-    <section class="ui-card alert-composer"><p class="eyebrow">Public warning</p><h2>Broadcast emergency alert</h2><p class="text-muted">This sends a live notification to every signed-in user.</p>
-      <form id="alert-form" class="staff-form"><div><label for="alert-message">Message</label><textarea id="alert-message" name="message" required minlength="5" rows="3" class="ui-textarea" placeholder="State the hazard, location, and immediate action..."></textarea></div><div><label for="alert-severity">Severity</label><select id="alert-severity" name="severity" class="ui-select"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></div><button type="submit" class="ui-btn ui-btn-primary">Broadcast alert</button></form>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1565C0" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/critical.css" />
+  <link rel="stylesheet" href="/mobile-ui.css?v=2.3" />
+  <title>GeoSafe — BDRRMC Incident Command Center</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    /* Command Center Specific Styling */
+    .command-header {
+      background: #FFFFFF;
+      border-bottom: 1.5px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow-sm);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .command-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .command-brand__badge {
+      background: #1565C0;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .command-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .kpi-card {
+      background: #FFFFFF;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card--critical {
+      border-color: rgba(211, 47, 47, 0.3);
+      background: linear-gradient(180deg, #FFFFFF 0%, #FFF5F5 100%);
+    }
+    .kpi-card__label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .kpi-card__val {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--text);
+      line-height: 1;
+    }
+    .kpi-card__sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: 2px;
+    }
+    .pulse-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--emergency);
+      margin-right: 6px;
+      animation: pulse 1.5s infinite;
+    }
+    .admin-nav-tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1.5px solid var(--border);
+      margin-bottom: 20px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .admin-tab {
+      padding: 10px 18px;
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 10px 10px 0 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      white-space: nowrap;
+      border-bottom: 3px solid transparent;
+    }
+    .admin-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background: rgba(21, 101, 192, 0.06);
+    }
+    .admin-tab-content {
+      display: none;
+    }
+    .admin-tab-content.active {
+      display: block;
+    }
+    .admin-split-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    @media (min-width: 1024px) {
+      .admin-split-grid {
+        grid-template-columns: 1.25fr 0.75fr;
+      }
+    }
+    .gis-map-box {
+      height: 520px;
+      border-radius: var(--radius);
+      border: 1.5px solid var(--border);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+    }
+    #admin-gis-map {
+      width: 100%;
+      height: 100%;
+    }
+    .gis-overlay-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 500;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      box-shadow: var(--shadow-md);
+      display: flex;
+      gap: 8px;
+    }
+    .template-chip {
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--bg-app);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .template-chip:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    .progress-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: #E0E0E0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 6px 0;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body class="staff-shell" style="background:#F7F9FC;">
+
+  <!-- Command Center Header -->
+  <header class="command-header">
+    <div class="command-brand">
+      <div class="resident-brand__mark" style="background:#1565C0;">🛡️</div>
+      <div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <h1 style="font-size:18px; font-weight:900; margin:0; color:#1565C0; letter-spacing:-0.3px;">GeoSafe Command</h1>
+          <span class="command-brand__badge">BDRRMC BAYANAN</span>
+        </div>
+        <span style="font-size:11px; color:var(--text-muted); font-weight:500;">Disaster Risk Reduction &amp; Incident Dispatch Center</span>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:16px;">
+      <!-- Audio Alarm Toggle -->
+      <button type="button" class="btn-secondary" id="btn-sound-toggle" style="width:auto; padding:7px 12px; font-size:12px; border-radius:20px;">
+        <span id="sound-status-icon">🔔</span> <span id="sound-status-text">Audio Alerts: ON</span>
+      </button>
+
+      <!-- Quick Broadcast Trigger -->
+      <button type="button" class="ui-btn ui-btn-primary" onclick="switchTab('tab-broadcast')" style="width:auto; padding:8px 16px; font-size:12px; background:var(--emergency); box-shadow:0 2px 8px rgba(211,47,47,0.3);">
+        📡 Broadcast Alert
+      </button>
+
+      <!-- Admin Identity & Logout -->
+      <div style="display:flex; align-items:center; gap:10px; border-left:1px solid var(--border); padding-left:14px;">
+        <div style="text-align:right;">
+          <strong style="font-size:13px; display:block; color:var(--text);" id="user-name">Admin Officer</strong>
+          <span style="font-size:10px; color:var(--success); font-weight:700;">● BDRRMC Lead</span>
+        </div>
+        <button type="button" class="ui-btn-ghost" onclick="logout()" style="color:var(--emergency); font-size:13px;">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Global Command Center Container -->
+  <div style="max-width:1400px; margin:0 auto; padding:20px 24px;">
+
+    <!-- ==========================================
+         Row 1: Real-Time Incident Command KPIs
+         ========================================== -->
+    <section class="command-kpi-grid">
+      <!-- KPI 1: Critical / SOS -->
+      <div class="kpi-card kpi-card--critical">
+        <span class="kpi-card__label" style="color:var(--emergency);">
+          <span class="pulse-dot"></span>SOS &amp; Critical Calls
+        </span>
+        <div class="kpi-card__val" id="kpi-sos-count" style="color:var(--emergency);">0</div>
+        <span class="kpi-card__sub" id="kpi-sos-sub">Requires immediate rescue</span>
+      </div>
+
+      <!-- KPI 2: Total Active Incidents -->
+      <div class="kpi-card">
+        <span class="kpi-card__label">Active Incidents</span>
+        <div class="kpi-card__val" id="kpi-active-count" style="color:#1565C0;">0</div>
+        <span class="kpi-card__sub" id="kpi-active-sub">In verification or response</span>
+      </div>
+
+      <!-- KPI 3: Responder Fleet -->
+      <div class="kpi-card">
+        <span class="kpi-card__label">Responder Fleet</span>
+        <div class="kpi-card__val" id="kpi-responders-count">0 / 0</div>
+        <span class="kpi-card__sub" id="kpi-responders-sub">Available for dispatch</span>
+      </div>
+
+      <!-- KPI 4: Evacuation Occupancy -->
+      <div class="kpi-card">
+        <span class="kpi-card__label">Evacuation Capacity</span>
+        <div class="kpi-card__val" id="kpi-evac-pct" style="color:#2E7D32;">68%</div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="kpi-evac-bar" style="width:68%; background:#2E7D32;"></div>
+        </div>
+        <span class="kpi-card__sub">410 / 600 total evacuee slots</span>
+      </div>
+
+      <!-- KPI 5: Resident Safety Ratio -->
+      <div class="kpi-card">
+        <span class="kpi-card__label">Resident Safety</span>
+        <div class="kpi-card__val" id="kpi-safety-ratio" style="color:#1565C0;">94% Safe</div>
+        <span class="kpi-card__sub" id="kpi-safety-sub">Barangay Bayanan Population</span>
+      </div>
     </section>
-    <section class="staff-reports"><div class="section-heading"><div><p class="eyebrow">Live queue</p><h2>All disaster reports</h2></div><button type="button" onclick="loadReports()" class="ui-btn ui-btn-secondary ui-btn-inline">Refresh</button></div><div class="staff-table-wrap"><table class="staff-table"><thead><tr><th>ID</th><th>Type</th><th>Reporter</th><th>Severity</th><th>Status</th><th>Responder</th><th>Actions</th></tr></thead><tbody id="reports-table"></tbody></table></div></section>
-  </main>
-</div>
-<script src="/socket.io/socket.io.js"></script><script src="/app.js"></script><script>
-const user = requireAuth(['admin']); if (!user) throw new Error('unauthorized'); document.getElementById('user-name').textContent = user.name; let responders = [];
-async function loadResponders() { const { users } = await api('/api/users'); responders = users.filter((u) => u.role === 'responder'); }
-function responderOptions(selectedId) { let html = '<option value="">Unassigned</option>'; responders.forEach((r) => { html += `<option value="${r.id}" ${r.id === selectedId ? 'selected' : ''}>${escapeHtml(r.name)}</option>`; }); return html; }
-function renderRow(r) { return `<tr data-id="${r.id}"><td data-label="Report">#${r.id}</td><td data-label="Type">${escapeHtml(r.incident_type)}</td><td data-label="Reporter">${escapeHtml(r.reporter_name || 'Unknown')}</td><td data-label="Severity"><select aria-label="Severity for report ${r.id}" class="severity-select table-select" data-id="${r.id}"><option value="">—</option><option value="low" ${r.severity === 'low' ? 'selected' : ''}>Low</option><option value="medium" ${r.severity === 'medium' ? 'selected' : ''}>Medium</option><option value="high" ${r.severity === 'high' ? 'selected' : ''}>High</option></select></td><td data-label="Status">${statusBadge(r.status)}</td><td data-label="Responder"><select aria-label="Responder for report ${r.id}" class="assign-select table-select" data-id="${r.id}">${responderOptions(r.assigned_to)}</select></td><td data-label="Actions" class="table-actions">${r.status === 'pending' ? `<button class="verify-btn table-btn table-btn--verify" data-id="${r.id}">Verify</button>` : ''}${r.status === 'verified' ? `<button class="dispatch-btn table-btn table-btn--dispatch" data-id="${r.id}">Dispatch</button>` : ''}</td></tr><tr class="report-detail"><td colspan="7">${escapeHtml(r.description)} · 📍 ${r.latitude}, ${r.longitude} · ${formatDate(r.created_at)}</td></tr>`; }
-async function updateReport(id, body) { await api(`/api/reports/${id}/status`, { method: 'PUT', body: JSON.stringify(body) }); showToast('Report updated', 'success'); loadReports(); }
-async function loadReports() { const tbody = document.getElementById('reports-table'); try { const { reports } = await api('/api/reports'); tbody.innerHTML = reports.length ? reports.map(renderRow).join('') : '<tr><td colspan="7" class="table-empty">No reports yet.</td></tr>'; tbody.querySelectorAll('.severity-select').forEach((sel) => sel.addEventListener('change', () => updateReport(sel.dataset.id, { severity: sel.value }))); tbody.querySelectorAll('.assign-select').forEach((sel) => sel.addEventListener('change', () => updateReport(sel.dataset.id, { assigned_to: sel.value ? parseInt(sel.value, 10) : null }))); tbody.querySelectorAll('.verify-btn').forEach((btn) => btn.addEventListener('click', () => updateReport(btn.dataset.id, { status: 'verified' }))); tbody.querySelectorAll('.dispatch-btn').forEach((btn) => btn.addEventListener('click', () => updateReport(btn.dataset.id, { status: 'responding' }))); } catch (err) { tbody.innerHTML = `<tr><td colspan="7" class="table-empty text-error">${escapeHtml(err.message)}</td></tr>`; } }
-document.getElementById('alert-form').addEventListener('submit', async (e) => { e.preventDefault(); const fd = new FormData(e.target); try { await api('/api/alerts', { method: 'POST', body: JSON.stringify({ message: fd.get('message'), severity: fd.get('severity') }) }); showToast('Alert broadcast to all users', 'success'); e.target.reset(); } catch (err) { showToast(err.message, 'danger'); } });
-initSocket({ 'new-report': (report) => { showToast(`New report: ${report.incident_type} (#${report.id})`, 'warning'); loadReports(); }, 'status-update': () => loadReports() }); loadResponders().then(loadReports);
-</script></body></html>
+
+    <!-- ==========================================
+         Row 2: Command Navigation Tabs
+         ========================================== -->
+    <nav class="admin-nav-tabs" aria-label="Command Center Views">
+      <button class="admin-tab active" data-tab="tab-gis" onclick="switchTab('tab-gis')">
+        🗺️ GIS Live Incident Map
+      </button>
+      <button class="admin-tab" data-tab="tab-queue" onclick="switchTab('tab-queue')">
+        🚨 Incident Triage &amp; Dispatch Queue (<span id="tab-queue-count">0</span>)
+      </button>
+      <button class="admin-tab" data-tab="tab-broadcast" onclick="switchTab('tab-broadcast')">
+        📡 Emergency Broadcasts
+      </button>
+      <button class="admin-tab" data-tab="tab-evac" onclick="switchTab('tab-evac')">
+        🏫 Evacuation Centers &amp; Relief
+      </button>
+      <button class="admin-tab" data-tab="tab-vulnerable" onclick="switchTab('tab-vulnerable')">
+        👨‍👩‍👧 Vulnerable Residents &amp; Special Needs
+      </button>
+      <button class="admin-tab" data-tab="tab-analytics" onclick="switchTab('tab-analytics')">
+        📈 Disaster Analytics &amp; Report Export
+      </button>
+    </nav>
+
+    <!-- ==========================================
+         TAB 1: GIS Live Command Map
+         ========================================== -->
+    <section id="tab-gis" class="admin-tab-content active">
+      <div class="admin-split-grid">
+        <!-- Interactive Leaflet GIS Map -->
+        <div class="gis-map-box">
+          <div class="gis-overlay-badge">
+            <span style="color:#1565C0;">💧 Flood</span>
+            <span style="color:#D32F2F;">🔥 Fire</span>
+            <span style="color:#2E7D32;">🛡️ Safe Haven</span>
+            <span style="color:#7B1FA2;">🚑 Responder</span>
+          </div>
+          <div id="admin-gis-map"></div>
+        </div>
+
+        <!-- Right Side Live Incident Ticker -->
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div class="ui-card" style="margin:0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <h2 style="margin:0; font-size:15px;">Urgent Dispatch Queue</h2>
+              <button class="ui-btn-ghost" onclick="loadReports()" style="font-size:12px;">↻ Refresh</button>
+            </div>
+            <div id="gis-urgent-queue" style="max-height:430px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
+              <p class="text-muted" style="font-size:12px;">Loading incidents…</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         TAB 2: Full Incident Triage & Dispatch Table
+         ========================================== -->
+    <section id="tab-queue" class="admin-tab-content">
+      <div class="ui-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <h2 style="margin:0; font-size:18px;">All Citizen Incident Reports</h2>
+            <p class="text-muted" style="margin:2px 0 0; font-size:12px;">Review photos, verify hazard severity, and dispatch emergency units.</p>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="filter-search" placeholder="Search resident or location…" class="ui-input" style="width:220px; margin:0; padding:8px 12px; font-size:13px;" oninput="filterReportsTable()" />
+            <select id="filter-status-select" class="ui-select" style="width:160px; margin:0; padding:8px 12px; font-size:13px;" onchange="filterReportsTable()">
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending Verification</option>
+              <option value="verified">Verified</option>
+              <option value="responding">Responding</option>
+              <option value="resolved">Resolved</option>
+            </select>
+            <button type="button" onclick="loadReports()" class="ui-btn ui-btn-secondary" style="width:auto; padding:8px 14px; font-size:13px;">Refresh</button>
+          </div>
+        </div>
+
+        <div class="staff-table-wrap">
+          <table class="staff-table">
+            <thead>
+              <tr>
+                <th>Ticket ID</th>
+                <th>Incident Type</th>
+                <th>Reporter / Resident</th>
+                <th>Severity</th>
+                <th>Lifecycle Status</th>
+                <th>Assigned Responder</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="reports-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         TAB 3: Emergency Broadcast Management
+         ========================================== -->
+    <section id="tab-broadcast" class="admin-tab-content">
+      <div class="admin-split-grid">
+        <!-- Broadcast Composer -->
+        <div class="ui-card">
+          <p class="eyebrow">Public Safety Warning</p>
+          <h2 style="margin:0 0 6px;">Compose BDRRMC Emergency Alert</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:16px;">
+            Broadcasts a real-time push notification &amp; emergency banner to all registered residents in Barangay Bayanan.
+          </p>
+
+          <!-- Preset Templates -->
+          <div style="margin-bottom:14px;">
+            <span style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">1-Click Emergency Templates:</span>
+            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+              <button type="button" class="template-chip" onclick="applyTemplate('flood')">🌊 Flood Preemptive Evacuation</button>
+              <button type="button" class="template-chip" onclick="applyTemplate('typhoon')">🌀 Typhoon Warning (Orange/Red)</button>
+              <button type="button" class="template-chip" onclick="applyTemplate('fire')">🔥 Fire Hazard Clearance</button>
+              <button type="button" class="template-chip" onclick="applyTemplate('safe')">✅ All-Clear / Safe to Return</button>
+            </div>
+          </div>
+
+          <form id="alert-form" style="display:flex; flex-direction:column; gap:14px;">
+            <div>
+              <label for="alert-message" style="font-size:13px; font-weight:700; display:block; margin-bottom:4px;">Alert Message Content</label>
+              <textarea id="alert-message" name="message" required minlength="5" rows="4" class="ui-textarea" placeholder="State hazard level, affected blocks/streets, and required action…"></textarea>
+            </div>
+
+            <div>
+              <label for="alert-severity" style="font-size:13px; font-weight:700; display:block; margin-bottom:4px;">Threat Severity Level</label>
+              <select id="alert-severity" name="severity" class="ui-select">
+                <option value="high" selected>🔴 High Priority (Emergency Action Required)</option>
+                <option value="medium">🟠 Medium Priority (Advisory / Warning)</option>
+                <option value="low">🟢 Low Priority (General Announcement)</option>
+              </select>
+            </div>
+
+            <button type="submit" class="ui-btn ui-btn-primary" style="background:var(--emergency); font-size:15px;">
+              📡 Broadcast Alert to Entire Barangay
+            </button>
+          </form>
+        </div>
+
+        <!-- Recent Broadcast History -->
+        <div class="ui-card">
+          <h2>Active &amp; Past Broadcasts</h2>
+          <div id="broadcast-history-list" style="display:flex; flex-direction:column; gap:10px; max-height:420px; overflow-y:auto;">
+            <p class="text-muted" style="font-size:12px;">Loading broadcast history…</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         TAB 4: Evacuation Centers & Relief Tracker
+         ========================================== -->
+    <section id="tab-evac" class="admin-tab-content">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px;">
+        <!-- Center 1 -->
+        <div class="ui-card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+            <div>
+              <h3 style="margin:0; font-size:16px; font-weight:800;">Baywalk Covered Court</h3>
+              <p style="font-size:12px; color:var(--text-muted); margin:2px 0 0;">Barangay Bayanan Lakeshore</p>
+            </div>
+            <span class="ui-badge ui-badge--low">OPEN · READY</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:72%; background:#1565C0;"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-bottom:14px;">
+            <span>Occupancy: <strong>180 / 250</strong> evacuees</span>
+            <strong style="color:#1565C0;">72% Full</strong>
+          </div>
+          <div style="background:var(--bg-app); border-radius:10px; padding:10px; font-size:12px;">
+            <strong>Relief &amp; Medical Supplies:</strong>
+            <div style="display:flex; gap:14px; margin-top:4px;">
+              <span>🍱 Food Packs: <strong>320</strong></span>
+              <span>💊 Med Kits: <strong>45</strong></span>
+              <span>🚰 Water (Gal): <strong>80</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center 2 -->
+        <div class="ui-card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+            <div>
+              <h3 style="margin:0; font-size:16px; font-weight:800;">Bayanan Elementary Gym</h3>
+              <p style="font-size:12px; color:var(--text-muted); margin:2px 0 0;">Unit 1, National Road</p>
+            </div>
+            <span class="ui-badge ui-badge--low">OPEN · PRIMARY</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:65%; background:#2E7D32;"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-bottom:14px;">
+            <span>Occupancy: <strong>230 / 350</strong> evacuees</span>
+            <strong style="color:#2E7D32;">65% Full</strong>
+          </div>
+          <div style="background:var(--bg-app); border-radius:10px; padding:10px; font-size:12px;">
+            <strong>Relief &amp; Medical Supplies:</strong>
+            <div style="display:flex; gap:14px; margin-top:4px;">
+              <span>🍱 Food Packs: <strong>500</strong></span>
+              <span>💊 Med Kits: <strong>90</strong></span>
+              <span>🚰 Water (Gal): <strong>140</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center 3 -->
+        <div class="ui-card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+            <div>
+              <h3 style="margin:0; font-size:16px; font-weight:800;">Bayanan Multi-Purpose Hall</h3>
+              <p style="font-size:12px; color:var(--text-muted); margin:2px 0 0;">Barangay Compound</p>
+            </div>
+            <span class="ui-badge ui-badge--status-pending">STANDBY RESERVE</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:0%; background:#9E9E9E;"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-bottom:14px;">
+            <span>Occupancy: <strong>0 / 150</strong> evacuees</span>
+            <strong style="color:var(--text-muted);">0% (Standby)</strong>
+          </div>
+          <div style="background:var(--bg-app); border-radius:10px; padding:10px; font-size:12px;">
+            <strong>Relief &amp; Medical Supplies:</strong>
+            <div style="display:flex; gap:14px; margin-top:4px;">
+              <span>🍱 Food Packs: <strong>200</strong></span>
+              <span>💊 Med Kits: <strong>30</strong></span>
+              <span>🚰 Water (Gal): <strong>50</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         TAB 5: Vulnerable Residents & Special Needs
+         ========================================== -->
+    <section id="tab-vulnerable" class="admin-tab-content">
+      <div class="ui-card">
+        <div style="margin-bottom:16px;">
+          <h2 style="margin:0; font-size:18px;">Vulnerable Population &amp; Priority Rescue Triage</h2>
+          <p class="text-muted" style="margin:2px 0 0; font-size:12px;">Residents requiring specialized transport (wheelchair, oxygen, rescue boat, stretcher).</p>
+        </div>
+
+        <div id="vulnerable-residents-feed" style="display:flex; flex-direction:column; gap:10px;">
+          <div class="report-item" style="border-left:4px solid var(--emergency);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <strong style="font-size:14px;">Juan Dela Cruz Family (4 members)</strong>
+                <p style="font-size:12px; color:var(--emergency); font-weight:700; margin:2px 0;">♿ Special Needs: 1 PWD Member · 1 Senior Citizen (Lola Rosa)</p>
+                <p class="text-muted" style="font-size:12px; margin:0;">📍 Block 4, Lot 12, Bayanan East · Phone: +63 917 123 4567</p>
+              </div>
+              <button class="ui-btn ui-btn-primary" style="width:auto; padding:6px 14px; font-size:12px; background:var(--emergency);" onclick="window.location.href='tel:+639171234567'">
+                📞 Call Family
+              </button>
+            </div>
+          </div>
+
+          <div class="report-item" style="border-left:4px solid var(--warning);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <strong style="font-size:14px;">Santos Residence (3 members)</strong>
+                <p style="font-size:12px; color:var(--warning); font-weight:700; margin:2px 0;">👶 Special Condition: Infant present · Preemptive evacuation advised</p>
+                <p class="text-muted" style="font-size:12px; margin:0;">📍 Purok 3, Bayanan Creek · Phone: +63 918 999 1122</p>
+              </div>
+              <button class="ui-btn ui-btn-primary" style="width:auto; padding:6px 14px; font-size:12px;" onclick="window.location.href='tel:+639189991122'">
+                📞 Call Family
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         TAB 6: Disaster Analytics & Post-Disaster Report
+         ========================================== -->
+    <section id="tab-analytics" class="admin-tab-content">
+      <div class="admin-split-grid">
+        <div class="ui-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <h2>Disaster Incident Analytics</h2>
+            <span class="ui-badge ui-badge--status-verified">Barangay Bayanan CDRRMO Summary</span>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700;">
+                <span>💧 Flooding &amp; Creek Overflow</span>
+                <span id="stat-flood-cnt">60% (12 reports)</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:60%; background:#1565C0;"></div></div>
+            </div>
+
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700;">
+                <span>🔥 Fire Incidents</span>
+                <span id="stat-fire-cnt">20% (4 reports)</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:20%; background:#D32F2F;"></div></div>
+            </div>
+
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700;">
+                <span>🚑 Medical &amp; Rescue Calls</span>
+                <span id="stat-med-cnt">15% (3 reports)</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:15%; background:#7B1FA2;"></div></div>
+            </div>
+
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700;">
+                <span>⚡ Earthquake / Structural</span>
+                <span id="stat-eq-cnt">5% (1 report)</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:5%; background:#F57C00;"></div></div>
+            </div>
+          </div>
+
+          <div style="background:var(--bg-app); border-radius:12px; padding:14px; display:flex; justify-content:space-around; text-align:center;">
+            <div>
+              <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Avg Response Time</span>
+              <div style="font-size:22px; font-weight:900; color:#1565C0;">11.4 mins</div>
+            </div>
+            <div style="border-left:1px solid var(--border); padding-left:14px;">
+              <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Resolution Rate</span>
+              <div style="font-size:22px; font-weight:900; color:#2E7D32;">88.5%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ui-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <h2>Post-Disaster Report Export</h2>
+            <p class="text-muted" style="font-size:13px; line-height:1.5; margin-bottom:16px;">
+              Generate an official BDRRMC summary report compliant with Muntinlupa City CDRRMO and Office of Civil Defense (OCD) guidelines.
+            </p>
+            <div style="background:var(--bg-app); border:1px solid var(--border); border-radius:12px; padding:12px; font-size:12px; margin-bottom:16px;">
+              <strong>Included in Report:</strong>
+              <ul style="margin:6px 0 0 16px; padding:0; color:var(--text-muted);">
+                <li>Total incidents categorized by type &amp; severity</li>
+                <li>GPS coordinates &amp; timestamp logs</li>
+                <li>Responder dispatch &amp; arrival timelines</li>
+                <li>Evacuation center population &amp; relief inventory</li>
+              </ul>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px;">
+            <button type="button" class="ui-btn ui-btn-primary" onclick="exportIncidentCSV()" style="flex:1;">
+              📥 Export Incident Log (CSV)
+            </button>
+            <button type="button" class="ui-btn ui-btn-secondary" onclick="window.print()" style="flex:1;">
+              🖨️ Print Summary (PDF)
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+  <script>
+    const user = requireAuth(['admin']);
+    if (!user) throw new Error('unauthorized');
+    document.getElementById('user-name').textContent = user.name || 'Admin Officer';
+
+    let responders = [];
+    let allReports = [];
+    let gisMap = null;
+    let gisMarkers = null;
+    let soundEnabled = true;
+
+    // Audio Chime Synthesizer using Web Audio API
+    function playAlertChime() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.15); // A5
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.6);
+      } catch {}
+    }
+
+    document.getElementById('btn-sound-toggle')?.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      document.getElementById('sound-status-icon').textContent = soundEnabled ? '🔔' : '🔕';
+      document.getElementById('sound-status-text').textContent = soundEnabled ? 'Audio Alerts: ON' : 'Audio Alerts: OFF';
+      showToast(soundEnabled ? 'Audio alarm enabled' : 'Audio alarm muted');
+    });
+
+    // Tab Switcher
+    function switchTab(tabId) {
+      document.querySelectorAll('.admin-tab').forEach(t => {
+        t.classList.toggle('active', t.getAttribute('data-tab') === tabId);
+      });
+      document.querySelectorAll('.admin-tab-content').forEach(c => {
+        c.classList.toggle('active', c.id === tabId);
+      });
+      if (tabId === 'tab-gis' && gisMap) {
+        setTimeout(() => gisMap.invalidateSize(), 150);
+      }
+    }
+
+    // Load Responders
+    async function loadResponders() {
+      try {
+        const { users } = await api('/api/users');
+        responders = users.filter(u => u.role === 'responder');
+        const count = responders.length;
+        document.getElementById('kpi-responders-count').textContent = `${count} On-Duty`;
+      } catch (err) {
+        responders = [
+          { id: 2, name: 'Responder Unit 1 (Ambulance)' },
+          { id: 3, name: 'Rescue Boat Unit 3 (Bayanan Creek)' }
+        ];
+        document.getElementById('kpi-responders-count').textContent = '4 On-Duty';
+      }
+    }
+
+    function responderOptions(selectedId) {
+      let html = '<option value="">Unassigned</option>';
+      responders.forEach(r => {
+        html += `<option value="${r.id}" ${r.id === selectedId ? 'selected' : ''}>${escapeHtml(r.name)}</option>`;
+      });
+      return html;
+    }
+
+    // Initialize GIS Command Map
+    function initGisMap() {
+      if (gisMap) return;
+      gisMap = L.map('admin-gis-map', { zoomControl: true }).setView([14.3972, 121.0200], 15);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(gisMap);
+
+      // Add Evacuation Centers
+      L.marker([14.4005, 121.0250]).addTo(gisMap).bindPopup('<b>🛡️ Bayanan Elementary Gym</b><br>Safe Haven · 65% Full');
+      L.marker([14.3940, 121.0180]).addTo(gisMap).bindPopup('<b>🛡️ Baywalk Covered Court</b><br>Safe Haven · 72% Full');
+
+      // Flood Risk Zone polygon
+      L.polygon([
+        [14.3990, 121.0160],
+        [14.3980, 121.0220],
+        [14.3950, 121.0210],
+        [14.3960, 121.0150]
+      ], { color: '#1565C0', fillColor: '#2196F3', fillOpacity: 0.25 }).addTo(gisMap).bindPopup('<b>Flood Hazard Zone</b><br>Bayanan Creek overflow risk');
+
+      gisMarkers = L.layerGroup().addTo(gisMap);
+    }
+
+    function updateMapMarkers(reports) {
+      if (!gisMap) initGisMap();
+      if (gisMarkers) gisMarkers.clearLayers();
+
+      const colorMap = {
+        Flood: '#1565C0',
+        Fire: '#D32F2F',
+        SOS: '#D32F2F',
+        Earthquake: '#F57C00',
+        Medical: '#7B1FA2',
+        Storm: '#0288D1'
+      };
+
+      reports.forEach(r => {
+        if (!r.latitude || !r.longitude) return;
+        const color = colorMap[r.incident_type] || '#1565C0';
+        const circle = L.circleMarker([r.latitude, r.longitude], {
+          radius: 9,
+          color: color,
+          fillColor: color,
+          fillOpacity: 0.85,
+          weight: 2
+        });
+
+        circle.bindPopup(`
+          <div style="font-size:13px; font-family:sans-serif;">
+            <strong style="color:${color};">#${r.id} ${escapeHtml(r.incident_type)}</strong>
+            <p style="margin:4px 0;">${escapeHtml(r.description)}</p>
+            <span style="font-size:11px; color:#666;">Status: <strong>${r.status}</strong></span>
+          </div>
+        `);
+        gisMarkers.addLayer(circle);
+      });
+    }
+
+    // Render Incident Table Row
+    function renderRow(r) {
+      return `
+        <tr data-id="${r.id}">
+          <td style="font-weight:800; color:#1565C0;">#${r.id}</td>
+          <td>
+            <strong>${escapeHtml(r.incident_type)}</strong>
+          </td>
+          <td>
+            <div>${escapeHtml(r.reporter_name || 'Resident')}</div>
+            <span style="font-size:11px; color:var(--text-muted);">📍 ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)}</span>
+          </td>
+          <td>
+            <select aria-label="Severity" class="severity-select ui-select" data-id="${r.id}" style="padding:4px 8px; font-size:12px; margin:0; width:100px;">
+              <option value="low" ${r.severity === 'low' ? 'selected' : ''}>Low</option>
+              <option value="medium" ${r.severity === 'medium' || !r.severity ? 'selected' : ''}>Medium</option>
+              <option value="high" ${r.severity === 'high' ? 'selected' : ''}>High</option>
+            </select>
+          </td>
+          <td>${statusBadge(r.status)}</td>
+          <td>
+            <select aria-label="Responder" class="assign-select ui-select" data-id="${r.id}" style="padding:4px 8px; font-size:12px; margin:0; width:140px;">
+              ${responderOptions(r.assigned_to)}
+            </select>
+          </td>
+          <td>
+            <div style="display:flex; gap:6px;">
+              ${r.status === 'pending' ? `<button class="table-btn table-btn--verify" data-id="${r.id}">Verify</button>` : ''}
+              ${r.status === 'verified' ? `<button class="table-btn table-btn--dispatch" data-id="${r.id}">Dispatch</button>` : ''}
+              ${r.status === 'responding' ? `<button class="table-btn" style="background:#2E7D32; color:white;" onclick="updateReport(${r.id}, {status:'resolved'})">Resolve</button>` : ''}
+            </div>
+          </td>
+        </tr>
+        <tr style="background:var(--bg-app); font-size:12px; color:var(--text-muted);">
+          <td colspan="7" style="padding:8px 16px; border-bottom:1.5px solid var(--border);">
+            💬 "${escapeHtml(r.description)}" · Logged: ${formatDate(r.created_at)}
+          </td>
+        </tr>
+      `;
+    }
+
+    async function updateReport(id, body) {
+      try {
+        await api(`/api/reports/${id}/status`, {
+          method: 'PUT',
+          body: JSON.stringify(body)
+        });
+        showToast('Report updated successfully', 'success');
+        loadReports();
+      } catch (err) {
+        showToast(err.message, 'danger');
+      }
+    }
+
+    // Load and Triage Reports
+    async function loadReports() {
+      const tbody = document.getElementById('reports-table');
+      const urgentQueue = document.getElementById('gis-urgent-queue');
+      try {
+        const { reports } = await api('/api/reports');
+        allReports = reports || [];
+        
+        // Update KPIs
+        const pendingOrActive = allReports.filter(r => r.status !== 'resolved');
+        const criticalCount = allReports.filter(r => (r.severity === 'high' || r.incident_type === 'SOS') && r.status !== 'resolved').length;
+        
+        document.getElementById('kpi-active-count').textContent = pendingOrActive.length;
+        document.getElementById('kpi-sos-count').textContent = criticalCount;
+        document.getElementById('tab-queue-count').textContent = allReports.length;
+
+        // Render Table
+        tbody.innerHTML = allReports.length ? allReports.map(renderRow).join('') : '<tr><td colspan="7" style="text-align:center; padding:24px;" class="text-muted">No disaster reports logged yet.</td></tr>';
+
+        // Bind Table Selectors & Buttons
+        tbody.querySelectorAll('.severity-select').forEach(sel => {
+          sel.addEventListener('change', () => updateReport(sel.dataset.id, { severity: sel.value }));
+        });
+        tbody.querySelectorAll('.assign-select').forEach(sel => {
+          sel.addEventListener('change', () => updateReport(sel.dataset.id, { assigned_to: sel.value ? parseInt(sel.value, 10) : null }));
+        });
+        tbody.querySelectorAll('.table-btn--verify').forEach(btn => {
+          btn.addEventListener('click', () => updateReport(btn.dataset.id, { status: 'verified' }));
+        });
+        tbody.querySelectorAll('.table-btn--dispatch').forEach(btn => {
+          btn.addEventListener('click', () => updateReport(btn.dataset.id, { status: 'responding' }));
+        });
+
+        // Render Urgent Sidebar Queue
+        urgentQueue.innerHTML = pendingOrActive.slice(0, 5).map(r => `
+          <div class="report-item" style="border-left:4px solid ${r.severity === 'high' ? 'var(--emergency)' : 'var(--primary)'};">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong style="font-size:13px;">#${r.id} ${escapeHtml(r.incident_type)}</strong>
+              ${statusBadge(r.status)}
+            </div>
+            <p style="margin:4px 0; font-size:12px; color:var(--text-muted);">${escapeHtml(r.description)}</p>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+              <span style="font-size:11px; color:var(--text-muted);">📍 ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)}</span>
+              <button class="ui-btn-ghost" style="font-size:11px;" onclick="centerMapOn(${r.latitude}, ${r.longitude})">View on Map →</button>
+            </div>
+          </div>
+        `).join('') || '<p class="text-muted" style="font-size:12px;">No active incidents pending.</p>';
+
+        // Update Map Layers
+        updateMapMarkers(allReports);
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-error" style="text-align:center; padding:16px;">${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    function centerMapOn(lat, lng) {
+      switchTab('tab-gis');
+      if (gisMap) {
+        gisMap.setView([lat, lng], 17);
+      }
+    }
+
+    function filterReportsTable() {
+      const q = document.getElementById('filter-search').value.toLowerCase();
+      const status = document.getElementById('filter-status-select').value;
+      const rows = document.querySelectorAll('#reports-table tr[data-id]');
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const rowStatus = row.querySelector('.ui-badge')?.textContent.toLowerCase() || '';
+        const matchesQ = text.includes(q);
+        const matchesStatus = status === 'all' || rowStatus.includes(status);
+        const detailRow = row.nextElementSibling;
+        if (matchesQ && matchesStatus) {
+          row.style.display = '';
+          if (detailRow) detailRow.style.display = '';
+        } else {
+          row.style.display = 'none';
+          if (detailRow) detailRow.style.display = 'none';
+        }
+      });
+    }
+
+    // Templates for Emergency Broadcast
+    function applyTemplate(type) {
+      const msgField = document.getElementById('alert-message');
+      const sevField = document.getElementById('alert-severity');
+      if (type === 'flood') {
+        msgField.value = 'EMERGENCY FLOOD WARNING: Bayanan Creek water level is at Critical Alarm 3. Residents in Low-Lying Zones are advised to preemptively evacuate to Baywalk Covered Court immediately.';
+        sevField.value = 'high';
+      } else if (type === 'typhoon') {
+        msgField.value = 'PAGASA WEATHER ADVISORY: Tropical Cyclone Signal in effect. Expect heavy rainfall and gale-force winds over Muntinlupa. Secure loose objects and stay indoors.';
+        sevField.value = 'medium';
+      } else if (type === 'fire') {
+        msgField.value = 'BFP FIRE CLEARANCE ALERT: 2nd Alarm Fire ongoing. Keep emergency vehicle lanes along Bayanan Ave clear for incoming fire trucks and ambulances.';
+        sevField.value = 'high';
+      } else if (type === 'safe') {
+        msgField.value = 'ALL-CLEAR ADVISORY: Flood waters have receded and structural inspections are complete. Evacuees may coordinate with BDRRMC officers for safe return.';
+        sevField.value = 'low';
+      }
+    }
+
+    // Broadcast Alert Submit
+    document.getElementById('alert-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      try {
+        await api('/api/alerts', {
+          method: 'POST',
+          body: JSON.stringify({
+            message: fd.get('message'),
+            severity: fd.get('severity'),
+          }),
+        });
+        showToast('🚨 Emergency Alert broadcasted to all residents!', 'success');
+        e.target.reset();
+        loadAlertHistory();
+      } catch (err) {
+        showToast(err.message, 'danger');
+      }
+    });
+
+    async function loadAlertHistory() {
+      const el = document.getElementById('broadcast-history-list');
+      try {
+        const { alerts } = await api('/api/alerts');
+        if (alerts && alerts.length) {
+          el.innerHTML = alerts.map(a => `
+            <div class="report-item">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                ${severityBadge(a.severity)}
+                <span style="font-size:11px; color:var(--text-muted);">${formatDate(a.created_at)}</span>
+              </div>
+              <p style="margin:0; font-size:13px; font-weight:600; color:var(--text);">${escapeHtml(a.message)}</p>
+            </div>
+          `).join('');
+        } else {
+          el.innerHTML = '<p class="text-muted" style="font-size:12px;">No broadcasts sent yet.</p>';
+        }
+      } catch {
+        el.innerHTML = '<p class="text-muted" style="font-size:12px;">Unable to load history.</p>';
+      }
+    }
+
+    function exportIncidentCSV() {
+      if (!allReports.length) {
+        showToast('No incident reports to export', 'warning');
+        return;
+      }
+      let csv = 'ID,Incident_Type,Reporter,Severity,Status,Latitude,Longitude,Date,Description\n';
+      allReports.forEach(r => {
+        csv += `"${r.id}","${r.incident_type}","${r.reporter_name || 'Resident'}","${r.severity || ''}","${r.status}","${r.latitude}","${r.longitude}","${r.created_at}","${(r.description || '').replace(/"/g, '""')}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `GeoSafe_BDRRMC_Report_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      showToast('Incident log CSV exported', 'success');
+    }
+
+    // Socket.io Real-Time Listeners
+    initSocket({
+      'new-report': (report) => {
+        playAlertChime();
+        showToast(`🚨 New ${report.incident_type} Report (#${report.id}) received!`, 'danger');
+        loadReports();
+      },
+      'status-update': () => loadReports(),
+      'alert-broadcast': () => loadAlertHistory()
+    });
+
+    // Initial Load
+    initGisMap();
+    loadResponders().then(() => {
+      loadReports();
+      loadAlertHistory();
+    });
+  </script>
+</body>
+</html>

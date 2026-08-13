@@ -2,119 +2,135 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#12151f" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css" />
-  <title>GeoSafe — Family Tracker</title>
+  <link rel="stylesheet" href="/mobile-ui.css?v=2.5" />
+  <title>GeoSafe — Family Safety Tracker</title>
 </head>
 <body class="app-shell">
   <div class="app-container">
-    <header class="page-header">
-      <div>
-        <div class="brand">GEOSAFE SYSTEM</div>
-        <h1>Family Tracker</h1>
+    <header class="resident-topbar">
+      <div class="resident-brand">
+        <span class="resident-brand__mark">⌖</span>
+        <span>GeoSafe</span>
       </div>
       <button type="button" class="ui-btn-ghost" onclick="logout()">Logout</button>
     </header>
 
-    <main class="space-y-6">
-    <div id="no-family" class="hidden space-y-6">
+    <div style="margin-bottom:14px;">
+      <h1 style="font-size:22px; font-weight:800; margin:0;">Family Safety Tracker</h1>
+      <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Track safety statuses, battery levels, and live GPS locations.</p>
+    </div>
+
+    <!-- State 1: No Family Group -->
+    <div id="no-family" class="hidden" style="display:flex; flex-direction:column; gap:16px;">
       <section class="ui-card">
         <h2>👨‍👩‍👧 Create Family Group</h2>
+        <p class="text-muted" style="font-size:12px; margin-bottom:12px;">Create a private circle for your household in Barangay Bayanan.</p>
         <form id="create-family-form">
-          <label class="text-muted">Family Group Name</label>
-          <input name="name" required minlength="2" class="ui-input" placeholder="e.g. Malonzo Family" />
-          <label class="text-muted">Description (optional)</label>
-          <textarea name="description" rows="2" class="ui-textarea" placeholder="Optional note"></textarea>
-          <p id="create-error" class="text-error hidden"></p>
-          <button type="submit" class="ui-btn ui-btn-primary" style="background:#2563eb">Create Family Group</button>
+          <label style="font-size:13px; font-weight:700; display:block; margin-bottom:4px;">Family Group Name</label>
+          <input name="name" required minlength="2" class="ui-input" placeholder="e.g. Dela Cruz Family" />
+          
+          <label style="font-size:13px; font-weight:700; display:block; margin-bottom:4px;">Description (Optional)</label>
+          <textarea name="description" rows="2" class="ui-textarea" placeholder="e.g. Block 4, Purok 2, Bayanan"></textarea>
+          
+          <p id="create-error" class="text-error hidden" style="color:var(--emergency); font-size:12px; margin-bottom:8px;"></p>
+          <button type="submit" class="ui-btn ui-btn-primary">Create Family Group</button>
         </form>
       </section>
 
       <section class="ui-card">
-        <h2>🔗 Join Family Group</h2>
+        <h2>🔗 Join Existing Family Group</h2>
+        <p class="text-muted" style="font-size:12px; margin-bottom:12px;">Enter the 8-character invite code provided by your family head.</p>
         <form id="join-family-form">
-          <label class="text-muted">Invite Code</label>
-          <input name="invite_code" required class="ui-input uppercase" placeholder="e.g. A1B2C3D4" />
-          <label class="text-muted">Your Relationship</label>
+          <label style="font-size:13px; font-weight:700; display:block; margin-bottom:4px;">Family Invite Code</label>
+          <input name="invite_code" required class="ui-input" style="text-transform:uppercase; letter-spacing:1px; font-weight:700;" placeholder="e.g. A1B2C3D4" />
+          
+          <label style="font-size:13px; font-weight:700; display:block; margin-bottom:4px;">Your Relationship in Household</label>
           <select name="relationship" class="ui-select">
-              <option>Spouse</option>
-              <option>Child</option>
-              <option>Parent</option>
-              <option>Sibling</option>
-              <option>Member</option>
-              <option>Other</option>
-            </select>
-          </div>
-          <p id="join-error" class="text-error hidden"></p>
+            <option>Spouse</option>
+            <option>Child</option>
+            <option>Parent</option>
+            <option>Sibling</option>
+            <option>Member</option>
+            <option>Other</option>
+          </select>
+          
+          <p id="join-error" class="text-error hidden" style="color:var(--emergency); font-size:12px; margin-bottom:8px;"></p>
           <button type="submit" class="ui-btn ui-btn-secondary">Join Family</button>
         </form>
       </section>
     </div>
 
-    <div id="has-family" class="hidden space-y-6">
+    <!-- State 2: Has Family Group -->
+    <div id="has-family" class="hidden" style="display:flex; flex-direction:column; gap:16px;">
+      <!-- Group Info Card -->
       <section class="ui-card">
-        <div class="flex flex-wrap justify-between gap-3 mb-4">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
           <div>
-            <h2 id="family-name" class="text-xl font-semibold text-blue-300"></h2>
-            <p id="family-desc" class="text-sm text-slate-400 mt-1"></p>
+            <h2 id="family-name" style="margin:0; font-size:18px; color:var(--primary);"></h2>
+            <p id="family-desc" class="text-muted" style="font-size:12px; margin:2px 0 0;"></p>
           </div>
-          <button type="button" id="leave-btn" class="ui-btn-ghost text-error">Leave</button>
+          <button type="button" id="leave-btn" class="ui-btn-ghost" style="color:var(--emergency); font-size:12px;">Leave Group</button>
         </div>
 
-        <div id="head-tools" class="hidden border-t border-slate-700 pt-4 mt-4 space-y-4">
-          <div class="flex flex-wrap gap-4 items-start">
+        <!-- Family Head Tools -->
+        <div id="head-tools" class="hidden" style="border-top:1px solid var(--border); padding-top:14px; margin-top:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
             <div>
-              <p class="text-xs text-slate-500 mb-1">Invite Code</p>
-              <p id="invite-code" class="font-mono text-lg text-cyan-400"></p>
+              <span style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Family Invite Code</span>
+              <p id="invite-code" style="font-size:20px; font-weight:900; color:var(--primary); font-family:monospace; margin:2px 0 0;"></p>
             </div>
-            <div>
-              <p class="text-xs text-slate-500 mb-1">QR Code</p>
-              <img id="invite-qr" alt="Invite QR" class="w-28 h-28 rounded bg-white p-1" />
-            </div>
-            <button id="regen-invite" class="text-xs text-blue-400 hover:underline self-end">Regenerate code</button>
+            <button id="regen-invite" class="ui-btn-ghost" style="font-size:11px;">Generate New Code</button>
           </div>
-          <form id="settings-form" class="grid md:grid-cols-2 gap-3 max-w-2xl">
-            <input name="name" id="settings-name" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-sm" />
-            <input name="description" id="settings-desc" placeholder="Description" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-sm" />
-            <button type="submit" class="md:col-span-2 text-sm px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 w-fit">Save Group Settings</button>
-          </form>
+          <img id="invite-qr" alt="Invite QR" style="width:110px; height:110px; border-radius:10px; border:1px solid var(--border); padding:4px; background:white; display:block; margin:0 auto;" />
         </div>
       </section>
 
+      <!-- My Safety Status Card -->
       <section class="ui-card">
-        <h2>My Status &amp; Location</h2>
-        <form id="my-status-form" class="flex flex-wrap gap-3 items-end">
+        <h2>Update My Safety &amp; GPS</h2>
+        <form id="my-status-form" style="display:flex; flex-direction:column; gap:12px;">
           <div>
-            <label class="block text-xs text-slate-500 mb-1">Safety Status</label>
-            <select name="safety_status" id="my-safety" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-sm">
-              <option value="safe">Safe</option>
-              <option value="need_help">Need Help</option>
-              <option value="injured">Injured</option>
-              <option value="no_response">No Response</option>
+            <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">My Safety Condition</label>
+            <select name="safety_status" id="my-safety" class="ui-select" style="margin:0;">
+              <option value="safe">🟢 Safe (No Assistance Needed)</option>
+              <option value="need_help">🟠 Need Help (Water Rising / Stranded)</option>
+              <option value="injured">🔴 Injured (Medical Assistance Required)</option>
+              <option value="no_response">⚪ No Response</option>
             </select>
           </div>
-          <div>
-            <label class="block text-xs text-slate-500 mb-1">Relationship</label>
-            <input name="relationship" id="my-relationship" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-sm w-32" />
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <div>
+              <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">Relationship</label>
+              <input name="relationship" id="my-relationship" class="ui-input" style="margin:0;" placeholder="e.g. Son" />
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">Battery %</label>
+              <input type="number" name="battery_level" id="my-battery" min="0" max="100" class="ui-input" style="margin:0;" placeholder="e.g. 85" />
+            </div>
           </div>
-          <div>
-            <label class="block text-xs text-slate-500 mb-1">Battery %</label>
-            <input type="number" name="battery_level" id="my-battery" min="0" max="100" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-sm w-20" />
+
+          <div style="display:flex; gap:8px;">
+            <button type="button" id="share-location" class="ui-btn ui-btn-secondary" style="flex:1; font-size:12px;">
+              📍 Share GPS Pin
+            </button>
+            <button type="submit" class="ui-btn ui-btn-primary" style="flex:1; font-size:12px;">
+              Update Status
+            </button>
           </div>
-          <button type="button" id="share-location" class="px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm">📍 Share Location</button>
-          <button type="submit" class="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-sm">Update</button>
         </form>
       </section>
 
+      <!-- Family Members List -->
       <section class="ui-card">
-        <h2>Family Members</h2>
-        <div id="members-grid" class="action-grid" style="grid-template-columns:1fr"></div>
+        <h2>Household Members</h2>
+        <div id="members-grid" style="display:flex; flex-direction:column; gap:10px;"></div>
       </section>
     </div>
-    </main>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -130,38 +146,30 @@
       const grid = document.getElementById('members-grid');
       grid.innerHTML = members
         .map((m) => {
-          const loc =
-            m.last_latitude != null
-              ? `${Number(m.last_latitude).toFixed(5)}, ${Number(m.last_longitude).toFixed(5)}`
-              : 'No location';
+          const loc = m.last_latitude != null ? `${Number(m.last_latitude).toFixed(4)}, ${Number(m.last_longitude).toFixed(4)}` : 'Location not shared';
           const updated = m.last_location_at ? formatDate(m.last_location_at) : 'Never';
           const batt = m.battery_level != null ? `${m.battery_level}%` : '—';
-          const headBadge = m.is_family_head
-            ? '<span class="text-xs text-amber-400">Family Head</span>'
-            : '';
-          const removeBtn =
-            isHead && !m.is_family_head
-              ? `<button onclick="removeMember(${m.id})" class="text-xs text-red-400 mt-2">Remove</button>`
-              : '';
-          const transferBtn =
-            isHead && !m.is_family_head
-              ? `<button onclick="transferHead(${m.id})" class="text-xs text-blue-400 mt-2 ml-2">Make Head</button>`
-              : '';
+          const headBadge = m.is_family_head ? '<span class="ui-badge" style="background:#FFF3E0; color:#E65100; font-size:10px;">Head</span>' : '';
+          const removeBtn = isHead && !m.is_family_head ? `<button onclick="removeMember(${m.id})" class="ui-btn-ghost" style="color:var(--emergency); font-size:11px;">Remove</button>` : '';
+          const transferBtn = isHead && !m.is_family_head ? `<button onclick="transferHead(${m.id})" class="ui-btn-ghost" style="color:var(--primary); font-size:11px;">Make Head</button>` : '';
+          
           return `
-          <div class="report-item ${safetyStatusCardClass(m.safety_status)}" style="text-align:left">
-            <div class="flex justify-between items-start gap-2 mb-2">
+          <div class="report-item" style="border-left:4px solid ${m.safety_status === 'injured' ? 'var(--emergency)' : m.safety_status === 'need_help' ? 'var(--warning)' : 'var(--success)'};">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
               <div>
-                <p class="font-medium">${escapeHtml(m.name)}</p>
-                <p class="text-xs text-slate-400">${escapeHtml(m.relationship)} ${headBadge}</p>
+                <strong style="font-size:13px; color:var(--text);">${escapeHtml(m.name)}</strong>
+                <span style="font-size:11px; color:var(--text-muted);">(${escapeHtml(m.family_relationship || m.relationship || 'Member')}) ${headBadge}</span>
               </div>
               ${safetyStatusBadge(m.safety_status)}
             </div>
-            <dl class="text-xs text-slate-400 space-y-1">
-              <div>📍 ${loc}</div>
-              <div>🕐 ${updated}</div>
-              <div>🔋 ${batt}</div>
-            </dl>
-            ${removeBtn}${transferBtn}
+            <div style="font-size:11px; color:var(--text-muted); display:flex; flex-direction:column; gap:2px; margin-top:4px;">
+              <span>📍 ${loc}</span>
+              <span>🕐 Last checked in: ${updated}</span>
+              <span>🔋 Phone Battery: <strong>${batt}</strong></span>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:6px;">
+              ${removeBtn} ${transferBtn}
+            </div>
           </div>`;
         })
         .join('');
@@ -183,24 +191,21 @@
       familyGroupId = data.family.id;
 
       document.getElementById('family-name').textContent = data.family.name;
-      document.getElementById('family-desc').textContent = data.family.description || 'No description';
-      document.getElementById('family-desc').className = 'text-muted';
+      document.getElementById('family-desc').textContent = data.family.description || 'Barangay Bayanan Circle';
 
       const headTools = document.getElementById('head-tools');
       if (data.is_head) {
         headTools.classList.remove('hidden');
         document.getElementById('invite-code').textContent = data.family.invite_code;
         document.getElementById('invite-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(data.family.invite_code)}`;
-        document.getElementById('settings-name').value = data.family.name;
-        document.getElementById('settings-desc').value = data.family.description || '';
       } else {
         headTools.classList.add('hidden');
       }
 
       const me = data.members.find((m) => m.id === user.id);
       if (me) {
-        document.getElementById('my-safety').value = me.safety_status;
-        document.getElementById('my-relationship').value = me.relationship;
+        document.getElementById('my-safety').value = me.safety_status || 'safe';
+        document.getElementById('my-relationship').value = me.family_relationship || me.relationship || '';
         document.getElementById('my-battery').value = me.battery_level ?? '';
       }
 
@@ -208,10 +213,13 @@
     }
 
     async function loadFamily() {
-      const data = await api('/api/family');
-      showDashboard(data);
-      if (familyGroupId && socket) socket.emit('join-family', familyGroupId);
-      return data;
+      try {
+        const data = await api('/api/family');
+        showDashboard(data);
+        if (familyGroupId && socket) socket.emit('join-family', familyGroupId);
+      } catch (err) {
+        showToast(err.message, 'danger');
+      }
     }
 
     document.getElementById('create-family-form').addEventListener('submit', async (e) => {
@@ -260,17 +268,6 @@
       loadFamily();
     });
 
-    document.getElementById('settings-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const fd = new FormData(e.target);
-      const data = await api('/api/family/settings', {
-        method: 'PUT',
-        body: JSON.stringify({ name: fd.get('name'), description: fd.get('description') }),
-      });
-      showDashboard(data);
-      showToast('Settings saved', 'success');
-    });
-
     document.getElementById('regen-invite').addEventListener('click', async () => {
       const { invite_code } = await api('/api/family/regenerate-invite', { method: 'POST' });
       document.getElementById('invite-code').textContent = invite_code;
@@ -286,9 +283,13 @@
       };
       const batt = document.getElementById('my-battery').value;
       if (batt !== '') body.battery_level = parseInt(batt, 10);
-      const data = await api('/api/family/me', { method: 'PUT', body: JSON.stringify(body) });
-      showDashboard(data);
-      showToast('Status updated', 'success');
+      try {
+        const data = await api('/api/family/me', { method: 'PUT', body: JSON.stringify(body) });
+        showDashboard(data);
+        showToast('Safety status updated', 'success');
+      } catch (err) {
+        showToast(err.message, 'danger');
+      }
     });
 
     document.getElementById('share-location').addEventListener('click', async () => {
@@ -299,7 +300,7 @@
           body: JSON.stringify({ latitude, longitude }),
         });
         showDashboard(data);
-        showToast('Location shared', 'success');
+        showToast('📍 Live GPS pin shared with family', 'success');
       } catch (err) {
         showToast(err.message, 'danger');
       }
@@ -328,9 +329,7 @@
       },
     });
 
-    loadFamily().then((data) => {
-      if (data.family && socket) socket.emit('join-family', data.family.id);
-    });
+    loadFamily();
   </script>
 </body>
 </html>

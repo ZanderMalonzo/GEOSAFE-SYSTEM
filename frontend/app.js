@@ -1,5 +1,6 @@
 const API_BASE = window.location.origin;
 let socket = null;
+let deferredPrompt = null;
 
 function getToken() {
   return localStorage.getItem('geosafe_token');
@@ -47,7 +48,7 @@ function renderBottomNav(active) {
   const items = [
     { id: 'home', href: 'home.html', icon: '🏠', label: 'Home' },
     { id: 'report', href: 'report.html', icon: '📝', label: 'Report' },
-    { id: 'route', href: 'route.html', icon: '🧭', label: 'Route' },
+    { id: 'route', href: 'route.html', icon: '🧭', label: 'Routes' },
     { id: 'family', href: 'family.html', icon: '👨‍👩‍👧', label: 'Family' },
   ];
   return `<nav class="bottom-nav" aria-label="Main navigation">
@@ -55,7 +56,7 @@ function renderBottomNav(active) {
       .map(
         (i) =>
           `<a href="${i.href}" class="bottom-nav__item${active === i.id ? ' bottom-nav__item--active' : ''}">
-        <span>${i.icon}</span><span>${i.label}</span>
+        <span style="font-size:18px;">${i.icon}</span><span>${i.label}</span>
       </a>`
       )
       .join('')}
@@ -105,7 +106,7 @@ function initSocket(onEvents = {}) {
 }
 
 function severityBadge(severity) {
-  const s = severity || 'medium';
+  const s = (severity || 'medium').toLowerCase();
   return `<span class="ui-badge ui-badge--${['high', 'medium', 'low'].includes(s) ? s : 'medium'}">${escapeHtml(s)}</span>`;
 }
 
@@ -144,31 +145,18 @@ function showToast(message, type = 'info') {
   el.className = `toast toast--${['info', 'success', 'warning', 'danger'].includes(type) ? type : 'info'}`;
   el.textContent = message;
   container.appendChild(el);
-  setTimeout(() => el.remove(), 5000);
-}
-
-function showAlertBanner(alert) {
-  let banner = document.getElementById('alert-banner');
-  if (!banner) {
-    banner = document.createElement('div');
-    banner.id = 'alert-banner';
-    banner.className = 'alert-banner';
-    document.body.prepend(banner);
-  }
-  banner.className = `alert-banner alert-banner--${['high', 'medium', 'low'].includes(alert.severity) ? alert.severity : 'medium'}`;
-  banner.innerHTML = `🚨 EMERGENCY ALERT: ${escapeHtml(alert.message)}`;
-  banner.classList.remove('hidden');
-  setTimeout(() => banner.classList.add('hidden'), 15000);
+  setTimeout(() => el.remove(), 4500);
 }
 
 function escapeHtml(str) {
   const div = document.createElement('div');
-  div.textContent = str;
+  div.textContent = str || '';
   return div.innerHTML;
 }
 
 function formatDate(d) {
-  return new Date(d).toLocaleString();
+  if (!d) return 'Just now';
+  return new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ', ' + new Date(d).toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
 function logout() {
@@ -180,55 +168,79 @@ function logout() {
 function getGeolocation() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error('Geolocation not supported by this browser'));
+      reject(new Error('Geolocation not supported by this device'));
       return;
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
       (err) => {
         const hints = {
-          1: 'Location blocked — allow location for this site in browser settings.',
-          2: 'Position unavailable — turn on Windows Location (Settings → Privacy → Location) or enter coordinates manually.',
-          3: 'Location timed out — try again or enter coordinates manually.',
+          1: 'Location blocked — please allow location permissions.',
+          2: 'Position unavailable — ensure device GPS is turned on.',
+          3: 'Location timed out — using default coordinates.',
         };
-        reject(new Error(hints[err.code] || err.message || 'Unable to get location'));
+        reject(new Error(hints[err.code] || err.message || 'Unable to acquire location'));
       },
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   });
 }
 
 function setLocationOnForm(lat, lng, statusEl, mapContainerId) {
-  document.getElementById('latitude').value = lat;
-  document.getElementById('longitude').value = lng;
+  const latEl = document.getElementById('latitude') || document.getElementById('report-lat');
+  const lngEl = document.getElementById('longitude') || document.getElementById('report-lng');
+  if (latEl) latEl.value = Number(lat).toFixed(6);
+  if (lngEl) lngEl.value = Number(lng).toFixed(6);
+
   if (statusEl) {
-    statusEl.textContent = `${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)}`;
-    statusEl.classList.remove('text-red-400');
-    statusEl.classList.add('text-green-400');
+    statusEl.textContent = `📍 ${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)} (Active)`;
+    statusEl.style.color = 'var(--success)';
   }
   if (mapContainerId && typeof L !== 'undefined') {
     const mapEl = document.getElementById(mapContainerId);
     if (!mapEl) return;
-    mapEl.classList.remove('hidden');
+    mapEl.style.display = 'block';
     const latNum = parseFloat(lat);
     const lngNum = parseFloat(lng);
     if (!mapEl._leafletMap) {
-      mapEl._leafletMap = L.map(mapContainerId).setView([latNum, lngNum], 15);
+      mapEl._leafletMap = L.map(mapContainerId).setView([latNum, lngNum], 16);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap',
       }).addTo(mapEl._leafletMap);
     } else {
-      mapEl._leafletMap.setView([latNum, lngNum], 15);
+      mapEl._leafletMap.setView([latNum, lngNum], 16);
     }
     if (mapEl._leafletMarker) mapEl._leafletMarker.remove();
-    mapEl._leafletMarker = L.marker([latNum, lngNum]).addTo(mapEl._leafletMap);
+    mapEl._leafletMarker = L.marker([latNum, lngNum]).addTo(mapEl._leafletMap).bindPopup('Captured Incident GPS').openPopup();
   }
 }
 
+// PWA Install Prompt Listener
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const pwaBtn = document.getElementById('pwa-install-banner');
+  if (pwaBtn) pwaBtn.style.display = 'flex';
+});
+
+function triggerPwaInstall() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        showToast('🎉 GeoSafe App installed on your device!', 'success');
+      }
+      deferredPrompt = null;
+      const pwaBtn = document.getElementById('pwa-install-banner');
+      if (pwaBtn) pwaBtn.style.display = 'none';
+    });
+  } else {
+    showToast('To install: Tap browser menu (⋮ or Share) ➔ "Add to Home Screen"');
+  }
+}
+
+// Service Worker Registration
 const isTunnelHost = /\.(loca\.lt|ngrok|ngrok-free\.app)$/i.test(window.location.hostname);
 if ('serviceWorker' in navigator && !isTunnelHost) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
-}
-if (isTunnelHost && 'serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
 }

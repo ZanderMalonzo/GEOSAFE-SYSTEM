@@ -1,17 +1,17 @@
-/* Fallback styles when Tailwind CDN is slow/blocked (common on mobile tunnels) */
+/* Critical Fallback CSS — GeoSafe Design System */
 html, body {
   margin: 0;
   min-height: 100%;
-  background: #12151f;
-  color: #f1f5f9;
-  font-family: system-ui, -apple-system, sans-serif;
+  background: #F7F9FC;
+  color: #212121;
+  font-family: 'Inter', 'Roboto', system-ui, -apple-system, sans-serif;
 }
-a { color: #60a5fa; }
+a { color: #1565C0; text-decoration: none; }
 input, select, textarea, button {
   font-size: 16px; /* prevents iOS zoom on focus */
 }
 .hero-title {
-  color: #38bdf8;
+  color: #1565C0;
   font-size: 1.75rem;
-  font-weight: 700;
+  font-weight: 800;
 }

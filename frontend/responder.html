@@ -1,16 +1,591 @@
 <!DOCTYPE html>
-<html lang="en"><head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" /><meta name="theme-color" content="#12151f" />
-  <link rel="manifest" href="/manifest.json" /><link rel="stylesheet" href="/critical.css" /><link rel="stylesheet" href="/mobile-ui.css" /><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <title>GeoSafe — Responder Dashboard</title><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-</head><body class="app-shell staff-shell"><div class="app-container staff-container">
-  <header class="page-header staff-header"><div><div class="brand">GeoSafe System · Responder</div><h1>Assigned incidents</h1></div><div class="staff-user"><span id="user-name"></span><button type="button" class="ui-btn-ghost" onclick="logout()">Logout</button></div></header>
-  <main><p class="text-muted responder-intro">Use the status controls to keep the incident command team informed in real time.</p><div id="incidents-list" class="incident-list"><p class="text-muted">Loading incidents…</p></div></main>
-</div>
-<script src="/socket.io/socket.io.js"></script><script src="/app.js"></script><script>
-const user = requireAuth(['responder']); if (!user) throw new Error('unauthorized'); document.getElementById('user-name').textContent = user.name;
-async function updateStatus(id, status) { await api(`/api/reports/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }); showToast(`Status updated to ${status.replace('_', ' ')}`, 'success'); loadIncidents(); }
-function renderIncident(r) { const mapId = `map-${r.id}`; const actions = []; if (['verified', 'responding'].includes(r.status)) actions.push(`<button onclick="updateStatus(${r.id}, 'responding')" class="table-btn table-btn--dispatch">Responding</button>`); if (['responding', 'verified'].includes(r.status)) actions.push(`<button onclick="updateStatus(${r.id}, 'on_site')" class="table-btn table-btn--onsite">On site</button>`); if (r.status !== 'resolved') actions.push(`<button onclick="updateStatus(${r.id}, 'resolved')" class="table-btn table-btn--resolved">Mark resolved</button>`); return `<article class="incident-card"><div class="incident-card__header"><div><h2>#${r.id} ${escapeHtml(r.incident_type)}</h2><p class="text-muted">Reporter: ${escapeHtml(r.reporter_name || 'Unknown')}</p></div><div class="incident-badges">${r.severity ? severityBadge(r.severity) : ''} ${statusBadge(r.status)}</div></div><p class="incident-description">${escapeHtml(r.description)}</p><p class="incident-location">📍 ${r.latitude}, ${r.longitude}</p><div id="${mapId}" class="incident-map" aria-label="Incident location map"></div><div class="incident-actions">${actions.join('')}</div></article>`; }
-async function loadIncidents() { const el = document.getElementById('incidents-list'); try { const { reports } = await api('/api/reports'); if (!reports.length) { el.innerHTML = '<div class="empty-state"><span>✓</span><h2>No assigned incidents</h2><p>An admin will assign you to a report when assistance is needed.</p></div>'; return; } el.innerHTML = reports.map(renderIncident).join(''); reports.forEach((r) => { const mapId = `map-${r.id}`; const mapEl = document.getElementById(mapId); if (mapEl) { const map = L.map(mapId).setView([parseFloat(r.latitude), parseFloat(r.longitude)], 14); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map); L.marker([parseFloat(r.latitude), parseFloat(r.longitude)]).addTo(map); } }); } catch (err) { el.innerHTML = `<p class="text-error">${escapeHtml(err.message)}</p>`; } }
-window.updateStatus = updateStatus; initSocket({ 'alert-broadcast': (alert) => { showAlertBanner(alert); showToast(`Emergency Alert: ${alert.message}`, 'danger'); }, 'status-update': () => loadIncidents(), 'new-report': () => loadIncidents() }); loadIncidents();
-</script></body></html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1565C0" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/critical.css" />
+  <link rel="stylesheet" href="/mobile-ui.css?v=2.4" />
+  <title>GeoSafe — Responder Field Ops</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    /* Responder Field Ops Specific Styles */
+    .responder-header {
+      background: #FFFFFF;
+      border-bottom: 1.5px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow-sm);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .responder-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      background: var(--success-light);
+      color: var(--success);
+      border: 1px solid rgba(46, 125, 50, 0.2);
+    }
+    .responder-status-pill--standby {
+      background: var(--warning-light);
+      color: var(--warning);
+      border-color: rgba(245, 124, 0, 0.2);
+    }
+    .duty-toggle-btn {
+      background: #F0F4F8;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .duty-toggle-btn:hover {
+      background: #E2E8F0;
+    }
+    .active-mission-card {
+      background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+      color: white;
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .active-mission-card__badge {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(4px);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+    .mission-lifecycle-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .mission-step-btn {
+      padding: 12px 8px;
+      border-radius: 12px;
+      border: none;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+    }
+    .mission-step-btn.active {
+      background: #FFFFFF;
+      color: var(--primary);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transform: translateY(-2px);
+    }
+    .mission-step-btn:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.25);
+    }
+    .mission-map-frame {
+      height: 240px;
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 14px 0;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    #active-mission-map {
+      width: 100%;
+      height: 100%;
+    }
+    .responder-quick-nav {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .quick-nav-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+    .quick-nav-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    .incident-queue-card {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.15s ease;
+    }
+    .incident-queue-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+    .triage-tab-bar {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1.5px solid var(--border);
+      margin-bottom: 16px;
+      padding-bottom: 2px;
+    }
+    .triage-tab {
+      padding: 8px 16px;
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+    }
+    .triage-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+  </style>
+</head>
+<body class="staff-shell" style="background:#F7F9FC;">
+
+  <!-- Responder Top App Bar -->
+  <header class="responder-header">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div class="resident-brand__mark" style="background:#1565C0;">🚑</div>
+      <div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <h1 style="font-size:16px; font-weight:800; margin:0; color:#1565C0;">Responder Field Ops</h1>
+          <span class="responder-status-pill" id="duty-badge">
+            <span style="width:7px; height:7px; background:#2E7D32; border-radius:50%;"></span>
+            <span>ON-DUTY</span>
+          </span>
+        </div>
+        <span style="font-size:11px; color:var(--text-muted);" id="user-name">Emergency Response Unit</span>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button type="button" class="duty-toggle-btn" id="btn-toggle-duty" onclick="toggleDutyStatus()">
+        <span>🔄</span> <span id="duty-toggle-text">Set Standby</span>
+      </button>
+      <button type="button" class="ui-btn-ghost" onclick="logout()" style="color:var(--emergency); font-size:13px; font-weight:700;">
+        Logout
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container (Responsive for Phone & Tablet/Desktop) -->
+  <div style="max-width:1080px; margin:0 auto; padding:16px 16px 40px;">
+
+    <!-- Live BDRRMC Broadcast Alert Banner (if any) -->
+    <div id="broadcast-alert-box" class="broadcast-banner hidden" style="margin-bottom:16px;">
+      <span style="font-size:20px;">🚨</span>
+      <div style="flex:1;">
+        <p class="broadcast-banner__title">BDRRMC Incident Command Broadcast</p>
+        <p id="broadcast-alert-text" class="broadcast-banner__text"></p>
+      </div>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <section class="command-kpi-grid" style="margin-bottom:18px;">
+      <div class="kpi-card">
+        <span class="kpi-card__label" style="color:var(--emergency);">🚨 Assigned Missions</span>
+        <div class="kpi-card__val" id="stat-assigned-count" style="color:var(--emergency);">0</div>
+        <span class="kpi-card__sub">Pending active response</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-card__label">📍 My GPS Coordinates</span>
+        <div class="kpi-card__val" style="font-size:16px; font-weight:800; color:#1565C0;" id="stat-gps-text">Acquiring GPS…</div>
+        <span class="kpi-card__sub" style="color:var(--success);">● Broadcasting to Command</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-card__label">🏥 Nearest Facility</span>
+        <div class="kpi-card__val" style="font-size:16px; font-weight:800; color:#2E7D32;">Ospital ng Muntinlupa</div>
+        <span class="kpi-card__sub">1.2 km away · Direct Hotline: 911</span>
+      </div>
+    </section>
+
+    <!-- ====================================================
+         ACTIVE MISSION CARD (Highlighted Primary Action)
+         ==================================================== -->
+    <section id="active-mission-container">
+      <div class="active-mission-card" id="active-mission-card">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+          <div>
+            <span class="active-mission-card__badge" id="mission-badge">🚨 CRITICAL SOS RESCUE MISSION</span>
+            <h2 style="font-size:22px; font-weight:900; margin:0 0 4px;" id="mission-title">Mission #104 — Flood Rescue</h2>
+            <p style="font-size:13px; color:#E3F2FD; margin:0;" id="mission-reporter">Resident: <strong>Juan Dela Cruz</strong> · 4 Family Members</p>
+          </div>
+          <span class="ui-badge ui-badge--high" id="mission-severity" style="font-size:12px; background:white; color:#D32F2F;">HIGH SEVERITY</span>
+        </div>
+
+        <p style="font-size:14px; background:rgba(0,0,0,0.18); padding:10px 14px; border-radius:10px; margin:12px 0 0; line-height:1.4;" id="mission-description">
+          "Water height at chest level. Need immediate evacuation assistance. 1 elderly person present."
+        </p>
+
+        <!-- Live Route Guidance Map Frame -->
+        <div class="mission-map-frame">
+          <div id="active-mission-map"></div>
+        </div>
+
+        <!-- 1-Tap Navigation & Citizen Call Actions -->
+        <div class="responder-quick-nav">
+          <a id="btn-gmaps-nav" target="_blank" href="#" class="quick-nav-btn">
+            <span>🧭</span> <span>Open in Google Maps</span>
+          </a>
+          <a id="btn-call-resident" href="tel:+639171234567" class="quick-nav-btn" style="background:rgba(46, 125, 50, 0.4);">
+            <span>📞</span> <span>Call Citizen / Family</span>
+          </a>
+        </div>
+
+        <!-- 3-Stage Mission Lifecycle Trigger Buttons -->
+        <div style="margin-top:16px;">
+          <span style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#BBDEFB;">Update Mission Progress to Command:</span>
+          <div class="mission-lifecycle-bar">
+            <button type="button" class="mission-step-btn active" id="step-responding" onclick="advanceActiveMission('responding')">
+              <span style="font-size:18px;">🏃</span>
+              <span>1. En Route</span>
+            </button>
+            <button type="button" class="mission-step-btn" id="step-onsite" onclick="advanceActiveMission('on_site')">
+              <span style="font-size:18px;">📍</span>
+              <span>2. Arrived On-Site</span>
+            </button>
+            <button type="button" class="mission-step-btn" id="step-resolved" onclick="advanceActiveMission('resolved')" style="background:rgba(46, 125, 50, 0.4);">
+              <span style="font-size:18px;">✅</span>
+              <span>3. Mark Resolved</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Empty State for Active Mission -->
+    <div id="no-active-mission-box" class="ui-card" style="display:none; text-align:center; padding:32px 20px;">
+      <span style="font-size:36px; display:block; margin-bottom:8px;">🛡️</span>
+      <h3 style="margin:0 0 6px; font-size:18px;">Unit Ready on Standby</h3>
+      <p class="text-muted" style="margin:0; font-size:13px;">No active emergency assigned to your unit right now. Incident Command will dispatch new calls as they arrive.</p>
+    </div>
+
+    <!-- ====================================================
+         ALL ASSIGNED & NEARBY FIELD INCIDENTS
+         ==================================================== -->
+    <section class="ui-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+        <div>
+          <h2 style="margin:0; font-size:16px;">Field Incidents Queue</h2>
+          <p class="text-muted" style="margin:2px 0 0; font-size:12px;">Review details and self-dispatch to nearby citizen distress calls.</p>
+        </div>
+        <button type="button" class="ui-btn-ghost" onclick="loadIncidents()" style="font-size:12px;">↻ Refresh Queue</button>
+      </div>
+
+      <div class="triage-tab-bar">
+        <button class="triage-tab active" id="tab-my-missions" onclick="filterIncidentsTab('my')">My Assigned Missions (<span id="my-count">0</span>)</button>
+        <button class="triage-tab" id="tab-all-incidents" onclick="filterIncidentsTab('all')">All Barangay Emergencies (<span id="all-count">0</span>)</button>
+      </div>
+
+      <div id="incidents-list" style="display:flex; flex-direction:column; gap:12px;">
+        <p class="text-muted" style="font-size:13px;">Loading field reports…</p>
+      </div>
+    </section>
+
+    <!-- Emergency Medical & Dispatch Directory -->
+    <section class="ui-card">
+      <h2 style="font-size:15px; margin-bottom:10px;">Emergency Hotlines &amp; Backup Units</h2>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; font-size:12px;">
+        <div style="background:var(--bg-app); padding:10px; border-radius:10px; border:1px solid var(--border);">
+          <strong>🚒 BFP Muntinlupa Fire:</strong><br>
+          <a href="tel:(02)8842-2201" style="color:var(--primary); font-weight:700;">(02) 8842-2201</a>
+        </div>
+        <div style="background:var(--bg-app); padding:10px; border-radius:10px; border:1px solid var(--border);">
+          <strong>🚑 CDRRMO Emergency Rescue:</strong><br>
+          <a href="tel:911" style="color:var(--emergency); font-weight:700;">911 / (02) 8925-2453</a>
+        </div>
+        <div style="background:var(--bg-app); padding:10px; border-radius:10px; border:1px solid var(--border);">
+          <strong>🛡️ Barangay Bayanan Hall:</strong><br>
+          <a href="tel:(02)8861-1122" style="color:var(--primary); font-weight:700;">(02) 8861-1122</a>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+  <script>
+    const user = requireAuth(['responder']);
+    if (!user) throw new Error('unauthorized');
+    document.getElementById('user-name').textContent = user.name || 'Field Responder Unit';
+
+    let allReports = [];
+    let currentActiveReport = null;
+    let activeMap = null;
+    let activeMapMarker = null;
+    let userPos = { lat: 14.3972, lng: 121.0200 };
+    let isDuty = true;
+    let currentFilter = 'my';
+
+    // Audio Alert Synthesizer
+    function playMissionChime() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.12);
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.24);
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.6);
+      } catch {}
+    }
+
+    // Toggle On-Duty / Standby Status
+    function toggleDutyStatus() {
+      isDuty = !isDuty;
+      const badge = document.getElementById('duty-badge');
+      const toggleText = document.getElementById('duty-toggle-text');
+      if (isDuty) {
+        badge.className = 'responder-status-pill';
+        badge.innerHTML = '<span style="width:7px; height:7px; background:#2E7D32; border-radius:50%;"></span><span>ON-DUTY</span>';
+        toggleText.textContent = 'Set Standby';
+        showToast('You are now ON-DUTY and ready for dispatch', 'success');
+      } else {
+        badge.className = 'responder-status-pill responder-status-pill--standby';
+        badge.innerHTML = '<span style="width:7px; height:7px; background:#F57C00; border-radius:50%;"></span><span>STANDBY</span>';
+        toggleText.textContent = 'Set On-Duty';
+        showToast('You are on STANDBY', 'warning');
+      }
+    }
+
+    // GPS Auto-Acquire & Track
+    async function trackGPS() {
+      try {
+        const pos = await getGeolocation();
+        userPos = { lat: pos.latitude, lng: pos.longitude };
+        document.getElementById('stat-gps-text').textContent = `${Number(userPos.lat).toFixed(4)}, ${Number(userPos.lng).toFixed(4)}`;
+      } catch {
+        document.getElementById('stat-gps-text').textContent = '14.3972, 121.0200 (Bayanan)';
+      }
+    }
+
+    // Advance Mission Lifecycle
+    async function advanceActiveMission(newStatus) {
+      if (!currentActiveReport) return;
+      try {
+        await api(`/api/reports/${currentActiveReport.id}/status`, {
+          method: 'PUT',
+          body: JSON.stringify({ status: newStatus })
+        });
+        showToast(`Mission #${currentActiveReport.id} updated to: ${newStatus.replace('_', ' ').toUpperCase()}`, 'success');
+        loadIncidents();
+      } catch (err) {
+        showToast(err.message, 'danger');
+      }
+    }
+
+    // Render Active Mission Top Card
+    function setupActiveMission(report) {
+      currentActiveReport = report;
+      const container = document.getElementById('active-mission-container');
+      const noMissionBox = document.getElementById('no-active-mission-box');
+
+      if (!report) {
+        container.style.display = 'none';
+        noMissionBox.style.display = 'block';
+        return;
+      }
+
+      container.style.display = 'block';
+      noMissionBox.style.display = 'none';
+
+      document.getElementById('mission-badge').textContent = `🚨 ACTIVE MISSION #${report.id} · ${report.incident_type.toUpperCase()}`;
+      document.getElementById('mission-title').textContent = `#${report.id} — ${report.incident_type} Emergency`;
+      document.getElementById('mission-reporter').innerHTML = `Resident: <strong>${escapeHtml(report.reporter_name || 'Citizen')}</strong> · Phone: Available`;
+      document.getElementById('mission-description').textContent = `"${report.description}"`;
+      document.getElementById('btn-gmaps-nav').href = `https://www.google.com/maps/dir/?api=1&destination=${report.latitude},${report.longitude}`;
+
+      // Update Lifecycle Step Active States
+      document.getElementById('step-responding').className = `mission-step-btn ${report.status === 'responding' ? 'active' : ''}`;
+      document.getElementById('step-onsite').className = `mission-step-btn ${report.status === 'on_site' ? 'active' : ''}`;
+      document.getElementById('step-resolved').className = `mission-step-btn ${report.status === 'resolved' ? 'active' : ''}`;
+
+      // Initialize or Update Leaflet Mission Map
+      const lat = parseFloat(report.latitude) || 14.3972;
+      const lng = parseFloat(report.longitude) || 121.0200;
+
+      if (!activeMap) {
+        activeMap = L.map('active-mission-map', { zoomControl: false }).setView([lat, lng], 15);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(activeMap);
+      } else {
+        activeMap.setView([lat, lng], 15);
+      }
+
+      if (activeMapMarker) activeMap.removeLayer(activeMapMarker);
+      activeMapMarker = L.marker([lat, lng]).addTo(activeMap).bindPopup(`<b>Incident #${report.id}</b><br>${report.description}`).openPopup();
+
+      setTimeout(() => activeMap?.invalidateSize(), 150);
+    }
+
+    // Filter Tabs
+    function filterIncidentsTab(tab) {
+      currentFilter = tab;
+      document.getElementById('tab-my-missions').classList.toggle('active', tab === 'my');
+      document.getElementById('tab-all-incidents').classList.toggle('active', tab === 'all');
+      renderIncidentsList();
+    }
+
+    // Render Queue
+    function renderIncidentsList() {
+      const el = document.getElementById('incidents-list');
+      const filtered = currentFilter === 'my'
+        ? allReports.filter(r => r.assigned_to === user.id || r.status === 'responding' || r.status === 'on_site')
+        : allReports;
+
+      if (!filtered.length) {
+        el.innerHTML = '<p class="text-muted" style="font-size:13px; text-align:center; padding:16px;">No incidents matching this view.</p>';
+        return;
+      }
+
+      el.innerHTML = filtered.map(r => {
+        const isMy = r.assigned_to === user.id;
+        return `
+          <div class="incident-queue-card" style="border-left:4px solid ${r.severity === 'high' || r.incident_type === 'SOS' ? 'var(--emergency)' : 'var(--primary)'};">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:6px;">
+              <div>
+                <strong style="font-size:14px; color:var(--text);">#${r.id} ${escapeHtml(r.incident_type)}</strong>
+                <p style="font-size:12px; color:var(--text-muted); margin:2px 0;">Reporter: ${escapeHtml(r.reporter_name || 'Resident')} · Logged: ${formatDate(r.created_at)}</p>
+              </div>
+              <div style="display:flex; gap:6px;">
+                ${r.severity ? severityBadge(r.severity) : ''}
+                ${statusBadge(r.status)}
+              </div>
+            </div>
+
+            <p style="font-size:13px; color:var(--text); margin:8px 0; line-height:1.4;">${escapeHtml(r.description)}</p>
+            <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">📍 Location: ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)}</p>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              ${!isMy && r.status !== 'resolved' ? `
+                <button type="button" class="ui-btn ui-btn-primary" style="width:auto; padding:6px 14px; font-size:12px;" onclick="claimIncident(${r.id})">
+                  ✋ Claim &amp; Respond
+                </button>
+              ` : ''}
+              ${isMy && r.status === 'pending' ? `
+                <button type="button" class="ui-btn ui-btn-primary" style="width:auto; padding:6px 14px; font-size:12px;" onclick="advanceActiveMission('responding')">
+                  🏃 Start Responding
+                </button>
+              ` : ''}
+              ${isMy && r.status === 'responding' ? `
+                <button type="button" class="ui-btn" style="width:auto; padding:6px 14px; font-size:12px; background:#1565C0; color:white;" onclick="advanceActiveMission('on_site')">
+                  📍 Mark Arrived On-Site
+                </button>
+              ` : ''}
+              ${isMy && r.status !== 'resolved' ? `
+                <button type="button" class="ui-btn" style="width:auto; padding:6px 14px; font-size:12px; background:#2E7D32; color:white;" onclick="advanceActiveMission('resolved')">
+                  ✅ Mark Resolved
+                </button>
+              ` : ''}
+              <a href="https://www.google.com/maps/dir/?api=1&destination=${r.latitude},${r.longitude}" target="_blank" class="ui-btn ui-btn-secondary" style="width:auto; padding:6px 12px; font-size:12px; text-decoration:none;">
+                🧭 Google Maps
+              </a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function claimIncident(id) {
+      try {
+        await api(`/api/reports/${id}/status`, {
+          method: 'PUT',
+          body: JSON.stringify({ assigned_to: user.id, status: 'responding' })
+        });
+        showToast(`Claimed incident #${id}. En route!`, 'success');
+        loadIncidents();
+      } catch (err) {
+        showToast(err.message, 'danger');
+      }
+    }
+
+    // Load Incidents from Backend
+    async function loadIncidents() {
+      try {
+        const { reports } = await api('/api/reports');
+        allReports = reports || [];
+
+        // Count assigned to me
+        const myReports = allReports.filter(r => (r.assigned_to === user.id || r.status === 'responding' || r.status === 'on_site') && r.status !== 'resolved');
+        document.getElementById('stat-assigned-count').textContent = myReports.length;
+        document.getElementById('my-count').textContent = myReports.length;
+        document.getElementById('all-count').textContent = allReports.filter(r => r.status !== 'resolved').length;
+
+        // Set primary active mission
+        const activeOne = myReports[0] || (allReports.find(r => r.status === 'responding' || r.status === 'on_site')) || null;
+        setupActiveMission(activeOne);
+
+        // Render List
+        renderIncidentsList();
+      } catch (err) {
+        document.getElementById('incidents-list').innerHTML = `<p class="text-error">${escapeHtml(err.message)}</p>`;
+      }
+    }
+
+    // Socket.io Real-Time Listeners
+    initSocket({
+      'new-report': (report) => {
+        playMissionChime();
+        showToast(`🚨 New ${report.incident_type} (#${report.id}) received from citizen!`, 'warning');
+        loadIncidents();
+      },
+      'status-update': () => loadIncidents(),
+      'alert-broadcast': (alert) => {
+        const box = document.getElementById('broadcast-alert-box');
+        box.classList.remove('hidden');
+        document.getElementById('broadcast-alert-text').textContent = alert.message;
+        showToast(`🚨 BDRRMC Alert: ${alert.message}`, 'danger');
+      }
+    });
+
+    trackGPS();
+    loadIncidents();
+  </script>
+</body>
+</html>

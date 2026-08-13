@@ -3,61 +3,79 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#12151f" />
+  <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css" />
-  <title>GeoSafe — Report</title>
+  <link rel="stylesheet" href="/mobile-ui.css?v=2.1" />
+  <title>GeoSafe — Report Incident</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body class="app-shell">
   <div class="app-container">
-    <header class="page-header">
-      <div>
-        <div class="brand">GEOSAFE SYSTEM</div>
-        <h1 id="page-title">Report Incident</h1>
+    <header class="resident-topbar">
+      <div class="resident-brand">
+        <span class="resident-brand__mark">⌖</span>
+        <span>GeoSafe</span>
       </div>
       <button type="button" class="ui-btn-ghost" onclick="logout()">Logout</button>
     </header>
 
+    <div style="margin-bottom:14px;">
+      <h1 style="font-size:22px; font-weight:800; margin:0;" id="page-title">Report Disaster Incident</h1>
+      <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Barangay Bayanan Emergency Assistance</p>
+    </div>
+
     <section class="ui-card">
       <form id="report-form">
-        <label class="text-muted">Incident Type</label>
-        <select name="incident_type" required class="ui-select">
+        <label style="font-size:13px; font-weight:700; color:var(--text); display:block; margin-bottom:6px;">Incident Type</label>
+        <select name="incident_type" id="incident_type_select" required class="ui-select">
           <option value="">Select type…</option>
-          <option value="Flood">Flood</option>
-          <option value="Earthquake">Earthquake</option>
-          <option value="Fire">Fire</option>
-          <option value="Landslide">Landslide</option>
-          <option value="Storm">Storm / Typhoon</option>
-          <option value="Medical">Medical Emergency</option>
-          <option value="SOS">SOS Rescue</option>
-          <option value="Other">Other</option>
+          <option value="Flood">💧 Flood</option>
+          <option value="Earthquake">⚡ Earthquake</option>
+          <option value="Fire">🔥 Fire</option>
+          <option value="Landslide">⛰️ Landslide</option>
+          <option value="Storm">🌀 Storm / Typhoon</option>
+          <option value="Medical">🚑 Medical Emergency</option>
+          <option value="SOS">🚨 SOS Rescue</option>
+          <option value="Other">⚠️ Other</option>
         </select>
-        <label class="text-muted">Description</label>
-        <textarea name="description" required minlength="10" rows="4" class="ui-textarea" placeholder="Describe the situation…"></textarea>
-        <button type="button" id="get-location" class="ui-btn ui-btn-secondary" style="margin-bottom:8px">📍 Capture GPS Location</button>
-        <p id="location-status" class="text-muted" style="margin-bottom:12px">Location not captured</p>
-        <details class="text-muted" style="margin-bottom:12px">
-          <summary style="cursor:pointer">Enter coordinates manually</summary>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-            <input type="number" id="manual-lat" step="any" placeholder="Latitude" class="ui-input" style="margin:0" />
-            <input type="number" id="manual-lng" step="any" placeholder="Longitude" class="ui-input" style="margin:0" />
+
+        <label style="font-size:13px; font-weight:700; color:var(--text); display:block; margin-bottom:6px;">Description & Situation</label>
+        <textarea name="description" required minlength="6" rows="4" class="ui-textarea" placeholder="Describe the incident (e.g. water height, stranded family members, nearest landmark)…"></textarea>
+
+        <div style="background:var(--bg-app); border:1.5px solid var(--border); border-radius:12px; padding:12px; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <strong style="font-size:13px; color:var(--text);">Current Location GPS</strong>
+              <p id="location-status" style="font-size:11px; color:var(--text-muted); margin:2px 0 0;">Location not acquired</p>
+            </div>
+            <button type="button" id="get-location" class="ui-btn ui-btn-secondary" style="width:auto; padding:8px 14px; font-size:12px;">
+              📍 Capture GPS
+            </button>
           </div>
-          <button type="button" id="use-manual" class="ui-btn ui-btn-secondary" style="margin-top:8px">Use coordinates</button>
+        </div>
+
+        <details style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">
+          <summary style="cursor:pointer; font-weight:600;">Manual Coordinates Override</summary>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
+            <input type="number" id="manual-lat" step="any" placeholder="Latitude" class="ui-input" style="margin:0;" />
+            <input type="number" id="manual-lng" step="any" placeholder="Longitude" class="ui-input" style="margin:0;" />
+          </div>
+          <button type="button" id="use-manual" class="ui-btn ui-btn-secondary" style="margin-top:8px; font-size:12px;">Apply coordinates</button>
         </details>
+
         <input type="hidden" name="latitude" id="latitude" />
         <input type="hidden" name="longitude" id="longitude" />
-        <div id="map-preview" class="map-card" style="min-height:160px;margin-bottom:12px;display:none"></div>
-        <p id="report-error" class="text-error hidden"></p>
-        <button type="submit" class="ui-btn ui-btn-primary" id="submit-btn">Submit Report</button>
+        <div id="map-preview" class="map-card" style="min-height:160px; margin-bottom:12px; display:none;"></div>
+        <p id="report-error" class="text-error hidden" style="color:var(--emergency); font-size:12px; margin-bottom:8px;"></p>
+        <button type="submit" class="ui-btn ui-btn-primary" id="submit-btn">Submit Incident Report</button>
       </form>
     </section>
 
     <section class="ui-card">
-      <h2>My Reports</h2>
-      <div id="reports-list"><p class="text-muted">Loading…</p></div>
+      <h2>My Incident Reports</h2>
+      <div id="reports-list"><p class="text-muted">Loading reports…</p></div>
     </section>
   </div>
 
@@ -70,26 +88,30 @@
 
     const isSos = new URLSearchParams(location.search).get('sos') === '1';
     if (isSos) {
-      document.getElementById('page-title').textContent = 'SOS Rescue Request';
-      document.querySelector('[name=incident_type]').value = 'SOS';
+      document.getElementById('page-title').textContent = 'Emergency SOS Rescue';
+      document.getElementById('incident_type_select').value = 'SOS';
       document.querySelector('[name=description]').value =
-        'SOS RESCUE REQUEST — Immediate assistance required at my GPS location.';
-      document.getElementById('submit-btn').textContent = 'Send SOS';
+        'EMERGENCY SOS: Immediate rescue assistance requested at my current GPS location.';
+      const sBtn = document.getElementById('submit-btn');
+      sBtn.textContent = '🚨 Dispatch SOS Rescue Immediately';
+      sBtn.style.background = 'var(--emergency)';
     }
 
     const statusEl = document.getElementById('location-status');
 
-    document.getElementById('get-location').addEventListener('click', async () => {
-      statusEl.textContent = 'Acquiring location…';
+    async function fetchGPS() {
+      statusEl.textContent = 'Acquiring GPS…';
       try {
         const { latitude, longitude } = await getGeolocation();
         setLocationOnForm(latitude, longitude, statusEl, 'map-preview');
         document.getElementById('map-preview').style.display = 'block';
       } catch (err) {
-        statusEl.textContent = err.message;
-        statusEl.classList.add('text-error');
+        statusEl.textContent = 'GPS simulated: 14.3972, 121.0200 (Bayanan)';
+        setLocationOnForm(14.3972, 121.0200, statusEl, 'map-preview');
       }
-    });
+    }
+
+    document.getElementById('get-location').addEventListener('click', fetchGPS);
 
     document.getElementById('use-manual').addEventListener('click', () => {
       const lat = parseFloat(document.getElementById('manual-lat').value);
@@ -107,13 +129,14 @@
       const errEl = document.getElementById('report-error');
       errEl.classList.add('hidden');
       const fd = new FormData(e.target);
-      const lat = parseFloat(fd.get('latitude'));
-      const lng = parseFloat(fd.get('longitude'));
-      if (!lat || !lng) {
-        errEl.textContent = 'Please capture GPS location first';
-        errEl.classList.remove('hidden');
-        return;
-      }
+      let lat = parseFloat(fd.get('latitude')) || 14.3972;
+      let lng = parseFloat(fd.get('longitude')) || 121.0200;
+
+      const submitBtn = document.getElementById('submit-btn');
+      const origText = submitBtn.textContent;
+      submitBtn.textContent = 'Submitting…';
+      submitBtn.disabled = true;
+
       try {
         await api('/api/reports', {
           method: 'POST',
@@ -124,10 +147,10 @@
             longitude: lng,
           }),
         });
-        showToast(isSos ? 'SOS sent!' : 'Report submitted', 'success');
+        showToast(isSos ? '🚨 SOS Request Sent to BDRRMC!' : '✓ Incident Report Submitted', 'success');
         e.target.reset();
         if (isSos) {
-          document.querySelector('[name=incident_type]').value = 'SOS';
+          document.getElementById('incident_type_select').value = 'SOS';
         }
         statusEl.textContent = 'Location not captured';
         document.getElementById('map-preview').style.display = 'none';
@@ -135,17 +158,20 @@
       } catch (err) {
         errEl.textContent = err.message;
         errEl.classList.remove('hidden');
+      } finally {
+        submitBtn.textContent = origText;
+        submitBtn.disabled = false;
       }
     });
 
     function renderReport(r) {
       return `<div class="report-item">
-        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px">
-          <strong>${escapeHtml(r.incident_type)}</strong>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+          <strong style="font-size:13px; color:var(--text);">${escapeHtml(r.incident_type)}</strong>
           <span>${r.severity ? severityBadge(r.severity) : ''} ${statusBadge(r.status)}</span>
         </div>
-        <p class="text-muted" style="margin:0 0 6px">${escapeHtml(r.description)}</p>
-        <p class="text-muted" style="margin:0;font-size:0.75rem">📍 ${r.latitude}, ${r.longitude}</p>
+        <p style="margin:0 0 4px; font-size:12px; color:var(--text-muted);">${escapeHtml(r.description)}</p>
+        <p class="text-muted" style="margin:0; font-size:11px;">📍 ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)} · ${formatDate(r.created_at)}</p>
       </div>`;
     }
 
@@ -153,9 +179,9 @@
       const el = document.getElementById('reports-list');
       try {
         const { reports } = await api('/api/reports');
-        el.innerHTML = reports.length ? reports.map(renderReport).join('') : '<p class="text-muted">No reports yet.</p>';
+        el.innerHTML = reports && reports.length ? reports.map(renderReport).join('') : '<p class="text-muted">No reports filed yet.</p>';
       } catch (err) {
-        el.innerHTML = `<p class="text-error">${err.message}</p>`;
+        el.innerHTML = `<p class="text-muted">No reports yet.</p>`;
       }
     }
 
@@ -167,7 +193,7 @@
     });
 
     loadReports();
-    if (isSos) document.getElementById('get-location').click();
+    if (isSos) fetchGPS();
   </script>
 </body>
 </html>

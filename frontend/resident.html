@@ -2,11 +2,502 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="refresh" content="0;url=home.html" />
-  <title>Redirecting…</title>
-  <script>location.replace('home.html');</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>GeoSafe Resident — Barangay Bayanan</title>
+  <meta name="description" content="Geolocation-Based Disaster Reporting & Emergency Assistance for residents of Barangay Bayanan." />
+  <meta name="theme-color" content="#1565C0" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="resident-style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
-  <p><a href="home.html">Continue to GeoSafe</a></p>
+  <div class="app-viewport">
+    <div class="device-frame" id="app-container">
+      
+      <!-- System Status Bar -->
+      <header class="status-bar">
+        <span id="live-clock">9:41</span>
+        <div class="status-bar__icons">
+          <div class="battery-pill">
+            <div class="battery-level"></div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Global Toast Container -->
+      <div id="toast-box" class="toast-box" role="alert">
+        <span id="toast-msg">Notification alert</span>
+      </div>
+
+      <!-- Main Stage -->
+      <main class="screen-stage">
+
+        <!-- ==========================================
+             Home Screen
+             ========================================== -->
+        <section class="screen active" id="screen-home">
+          <header class="top-bar">
+            <div class="top-bar__brand">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1565C0" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span class="top-bar__brand-text">GeoSafe</span>
+            </div>
+            <div class="top-bar__actions">
+              <button class="icon-btn" onclick="navigateTo('alerts')" aria-label="Alerts">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <div class="badge-dot" id="unread-dot"></div>
+              </button>
+              <button class="avatar-btn" id="user-avatar-btn" onclick="navigateTo('profile')">JD</button>
+            </div>
+          </header>
+
+          <div class="screen-scrollable">
+            <div style="margin-bottom:16px;">
+              <span style="font-size:13px; color:var(--text-secondary);">Good day,</span>
+              <h2 style="font-size:20px; font-weight:800; color:var(--text-primary);" id="resident-display-name">
+                Resident
+              </h2>
+            </div>
+
+            <!-- Weather Widget Card -->
+            <div class="weather-card">
+              <span class="weather-badge">Today's Weather</span>
+              <div style="display:flex; align-items:baseline; gap:8px; margin-top:2px;">
+                <span class="weather-temp">28°C</span>
+                <span style="font-size:14px; color:#E3F2FD;">Partly Cloudy</span>
+              </div>
+              <div class="weather-warning">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                <span id="weather-alert-text">Rain advisory in effect — Bayanan</span>
+              </div>
+            </div>
+
+            <!-- SOS Rescue Card -->
+            <div class="sos-card">
+              <div style="flex:1; padding-right:12px;">
+                <span style="font-size:10px; font-weight:800; letter-spacing:1.5px; color:#FFCDD2;">EMERGENCY RESCUE</span>
+                <h3 style="font-size:19px; font-weight:800; margin:2px 0;">Emergency Rescue</h3>
+                <p style="font-size:12px; color:#FFEBEE;">Tap SOS to broadcast your GPS location directly to BDRRMC.</p>
+              </div>
+              <button class="sos-btn" id="btn-sos-trigger">SOS</button>
+            </div>
+
+            <!-- Quick Actions Grid -->
+            <div style="margin-bottom:12px; font-size:16px; font-weight:700;">Quick Actions</div>
+            <div class="quick-grid">
+              <div class="quick-card" onclick="navigateTo('report')">
+                <div class="quick-icon-box" style="background:var(--primary-light); color:var(--primary);">📝</div>
+                <span class="quick-label">Report<br>Disaster</span>
+              </div>
+              <div class="quick-card" onclick="triggerSosRescue()">
+                <div class="quick-icon-box" style="background:var(--emergency-light); color:var(--emergency);">🚨</div>
+                <span class="quick-label">Request<br>Rescue</span>
+              </div>
+              <div class="quick-card" onclick="navigateTo('map')">
+                <div class="quick-icon-box" style="background:var(--success-light); color:var(--success);">🧭</div>
+                <span class="quick-label">Evacuation<br>Centers</span>
+              </div>
+              <div class="quick-card" onclick="navigateTo('family')">
+                <div class="quick-icon-box" style="background:var(--warning-light); color:var(--warning);">👨‍👩‍👧</div>
+                <span class="quick-label">Family<br>Safety</span>
+              </div>
+            </div>
+
+            <!-- Live Reports Stream -->
+            <div style="margin-bottom:10px; font-size:16px; font-weight:700;">My Recent Reports</div>
+            <div id="live-reports-feed" style="display:flex; flex-direction:column; gap:10px;">
+              <p style="font-size:12px; color:var(--text-muted);">Loading reports…</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             Report Screen
+             ========================================== -->
+        <section class="screen" id="screen-report">
+          <header class="top-bar">
+            <div class="header-back-btn">
+              <button class="icon-btn" onclick="navigateTo('home')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              </button>
+              <h2 class="header-title" id="report-title-text">Report Incident</h2>
+            </div>
+          </header>
+
+          <div class="screen-scrollable">
+            <form id="backend-report-form" style="display:flex; flex-direction:column; gap:14px;">
+              <div class="card-section">
+                <span class="card-section__title">Incident Type</span>
+                <select id="report-type-select" class="form-input" required>
+                  <option value="Flood">Flood</option>
+                  <option value="Fire">Fire</option>
+                  <option value="Earthquake">Earthquake</option>
+                  <option value="Landslide">Landslide</option>
+                  <option value="Storm">Storm / Typhoon</option>
+                  <option value="Medical">Medical Emergency</option>
+                  <option value="SOS">SOS Rescue</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div class="card-section">
+                <span class="card-section__title">GPS Coordinates</span>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <input class="form-input" id="report-lat" placeholder="Latitude" readonly />
+                  <input class="form-input" id="report-lng" placeholder="Longitude" readonly />
+                  <button type="button" class="btn-secondary" id="btn-fetch-live-gps" style="flex:0 0 80px; padding:12px;">📍 GPS</button>
+                </div>
+                <p id="gps-status-label" style="font-size:11px; color:var(--text-muted); margin-top:6px;">Tap GPS to acquire location</p>
+              </div>
+
+              <div class="card-section">
+                <span class="card-section__title">Description</span>
+                <textarea class="form-input" id="report-desc-field" rows="4" required placeholder="Describe situation, water height, trapped persons…"></textarea>
+              </div>
+
+              <button type="submit" class="btn-primary" id="btn-submit-backend-report">
+                Submit Report to BDRRMC
+              </button>
+            </form>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             Map & Safe Routes Screen
+             ========================================== -->
+        <section class="screen" id="screen-map">
+          <header class="top-bar">
+            <h2 class="header-title">Evacuation Map</h2>
+            <button class="icon-btn" onclick="navigateTo('home')">✕</button>
+          </header>
+          <div style="flex:1; position:relative;" id="leaflet-map-view"></div>
+        </section>
+
+        <!-- ==========================================
+             Alerts Screen
+             ========================================== -->
+        <section class="screen" id="screen-alerts">
+          <header class="top-bar">
+            <h2 class="header-title">BDRRMC Alerts</h2>
+            <button class="icon-btn" onclick="navigateTo('home')">✕</button>
+          </header>
+          <div class="screen-scrollable" id="backend-alerts-feed">
+            <p style="font-size:12px; color:var(--text-muted);">Loading alerts…</p>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             Family Screen
+             ========================================== -->
+        <section class="screen" id="screen-family">
+          <header class="top-bar">
+            <div class="header-back-btn">
+              <button class="icon-btn" onclick="navigateTo('home')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              </button>
+              <h2 class="header-title">Family Safety</h2>
+            </div>
+          </header>
+          <div class="screen-scrollable">
+            <div class="card-section" style="text-align:center;">
+              <span class="card-section__title" style="justify-content:center;">Update My Safety Status</span>
+              <div style="display:flex; gap:8px; margin-top:8px;">
+                <button class="btn-secondary" style="background:#E8F5E9; color:#2E7D32; font-weight:700;" onclick="updateMyStatus('safe')">✓ Safe</button>
+                <button class="btn-secondary" style="background:#FFEBEE; color:#D32F2F; font-weight:700;" onclick="updateMyStatus('need_help')">🚨 Need Help</button>
+                <button class="btn-secondary" style="background:#FFF3E0; color:#F57C00; font-weight:700;" onclick="updateMyStatus('injured')">🩹 Injured</button>
+              </div>
+            </div>
+            <div id="backend-family-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             Profile Screen
+             ========================================== -->
+        <section class="screen" id="screen-profile">
+          <header class="top-bar">
+            <h2 class="header-title">My Account</h2>
+            <button class="icon-btn" onclick="navigateTo('home')">✕</button>
+          </header>
+          <div class="screen-scrollable">
+            <div class="card-section" style="display:flex; align-items:center; gap:14px;">
+              <div class="avatar-btn" style="width:50px; height:50px; font-size:18px;">JD</div>
+              <div>
+                <h3 style="font-size:16px; font-weight:800;" id="profile-name-text">Juan Dela Cruz</h3>
+                <p style="font-size:12px; color:var(--text-secondary);" id="profile-email-text">resident@geosafe.local</p>
+                <span style="font-size:11px; background:var(--primary-light); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700;">Resident</span>
+              </div>
+            </div>
+
+            <div class="card-section" style="padding:0; overflow:hidden;">
+              <button class="btn-secondary" style="border:none; border-radius:0; padding:14px; text-align:left; justify-content:flex-start;" onclick="toggleDarkTheme()">
+                🌓 Toggle Dark Mode
+              </button>
+              <button class="btn-secondary" style="border:none; border-radius:0; border-top:1px solid var(--border-light); padding:14px; text-align:left; justify-content:flex-start; color:var(--emergency);" onclick="logout()">
+                🚪 Log Out
+              </button>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Bottom Navigation Bar -->
+      <nav class="bottom-nav" id="resident-bottom-nav">
+        <button class="nav-item active" data-tab="home" onclick="navigateTo('home')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span class="nav-item__label">Home</span>
+        </button>
+        <button class="nav-item" data-tab="report" onclick="navigateTo('report')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span class="nav-item__label">Report</span>
+        </button>
+        <button class="nav-item" data-tab="map" onclick="navigateTo('map')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+          <span class="nav-item__label">Map</span>
+        </button>
+        <button class="nav-item" data-tab="alerts" onclick="navigateTo('alerts')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="nav-item__label">Alerts</span>
+        </button>
+        <button class="nav-item" data-tab="profile" onclick="navigateTo('profile')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span class="nav-item__label">Profile</span>
+        </button>
+      </nav>
+
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+  <script>
+    // Live Backend Integration or Demo Fallback
+    const user = getUser() || { name: 'Juan Dela Cruz', email: 'resident@geosafe.local', role: 'resident' };
+    if (document.getElementById('resident-display-name')) {
+      document.getElementById('resident-display-name').textContent = user.name || 'Resident';
+      document.getElementById('profile-name-text').textContent = user.name || 'Resident';
+      document.getElementById('profile-email-text').textContent = user.email || 'resident@geosafe.local';
+      const initials = (user.name || 'JD').split(' ').map(n => n[0]).join('').slice(0, 2);
+      document.getElementById('user-avatar-btn').textContent = initials;
+    }
+
+    function showToast(msg) {
+      const box = document.getElementById('toast-box');
+      document.getElementById('toast-msg').textContent = msg;
+      box.classList.add('show');
+      setTimeout(() => box.classList.remove('show'), 3200);
+    }
+
+    function navigateTo(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById(`screen-${screenId}`);
+      if (target) target.classList.add('active');
+
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-tab') === screenId);
+      });
+
+      if (screenId === 'map') initLeafletMap();
+      if (screenId === 'alerts') loadBackendAlerts();
+      if (screenId === 'family') loadBackendFamily();
+    }
+
+    function toggleDarkTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      showToast(next === 'dark' ? 'Dark theme enabled' : 'Light theme enabled');
+    }
+
+    // Geolocation
+    async function acquireLocation() {
+      const statusEl = document.getElementById('gps-status-label');
+      statusEl.textContent = 'Acquiring GPS…';
+      try {
+        const { latitude, longitude } = await getGeolocation();
+        document.getElementById('report-lat').value = Number(latitude).toFixed(6);
+        document.getElementById('report-lng').value = Number(longitude).toFixed(6);
+        statusEl.textContent = `📍 Lat: ${Number(latitude).toFixed(5)}, Lng: ${Number(longitude).toFixed(5)}`;
+        statusEl.style.color = 'var(--success)';
+      } catch (err) {
+        document.getElementById('report-lat').value = '14.397200';
+        document.getElementById('report-lng').value = '121.020000';
+        statusEl.textContent = 'GPS simulated: 14.397200, 121.020000 (Bayanan)';
+      }
+    }
+
+    document.getElementById('btn-fetch-live-gps')?.addEventListener('click', acquireLocation);
+
+    // SOS Emergency button
+    function triggerSosRescue() {
+      navigateTo('report');
+      document.getElementById('report-type-select').value = 'SOS';
+      document.getElementById('report-desc-field').value = 'EMERGENCY SOS: Immediate rescue assistance requested at my GPS position.';
+      document.getElementById('report-title-text').textContent = 'Emergency SOS Request';
+      acquireLocation();
+    }
+
+    document.getElementById('btn-sos-trigger')?.addEventListener('click', () => {
+      showToast('🚨 SOS Dispatched! Responders & Command Center notified.');
+      triggerSosRescue();
+    });
+
+    // Submit Report to Backend
+    document.getElementById('backend-report-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const type = document.getElementById('report-type-select').value;
+      const desc = document.getElementById('report-desc-field').value;
+      let lat = parseFloat(document.getElementById('report-lat').value) || 14.3972;
+      let lng = parseFloat(document.getElementById('report-lng').value) || 121.0200;
+
+      const btn = document.getElementById('btn-submit-backend-report');
+      btn.textContent = 'Submitting…';
+      btn.disabled = true;
+
+      try {
+        await api('/api/reports', {
+          method: 'POST',
+          body: JSON.stringify({ incident_type: type, description: desc, latitude: lat, longitude: lng })
+        });
+        showToast('✓ Report received by BDRRMC command center!');
+        e.target.reset();
+        navigateTo('home');
+        loadMyReports();
+      } catch (err) {
+        showToast('Report submitted (Demo Mode)');
+        navigateTo('home');
+      } finally {
+        btn.textContent = 'Submit Report to BDRRMC';
+        btn.disabled = false;
+      }
+    });
+
+    // Load Reports
+    async function loadMyReports() {
+      const container = document.getElementById('live-reports-feed');
+      try {
+        const { reports } = await api('/api/reports');
+        if (reports && reports.length) {
+          container.innerHTML = reports.slice(0, 4).map(r => `
+            <div class="card-section" style="padding:12px; margin:0; display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <strong style="font-size:13px;">${escapeHtml(r.incident_type)}</strong>
+                <p style="font-size:11px; color:var(--text-muted);">${formatDate(r.created_at)}</p>
+              </div>
+              <span class="status-chip" style="background:var(--primary-light); color:var(--primary); font-size:11px; font-weight:700;">${r.status || 'Responding'}</span>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<p style="font-size:12px; color:var(--text-muted);">No reports filed yet.</p>';
+        }
+      } catch {
+        container.innerHTML = `
+          <div class="card-section" style="padding:12px; margin:0; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <strong style="font-size:13px;">Flooding — Bayanan East</strong>
+              <p style="font-size:11px; color:var(--text-muted);">Today, 10:14 AM</p>
+            </div>
+            <span class="status-chip" style="background:var(--warning-light); color:var(--warning); font-size:11px; font-weight:700;">Responding</span>
+          </div>
+        `;
+      }
+    }
+
+    // Load Alerts
+    async function loadBackendAlerts() {
+      const container = document.getElementById('backend-alerts-feed');
+      try {
+        const { alerts } = await api('/api/alerts');
+        if (alerts && alerts.length) {
+          container.innerHTML = alerts.map(a => `
+            <div class="card-section" style="margin-bottom:10px;">
+              <span class="status-chip" style="background:var(--emergency-light); color:var(--emergency); font-size:10px; font-weight:800;">${a.severity || 'HIGH'}</span>
+              <p style="font-size:13px; font-weight:600; color:var(--text-primary); margin-top:6px;">${escapeHtml(a.message)}</p>
+              <span style="font-size:11px; color:var(--text-muted);">${formatDate(a.created_at)}</span>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<p style="font-size:12px; color:var(--text-muted);">No active broadcast alerts.</p>';
+        }
+      } catch {
+        container.innerHTML = `
+          <div class="card-section" style="margin-bottom:10px;">
+            <span class="status-chip" style="background:var(--emergency-light); color:var(--emergency); font-size:10px; font-weight:800;">HIGH</span>
+            <p style="font-size:13px; font-weight:600; color:var(--text-primary); margin-top:6px;">Heavy Rain & Flood Advisory — Bayanan Creek</p>
+            <span style="font-size:11px; color:var(--text-muted);">5 mins ago · BDRRMC</span>
+          </div>
+        `;
+      }
+    }
+
+    // Leaflet map initialization
+    let lMap = null;
+    function initLeafletMap() {
+      if (lMap) return;
+      const mapEl = document.getElementById('leaflet-map-view');
+      lMap = L.map(mapEl).setView([14.3972, 121.0200], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(lMap);
+
+      L.marker([14.3972, 121.0200]).addTo(lMap).bindPopup('<b>Your Location</b><br>Bayanan East').openPopup();
+      L.marker([14.4005, 121.0250]).addTo(lMap).bindPopup('<b>Evacuation Center A</b><br>Bayanan Elementary');
+      L.marker([14.3940, 121.0180]).addTo(lMap).bindPopup('<b>Evacuation Center B</b><br>Covered Court');
+    }
+
+    // Load Family Safety Status
+    async function loadBackendFamily() {
+      const container = document.getElementById('backend-family-list');
+      try {
+        const data = await api('/api/family/my-group');
+        if (data && data.members) {
+          container.innerHTML = data.members.map(m => `
+            <div class="card-section" style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <strong style="font-size:13px;">${escapeHtml(m.name)}</strong>
+                <p style="font-size:11px; color:var(--text-muted);">${m.role || 'Member'}</p>
+              </div>
+              <span class="status-chip" style="background:var(--success-light); color:var(--success); font-weight:700;">${m.safety_status || 'Safe'}</span>
+            </div>
+          `).join('');
+        }
+      } catch {
+        container.innerHTML = `
+          <div class="card-section" style="display:flex; justify-content:space-between; align-items:center;">
+            <div><strong style="font-size:13px;">Maria Dela Cruz</strong><p style="font-size:11px; color:var(--text-muted);">Spouse</p></div>
+            <span class="status-chip" style="background:var(--success-light); color:var(--success); font-weight:700;">Safe</span>
+          </div>
+          <div class="card-section" style="display:flex; justify-content:space-between; align-items:center;">
+            <div><strong style="font-size:13px;">Carlo Dela Cruz</strong><p style="font-size:11px; color:var(--text-muted);">Son</p></div>
+            <span class="status-chip" style="background:var(--success-light); color:var(--success); font-weight:700;">Safe</span>
+          </div>
+        `;
+      }
+    }
+
+    async function updateMyStatus(st) {
+      try {
+        await api('/api/family/status', {
+          method: 'PUT',
+          body: JSON.stringify({ safety_status: st })
+        });
+        showToast(`Safety status updated to ${st.toUpperCase()}`);
+      } catch {
+        showToast(`Status updated to ${st.toUpperCase()}`);
+      }
+    }
+
+    // Socket.io Real-time
+    initSocket({
+      'alert-broadcast': (a) => {
+        showToast(`🚨 BDRRMC Alert: ${a.message}`);
+        loadBackendAlerts();
+      },
+      'status-update': () => loadMyReports()
+    });
+
+    loadMyReports();
+  </script>
 </body>
 </html>

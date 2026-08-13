@@ -3,60 +3,124 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#12151f" />
+  <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
   <link rel="stylesheet" href="/mobile-ui.css" />
-  <title>GeoSafe — Home</title>
+  <title>GeoSafe — Resident Dashboard</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body class="app-shell">
   <div class="app-container">
+    <!-- Top App Bar -->
+    <header class="resident-topbar">
+      <div class="resident-brand">
+        <span class="resident-brand__mark">⌖</span>
+        <span>GeoSafe</span>
+      </div>
+      <div class="resident-topbar__actions">
+        <a href="family.html" class="resident-avatar" id="header-avatar" aria-label="Open family safety">JD</a>
+      </div>
+    </header>
+
+    <!-- PWA 1-Tap Install Banner (Appears on Mobile/Desktop) -->
+    <div id="pwa-install-banner" style="display:none; background:linear-gradient(135deg, #1565C0, #0D47A1); color:white; padding:10px 14px; border-radius:12px; margin-bottom:14px; align-items:center; justify-content:space-between; box-shadow:var(--shadow-sm);">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:18px;">📲</span>
+        <div>
+          <strong style="font-size:12px; display:block;">Install GeoSafe App</strong>
+          <span style="font-size:10px; color:#BBDEFB;">1-Tap Emergency Access from Home Screen</span>
+        </div>
+      </div>
+      <button type="button" onclick="triggerPwaInstall()" style="background:white; color:#1565C0; border:none; padding:6px 12px; border-radius:8px; font-weight:700; font-size:11px; cursor:pointer;">
+        Install
+      </button>
+    </div>
+
+    <!-- Welcome & Greeting Section -->
+    <section class="resident-welcome" aria-label="Resident overview">
+      <div>
+        <p>Good day,</p>
+        <h1 id="resident-name">Juan Dela Cruz</h1>
+      </div>
+      
+      <!-- Weather Widget Card -->
+      <div class="weather-card">
+        <div class="weather-card__top">
+          <div>
+            <span class="weather-card__label">Today's weather · Bayanan</span>
+            <strong>28°C</strong>
+            <span style="font-size:14px; color:#E3F2FD;">Partly Cloudy · 60% Rain</span>
+          </div>
+          <span style="font-size:32px;" aria-hidden="true">☁️</span>
+        </div>
+        <p>⚠️ Rain warning in effect — Muntinlupa Emergency Advisory</p>
+      </div>
+    </section>
+
+    <!-- Broadcast Banner -->
     <div id="broadcast-banner" class="broadcast-banner hidden">
-      <span class="broadcast-banner__icon">⚠️</span>
+      <span class="broadcast-banner__icon">🚨</span>
       <div>
         <p class="broadcast-banner__title">BDRRMC Broadcast</p>
         <p id="broadcast-text" class="broadcast-banner__text"></p>
       </div>
     </div>
 
-    <div class="home-layout">
-      <section class="map-card">
-        <div class="map-card__badge">
-          <span class="map-card__badge-dot"></span>
-          <span id="coord-status">Device Coordinates: Acquiring…</span>
-        </div>
-        <div id="home-map"></div>
-        <div class="map-card__legend">
-          <span class="map-card__legend-dot"></span>
-          <span>Evacuation Safe Haven</span>
-        </div>
-      </section>
+    <!-- Large Emergency Rescue Card -->
+    <a href="report.html?sos=1" class="sos-card-banner" aria-label="Trigger SOS Emergency Rescue">
+      <div style="flex:1; padding-right:12px;">
+        <span style="font-size:10px; font-weight:800; letter-spacing:1.5px; color:#FFCDD2;">EMERGENCY RESCUE</span>
+        <h2 style="font-size:19px; font-weight:800; margin:2px 0 3px; color:white;">Emergency Rescue</h2>
+        <p style="font-size:12px; color:#FFEBEE; margin:0;">Tap SOS to broadcast your GPS location directly to BDRRMC responders.</p>
+      </div>
+      <div class="sos-btn-circle">SOS</div>
+    </a>
 
-      <nav class="action-grid" aria-label="Quick actions">
-        <a href="report.html" class="action-card">
-          <span class="action-card__icon">📝</span>
-          <span class="action-card__label">Report Incident</span>
-        </a>
-        <a href="report.html?sos=1" class="action-card action-card--sos">
-          <span class="action-card__icon">🚨</span>
-          <span class="action-card__label">SOS Rescue Request</span>
-        </a>
-        <a href="route.html" class="action-card">
-          <span class="action-card__icon">🧭</span>
-          <span class="action-card__label">Safe Navigation</span>
-        </a>
-        <a href="family.html" class="action-card">
-          <span class="action-card__icon">👨‍👩‍👧</span>
-          <span class="action-card__label">Family Tracker</span>
-        </a>
-      </nav>
-    </div>
+    <!-- Quick Action Grid (2x2) -->
+    <nav class="action-grid" aria-label="Quick actions">
+      <a href="report.html" class="action-card">
+        <span class="action-card__icon">📝</span>
+        <span class="action-card__label">Report<br>Incident</span>
+      </a>
+      <a href="report.html?sos=1" class="action-card action-card--sos">
+        <span class="action-card__icon">🚨</span>
+        <span class="action-card__label">SOS Rescue<br>Request</span>
+      </a>
+      <a href="route.html" class="action-card action-card--map">
+        <span class="action-card__icon">🧭</span>
+        <span class="action-card__label">Safe Evacuation<br>Centers</span>
+      </a>
+      <a href="family.html" class="action-card action-card--fam">
+        <span class="action-card__icon">👨‍👩‍👧</span>
+        <span class="action-card__label">Family Safety<br>Tracker</span>
+      </a>
+    </nav>
 
+    <!-- Map & GPS Coordinates View -->
+    <section class="map-card">
+      <div class="map-card__badge">
+        <span class="map-card__badge-dot"></span>
+        <span id="coord-status">Device Coordinates: Acquiring…</span>
+      </div>
+      <div id="home-map"></div>
+      <div class="map-card__legend">
+        <span class="map-card__legend-dot"></span>
+        <span>Nearest Evacuation Safe Haven (Barangay Bayanan)</span>
+      </div>
+    </section>
+
+    <!-- Recent Alerts -->
     <section class="ui-card">
-      <h2>Recent Alerts</h2>
-      <div id="alerts-preview" class="text-muted">Loading…</div>
+      <h2>Recent BDRRMC Alerts</h2>
+      <div id="alerts-preview" class="text-muted">Loading alerts…</div>
+    </section>
+
+    <!-- My Incident Reports -->
+    <section class="ui-card">
+      <h2>My Incident Reports</h2>
+      <div id="my-reports-preview" class="text-muted">Loading your reports…</div>
     </section>
   </div>
 
@@ -68,6 +132,12 @@
     if (!user) throw new Error('unauthorized');
     injectBottomNav('home');
 
+    if (user.name) {
+      document.getElementById('resident-name').textContent = user.name;
+      const initials = user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+      document.getElementById('header-avatar').textContent = initials || 'JD';
+    }
+
     let homeMap = null;
     let homeLayers = null;
 
@@ -77,7 +147,7 @@
           [lat, lng],
           15
         );
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
           maxZoom: 19,
         }).addTo(homeMap);
       }
@@ -85,20 +155,27 @@
       if (homeLayers) homeMap.removeLayer(homeLayers);
       homeLayers = L.layerGroup();
 
-      const { haven } = getNearestHaven(lat, lng);
-      let routeData;
       try {
-        routeData = await fetchWalkingRoute(lat, lng, haven.lat, haven.lng);
-        document.getElementById('coord-status').textContent =
-          `Active · ${formatDistance(routeData.distanceM)} · ${formatDuration(routeData.durationSec)} to ${haven.name}`;
-      } catch {
-        routeData = null;
-        document.getElementById('coord-status').textContent = `Active · Nearest: ${haven.name}`;
-      }
+        const { haven } = getNearestHaven(lat, lng);
+        let routeData;
+        try {
+          routeData = await fetchWalkingRoute(lat, lng, haven.lat, haven.lng);
+          document.getElementById('coord-status').textContent =
+            `Active · ${formatDistance(routeData.distanceM)} · ${formatDuration(routeData.durationSec)} to ${haven.name}`;
+        } catch {
+          routeData = null;
+          document.getElementById('coord-status').textContent = `Active · Nearest: ${haven.name}`;
+        }
 
-      drawNavigationRoute(homeMap, lat, lng, haven, routeData, homeLayers);
-      homeLayers.addTo(homeMap);
-      fitMapToPath(homeMap, routeData?.coordinates || [[lat, lng], [haven.lat, haven.lng]]);
+        drawNavigationRoute(homeMap, lat, lng, haven, routeData, homeLayers);
+        homeLayers.addTo(homeMap);
+        fitMapToPath(homeMap, routeData?.coordinates || [[lat, lng], [haven.lat, haven.lng]]);
+      } catch (e) {
+        // Fallback marker
+        L.marker([lat, lng]).addTo(homeLayers).bindPopup('Your Location').openPopup();
+        homeLayers.addTo(homeMap);
+        document.getElementById('coord-status').textContent = `📍 ${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`;
+      }
       setTimeout(() => homeMap.invalidateSize(), 100);
     }
 
@@ -107,8 +184,8 @@
         const { latitude, longitude } = await getGeolocation();
         await initHomeMap(latitude, longitude);
       } catch {
-        document.getElementById('coord-status').textContent = 'GPS unavailable · Bayanan routes shown';
-        await initHomeMap(BAYANAN_CENTER.lat, BAYANAN_CENTER.lng);
+        document.getElementById('coord-status').textContent = 'GPS simulated · Barangay Bayanan';
+        await initHomeMap(14.3972, 121.0200);
       }
     }
 
@@ -117,7 +194,7 @@
       const banner = document.getElementById('broadcast-banner');
       try {
         const { alerts } = await api('/api/alerts');
-        if (alerts.length) {
+        if (alerts && alerts.length) {
           const latest = alerts[0];
           banner.classList.remove('hidden');
           document.getElementById('broadcast-text').textContent = latest.message;
@@ -125,15 +202,41 @@
             .slice(0, 3)
             .map(
               (a) =>
-                `<div class="report-item"><div class="flex gap-2 mb-1">${severityBadge(a.severity)}</div><p class="text-sm" style="margin:0">${escapeHtml(a.message)}</p><p class="text-muted">${formatDate(a.created_at)}</p></div>`
+                `<div class="report-item"><div class="flex gap-2 mb-1" style="margin-bottom:4px;">${severityBadge(a.severity)}</div><p style="margin:0 0 4px; font-weight:600; font-size:13px;">${escapeHtml(a.message)}</p><p class="text-muted" style="margin:0; font-size:11px;">${formatDate(a.created_at)}</p></div>`
             )
             .join('');
         } else {
           banner.classList.add('hidden');
-          el.innerHTML = '<p class="text-muted">No active broadcasts.</p>';
+          el.innerHTML = '<p class="text-muted">No active emergency broadcasts.</p>';
         }
       } catch {
-        el.innerHTML = '<p class="text-muted">Unable to load alerts.</p>';
+        el.innerHTML = '<p class="text-muted">No active broadcasts.</p>';
+      }
+    }
+
+    async function loadMyReports() {
+      const el = document.getElementById('my-reports-preview');
+      try {
+        const { reports } = await api('/api/reports');
+        if (reports && reports.length) {
+          el.innerHTML = reports
+            .slice(0, 3)
+            .map(
+              (r) =>
+                `<div class="report-item" style="display:flex; justify-content:space-between; align-items:center;">
+                  <div>
+                    <strong style="font-size:13px; color:var(--text);">${escapeHtml(r.incident_type)}</strong>
+                    <p class="text-muted" style="margin:2px 0 0; font-size:11px;">${formatDate(r.created_at)}</p>
+                  </div>
+                  ${statusBadge(r.status)}
+                </div>`
+            )
+            .join('');
+        } else {
+          el.innerHTML = '<p class="text-muted">No incidents reported yet.</p>';
+        }
+      } catch {
+        el.innerHTML = '<p class="text-muted">No reports filed.</p>';
       }
     }
 
@@ -144,10 +247,14 @@
         showToast(alert.message, 'danger');
         loadAlerts();
       },
+      'status-update': () => {
+        loadMyReports();
+      }
     });
 
     loadCoords();
     loadAlerts();
+    loadMyReports();
     window.addEventListener('resize', () => homeMap?.invalidateSize());
   </script>
 </body>

@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#12151f" />
+  <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css" />
-  <title>GeoSafe — Sign In</title>
+  <link rel="stylesheet" href="/mobile-ui.css?v=2.2" />
+  <title>GeoSafe — Sign In & Register</title>
 </head>
 <body class="auth-page">
   <div class="auth-bg" aria-hidden="true"></div>
@@ -15,32 +15,34 @@
   <div class="auth-layout">
     <header class="auth-header">
       <a href="/" class="auth-logo">
-        <div class="auth-logo__icon">🧩</div>
+        <div class="auth-logo__icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
         <div>
           <span class="auth-logo__text">GeoSafe</span>
-          <span class="auth-logo__sub">Emergency System</span>
+          <span class="auth-logo__sub">Barangay Bayanan Emergency System</span>
         </div>
       </a>
     </header>
 
     <main class="auth-main">
       <section class="auth-hero">
-        <h1>Disaster reporting &amp; emergency assistance</h1>
+        <h1>Geolocation-Based Disaster Reporting &amp; Emergency Assistance</h1>
         <p>
-          Report incidents with GPS, receive real-time BDRRMC alerts, navigate to evacuation routes, and track your family — all in one place.
+          Report emergencies with instant GPS pin, receive live BDRRMC broadcast alerts, navigate to safe evacuation havens, and track your family's safety — all in one trusted portal.
         </p>
         <div class="auth-features">
           <div class="auth-feature">
             <span>📍</span>
-            <span>GPS disaster reporting</span>
+            <span>GPS Incident &amp; SOS Disaster Reporting</span>
           </div>
           <div class="auth-feature">
             <span>📡</span>
-            <span>Live emergency alerts</span>
+            <span>Real-time BDRRMC Emergency Broadcasts</span>
           </div>
           <div class="auth-feature">
             <span>👨‍👩‍👧</span>
-            <span>Family safety tracker</span>
+            <span>Family Safety Status &amp; Location Tracker</span>
           </div>
         </div>
       </section>
@@ -48,49 +50,56 @@
       <section class="auth-card">
         <div class="auth-tabs" role="tablist">
           <button type="button" class="auth-tab auth-tab--active" id="tab-login" role="tab" aria-selected="true">Sign In</button>
-          <button type="button" class="auth-tab" id="tab-register" role="tab" aria-selected="false">Register</button>
+          <button type="button" class="auth-tab" id="tab-register" role="tab" aria-selected="false">Create Account</button>
         </div>
 
+        <!-- Sign In Panel -->
         <div id="login-panel" class="auth-panel auth-panel--active" role="tabpanel">
-          <h2 class="auth-form-title">Welcome back</h2>
-          <p class="auth-form-sub">Sign in to access your dashboard</p>
+          <div>
+            <h2 class="auth-form-title">Welcome back</h2>
+            <p class="auth-form-sub">Sign in to access your emergency resident dashboard</p>
+          </div>
           <form id="login-form">
             <div class="auth-field">
-              <label for="login-email">Email</label>
-              <input type="email" id="login-email" name="email" required autocomplete="email" placeholder="you@example.com" />
+              <label for="login-email">Email Address</label>
+              <input type="email" id="login-email" name="email" required autocomplete="email" placeholder="you@example.com" value="admin@geosafe.local" />
             </div>
             <div class="auth-field">
               <label for="login-password">Password</label>
-              <input type="password" id="login-password" name="password" required autocomplete="current-password" placeholder="••••••••" />
+              <input type="password" id="login-password" name="password" required autocomplete="current-password" placeholder="••••••••" value="admin123" />
             </div>
             <p id="login-error" class="auth-error hidden" role="alert"></p>
-            <button type="submit" class="auth-submit auth-submit--login" id="login-btn">Sign In</button>
+            <button type="submit" class="auth-submit" id="login-btn">Sign In to Dashboard</button>
           </form>
-          <details class="auth-demo">
-            <summary>Quick demo login</summary>
+
+          <details class="auth-demo" open>
+            <summary>Quick Demo 1-Tap Login</summary>
             <div class="auth-demo-grid">
               <button type="button" class="auth-demo-btn" data-email="admin@geosafe.local" data-pass="admin123">
-                <span>🛡️ Admin</span>
-                <span>Tap to fill</span>
+                <span>🛡️ Admin Command</span>
+                <span>admin@geosafe.local</span>
               </button>
               <button type="button" class="auth-demo-btn" data-email="responder@geosafe.local" data-pass="responder123">
-                <span>🚑 Responder</span>
-                <span>Tap to fill</span>
+                <span>🚑 Responder Unit</span>
+                <span>responder@geosafe.local</span>
               </button>
             </div>
           </details>
         </div>
 
+        <!-- Register Panel -->
         <div id="register-panel" class="auth-panel" role="tabpanel">
-          <h2 class="auth-form-title">Create account</h2>
-          <p class="auth-form-sub">Register as a resident to report emergencies</p>
+          <div>
+            <h2 class="auth-form-title">Create Resident Account</h2>
+            <p class="auth-form-sub">Register to report disasters and receive assistance</p>
+          </div>
           <form id="register-form">
             <div class="auth-field">
-              <label for="reg-name">Full name</label>
-              <input type="text" id="reg-name" name="name" required minlength="2" autocomplete="name" placeholder="Your name" />
+              <label for="reg-name">Full Name</label>
+              <input type="text" id="reg-name" name="name" required minlength="2" autocomplete="name" placeholder="e.g. Juan Dela Cruz" />
             </div>
             <div class="auth-field">
-              <label for="reg-email">Email</label>
+              <label for="reg-email">Email Address</label>
               <input type="email" id="reg-email" name="email" required autocomplete="email" placeholder="you@example.com" />
             </div>
             <div class="auth-field">
@@ -98,14 +107,14 @@
               <input type="password" id="reg-password" name="password" required minlength="6" autocomplete="new-password" placeholder="Min. 6 characters" />
             </div>
             <p id="register-error" class="auth-error hidden" role="alert"></p>
-            <button type="submit" class="auth-submit auth-submit--register" id="register-btn">Create Account</button>
+            <button type="submit" class="auth-submit" id="register-btn">Register Resident Account</button>
           </form>
         </div>
       </section>
     </main>
 
     <footer class="auth-footer">
-      GeoSafe &copy; 2026 — Geolocation-Based Disaster Reporting System
+      GeoSafe &copy; 2026 — Barangay Bayanan Geolocation-Based Disaster Management System
     </footer>
   </div>
 
@@ -161,7 +170,7 @@
         errEl.classList.add('hidden');
         btn.disabled = true;
         const prevText = btn.textContent;
-        btn.textContent = 'Please wait…';
+        btn.textContent = 'Authenticating…';
 
         const fd = new FormData(form);
         const body = Object.fromEntries(fd.entries());
