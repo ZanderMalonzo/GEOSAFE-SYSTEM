@@ -230,6 +230,15 @@ async function api(path, options = {}) {
     };
     reports.unshift(newReport);
     setLocalStore('reports', reports);
+
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        const bc = new BroadcastChannel('geosafe_channel');
+        bc.postMessage({ type: 'new-report', report: newReport });
+        bc.close();
+      } catch (e) {}
+    }
+
     return { message: 'Report submitted', report: newReport };
   }
 
@@ -246,6 +255,15 @@ async function api(path, options = {}) {
         report.responder_name = body.assigned_to ? 'Responder Unit 1 (Ambulance)' : null;
       }
       setLocalStore('reports', reports);
+
+      if (typeof BroadcastChannel !== 'undefined') {
+        try {
+          const bc = new BroadcastChannel('geosafe_channel');
+          bc.postMessage({ type: 'status-update', report });
+          bc.close();
+        } catch (e) {}
+      }
+
       return { message: 'Report updated', report };
     }
     return { message: 'Report updated', report: { id, ...body } };
@@ -270,6 +288,15 @@ async function api(path, options = {}) {
     };
     alerts.unshift(newAlert);
     setLocalStore('alerts', alerts);
+
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        const bc = new BroadcastChannel('geosafe_channel');
+        bc.postMessage({ type: 'new-alert', alert: newAlert });
+        bc.close();
+      } catch (e) {}
+    }
+
     return { message: 'Alert broadcasted', alert: newAlert };
   }
 
