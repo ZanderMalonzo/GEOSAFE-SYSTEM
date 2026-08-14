@@ -198,6 +198,7 @@
   </div>
 
   <script src="/firebase-config.js"></script>
+  <script src="/evacuation-routes.js"></script>
   <script src="/app.js"></script>
   <script>
     const user = requireAuth(['resident']);
@@ -225,8 +226,8 @@
 
     // Hazard Chip Selector
     function selectHazardChip(type, chipEl) {
-      document.querySelectorAll('.hazard-chip').forEach(c => c.classList.remove('active'));
-      if (chipEl) chipEl.classList.add('active');
+      document.querySelectorAll('.hazard-chip').forEach(c => c.classList.remove('hazard-chip--active', 'active'));
+      if (chipEl) chipEl.classList.add('hazard-chip--active');
       document.getElementById('incident_type_input').value = type;
       
       const sBtn = document.getElementById('submit-btn');
@@ -246,7 +247,7 @@
 
       if (!reportMap) {
         reportMap = L.map('map-preview', { zoomControl: false, attributionControl: false }).setView([lat, lng], 16);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(reportMap);
+        setupMapTileLayer(reportMap);
         
         reportMarker = L.marker([lat, lng], { draggable: true }).addTo(reportMap);
         reportMarker.bindPopup('<b>Incident Location</b><br>Drag marker to adjust exact street').openPopup();

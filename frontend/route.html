@@ -410,13 +410,11 @@
         attributionControl: false
       }).setView([userPos.lat, userPos.lng], 16);
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        subdomains: 'abcd'
-      }).addTo(routeMap);
+      setupMapTileLayer(routeMap);
 
       routeLayers = L.layerGroup().addTo(routeMap);
-      setTimeout(() => routeMap?.invalidateSize(), 200);
+      userMarkerLayer = L.layerGroup().addTo(routeMap);
+      setTimeout(() => routeMap?.invalidateSize(), 150);
     }
 
     // 3. User Marker with Eye of Sight Cone

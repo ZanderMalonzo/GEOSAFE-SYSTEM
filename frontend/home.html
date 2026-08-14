@@ -258,27 +258,36 @@
     let homeLayers = null;
     let lastKnownAlertMsg = '';
 
-    // 1. Initialize Map
-    function initHomeMap(lat, lng) {
+    // 1. Initialize Map with Street-Snapped Routing & Dark Mode Support
+    async function initHomeMap(lat, lng) {
       if (!homeMap) {
         homeMap = L.map('home-map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 15);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(homeMap);
+        setupMapTileLayer(homeMap);
       }
 
       if (homeLayers) homeMap.removeLayer(homeLayers);
-      homeLayers = L.layerGroup();
+      homeLayers = L.layerGroup().addTo(homeMap);
 
       try {
         const { haven } = getNearestHaven(lat, lng);
-        drawNavigationRoute(homeMap, lat, lng, haven, null, homeLayers);
-        homeLayers.addTo(homeMap);
-        fitMapToPath(homeMap, [[lat, lng], [haven.lat, haven.lng]]);
         document.getElementById('coord-status').textContent = `Nearest: ${haven.name}`;
+
+        // Initial render
+        drawNavigationRoute(homeMap, lat, lng, haven, null, homeLayers);
+        fitMapToPath(homeMap, [[lat, lng], [haven.lat, haven.lng]]);
+
+        // Fetch real street road network
+        fetchWalkingRoute(lat, lng, haven.lat, haven.lng).then((routeData) => {
+          if (homeLayers) {
+            homeLayers.clearLayers();
+            drawNavigationRoute(homeMap, lat, lng, haven, routeData, homeLayers);
+            fitMapToPath(homeMap, routeData.coordinates);
+          }
+        }).catch(() => {});
       } catch (e) {
         L.marker([lat, lng]).addTo(homeLayers).bindPopup('Your Location').openPopup();
-        homeLayers.addTo(homeMap);
       }
-      setTimeout(() => homeMap?.invalidateSize(), 150);
+      setTimeout(() => homeMap?.invalidateSize(), 200);
     }
 
     // 2. Real-Time Open-Meteo Weather Stream

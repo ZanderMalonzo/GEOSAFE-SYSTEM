@@ -437,10 +437,7 @@
         attributionControl: false
       }).setView([14.4106, 121.0502], 16);
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        subdomains: 'abcd'
-      }).addTo(familyMap);
+      setupMapTileLayer(familyMap);
 
       markerLayerGroup = L.layerGroup().addTo(familyMap);
       setTimeout(() => familyMap?.invalidateSize(), 200);
