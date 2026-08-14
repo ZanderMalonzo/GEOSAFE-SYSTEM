@@ -463,8 +463,154 @@ function triggerPwaInstall() {
   }
 }
 
+// Resident Profile Modal & Info Editor
+function openProfileModal() {
+  const user = getUser() || { name: 'Juan Dela Cruz', email: 'resident@geosafe.local', role: 'resident' };
+  let modal = document.getElementById('profile-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'profile-modal';
+    modal.className = 'profile-modal-backdrop';
+    document.body.appendChild(modal);
+  }
+
+  const initials = (user.name || 'Resident')
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  modal.innerHTML = `
+    <div class="profile-modal-card">
+      <div class="profile-modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="profile-avatar-large">${escapeHtml(initials || 'JD')}</div>
+          <div>
+            <h3 style="margin:0; font-size:16px; font-weight:800;" id="prof-display-name">${escapeHtml(user.name || 'Resident User')}</h3>
+            <span class="ui-badge ui-badge--low" style="font-size:11px; margin-top:2px;">Barangay Bayanan Resident</span>
+          </div>
+        </div>
+        <button type="button" class="profile-modal-close" onclick="closeProfileModal()">&times;</button>
+      </div>
+
+      <form id="profile-edit-form" onsubmit="saveProfileChanges(event)">
+        <div style="margin-bottom:12px;">
+          <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px;">Full Name</label>
+          <input type="text" id="prof-name" class="ui-input" value="${escapeHtml(user.name || '')}" required />
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px;">Email Address</label>
+          <input type="email" id="prof-email" class="ui-input" value="${escapeHtml(user.email || '')}" required />
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px;">Mobile Contact Number</label>
+          <input type="tel" id="prof-phone" class="ui-input" placeholder="0917 123 4567" value="${escapeHtml(user.phone || '0917-889-2345')}" />
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px;">Purok / Street Address</label>
+          <input type="text" id="prof-address" class="ui-input" placeholder="e.g. Purok 3, Ilaya St., Bayanan" value="${escapeHtml(user.address || 'Purok 3, Barangay Bayanan, Muntinlupa')}" />
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px;">Emergency Contact Person & Phone</label>
+          <input type="text" id="prof-emergency" class="ui-input" placeholder="e.g. Maria Santos (0918-765-4321)" value="${escapeHtml(user.emergency_contact || 'Maria Santos (0918-765-4321)')}" />
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
+          <div>
+            <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px;">Vulnerability</label>
+            <select id="prof-vulnerability" class="ui-input">
+              <option value="None" ${user.vulnerability === 'None' ? 'selected' : ''}>None (Able)</option>
+              <option value="Senior Citizen" ${user.vulnerability === 'Senior Citizen' ? 'selected' : ''}>Senior (60+)</option>
+              <option value="PWD" ${user.vulnerability === 'PWD' ? 'selected' : ''}>PWD</option>
+              <option value="Pregnant / Infant" ${user.vulnerability === 'Pregnant / Infant' ? 'selected' : ''}>Pregnant/Child</option>
+              <option value="Medical Condition" ${user.vulnerability === 'Medical Condition' ? 'selected' : ''}>Medical/Oxygen</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px;">Blood Type</label>
+            <select id="prof-blood" class="ui-input">
+              <option value="O+" ${user.blood_type === 'O+' ? 'selected' : ''}>O+</option>
+              <option value="O-" ${user.blood_type === 'O-' ? 'selected' : ''}>O-</option>
+              <option value="A+" ${user.blood_type === 'A+' ? 'selected' : ''}>A+</option>
+              <option value="A-" ${user.blood_type === 'A-' ? 'selected' : ''}>A-</option>
+              <option value="B+" ${user.blood_type === 'B+' ? 'selected' : ''}>B+</option>
+              <option value="B-" ${user.blood_type === 'B-' ? 'selected' : ''}>B-</option>
+              <option value="AB+" ${user.blood_type === 'AB+' ? 'selected' : ''}>AB+</option>
+              <option value="Unknown" ${!user.blood_type || user.blood_type === 'Unknown' ? 'selected' : ''}>Unknown</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="ui-btn ui-btn-primary" style="margin-bottom:8px;">
+          💾 Save Profile Changes
+        </button>
+        <button type="button" class="ui-btn ui-btn-secondary" onclick="logout()" style="color:var(--emergency);">
+          🚪 Log Out
+        </button>
+      </form>
+    </div>
+  `;
+
+  modal.classList.add('profile-modal--open');
+}
+
+function closeProfileModal() {
+  const modal = document.getElementById('profile-modal');
+  if (modal) modal.classList.remove('profile-modal--open');
+}
+
+function saveProfileChanges(e) {
+  e.preventDefault();
+  const user = getUser() || {};
+  user.name = document.getElementById('prof-name').value.trim();
+  user.email = document.getElementById('prof-email').value.trim();
+  user.phone = document.getElementById('prof-phone').value.trim();
+  user.address = document.getElementById('prof-address').value.trim();
+  user.emergency_contact = document.getElementById('prof-emergency').value.trim();
+  user.vulnerability = document.getElementById('prof-vulnerability').value;
+  user.blood_type = document.getElementById('prof-blood').value;
+
+  setAuth(getToken() || 'demo-token', user);
+
+  // Update name and avatar initials on page
+  const nameEl = document.getElementById('resident-name');
+  if (nameEl) nameEl.textContent = user.name;
+
+  const initials = (user.name || 'Resident')
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  document.querySelectorAll('.resident-avatar, #header-avatar').forEach((el) => {
+    el.textContent = initials || 'JD';
+  });
+
+  closeProfileModal();
+  showToast('✅ Profile information updated successfully!', 'success');
+}
+
+// Auto sync avatar initials on load
+document.addEventListener('DOMContentLoaded', () => {
+  const user = getUser();
+  if (user && user.name) {
+    const initials = user.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+    document.querySelectorAll('.resident-avatar, #header-avatar').forEach((el) => {
+      el.textContent = initials || 'JD';
+    });
+  }
+});
+
 // Service Worker Registration
 const isTunnelHost = /\.(loca\.lt|ngrok|ngrok-free\.app)$/i.test(window.location.hostname);
 if ('serviceWorker' in navigator && !isTunnelHost) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
+

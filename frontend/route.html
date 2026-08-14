@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css?v=3.3" />
+  <link rel="stylesheet" href="/mobile-ui.css?v=3.4" />
   <title>GeoSafe — Evacuation Navigation</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -204,35 +204,56 @@
       cursor: pointer;
     }
 
-    /* Standard Google Maps User Dot */
+    /* ============================================================
+       GOOGLE MAPS BLUE USER PIN + EYE OF SIGHT BEAM CONE
+       ============================================================ */
     .user-gps-container {
       position: relative;
-      width: 32px;
-      height: 32px;
+      width: 50px;
+      height: 50px;
       display: flex;
       align-items: center;
       justify-content: center;
+      pointer-events: none;
     }
 
+    /* Directional Flashlight / Eye of Sight Cone */
+    .user-vision-cone {
+      position: absolute;
+      width: 68px;
+      height: 68px;
+      top: -34px;
+      left: -9px;
+      pointer-events: none;
+      background: linear-gradient(to top, rgba(26, 115, 232, 0.45) 0%, rgba(26, 115, 232, 0.15) 60%, rgba(26, 115, 232, 0) 100%);
+      clip-path: polygon(50% 100%, 12% 0%, 88% 0%);
+      transform-origin: 50% 100%;
+      transform: rotate(0deg);
+      transition: transform 0.1s linear;
+      z-index: 1;
+    }
+
+    /* Center Blue Dot */
     .user-center-dot {
-      width: 16px;
-      height: 16px;
+      width: 17px;
+      height: 17px;
       background: #1A73E8;
       border: 3px solid white;
       border-radius: 50%;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-      z-index: 2;
+      z-index: 3;
       position: relative;
     }
 
+    /* Pulsing GPS beacon */
     .user-pulse-ring {
       position: absolute;
-      width: 32px;
-      height: 32px;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
-      background: rgba(26, 115, 232, 0.25);
+      background: rgba(26, 115, 232, 0.22);
       animation: gpsPulse 2s infinite ease-out;
-      z-index: 1;
+      z-index: 2;
     }
 
     /* Route Duration Callout Pill on Map */
@@ -300,12 +321,14 @@
         <span class="resident-brand__mark">⌖</span>
         <span>GeoSafe</span>
       </div>
-      <button type="button" class="ui-btn-ghost" onclick="logout()">Logout</button>
+      <div class="resident-topbar__actions">
+        <button type="button" class="resident-avatar" id="header-avatar" onclick="openProfileModal()" aria-label="Open Profile Settings">JD</button>
+      </div>
     </header>
 
     <div class="page-intro-header" style="margin-bottom:12px;">
       <h1 style="font-size:22px; font-weight:800; margin:0;">Safe Evacuation Routes</h1>
-      <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Turn-by-turn walking guidance to safe havens in Barangay Bayanan.</p>
+      <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Turn-by-turn walking guidance with live eye of sight.</p>
     </div>
 
     <!-- Map Box -->
@@ -359,6 +382,7 @@
     let isNavigating = false;
     let voiceEnabled = true;
     let currentSteps = [];
+    let currentHeading = 45; // Default orientation facing toward haven
 
     // 1. Voice Speech Guidance
     function speakDirection(text) {
@@ -393,21 +417,57 @@
       setTimeout(() => routeMap?.invalidateSize(), 200);
     }
 
-    // 3. User Marker (Standard Clean Blue Dot)
+    // 3. User Marker with Eye of Sight Cone
     function createUserMarker(lat, lng) {
       const icon = L.divIcon({
         className: 'user-marker-wrapper',
         html: `
           <div class="user-gps-container">
+            <div class="user-vision-cone" style="transform: rotate(${currentHeading}deg);"></div>
             <div class="user-pulse-ring"></div>
             <div class="user-center-dot"></div>
           </div>
         `,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
+        iconSize: [50, 50],
+        iconAnchor: [25, 25]
       });
 
       return L.marker([lat, lng], { icon: icon, zIndexOffset: 1000 });
+    }
+
+    function updateVisionCone(headingDeg) {
+      currentHeading = Math.round(headingDeg);
+      if (userMarkerLayer) {
+        const el = userMarkerLayer.getElement();
+        if (el) {
+          const cone = el.querySelector('.user-vision-cone');
+          if (cone) cone.style.transform = `rotate(${currentHeading}deg)`;
+        }
+      }
+    }
+
+    // Device Orientation & Motion Listener
+    function setupOrientationListener() {
+      const onOrientation = (e) => {
+        let heading = null;
+        if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
+          heading = e.webkitCompassHeading;
+        } else if (e.alpha !== null && e.alpha !== undefined) {
+          heading = 360 - e.alpha;
+        }
+        if (heading !== null && !isNaN(heading)) {
+          updateVisionCone(heading);
+        }
+      };
+
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission().then(res => {
+          if (res === 'granted') window.addEventListener('deviceorientation', onOrientation, true);
+        }).catch(() => {});
+      } else {
+        window.addEventListener('deviceorientationabsolute', onOrientation, true);
+        window.addEventListener('deviceorientation', onOrientation, true);
+      }
     }
 
     function calculateETAClock(durationSec) {
@@ -454,7 +514,7 @@
 
       currentSteps = routeData.steps;
 
-      // Draw User Marker (Clean Blue Dot)
+      // Draw User Marker with Eye of Sight Cone
       userMarkerLayer = createUserMarker(userPos.lat, userPos.lng).addTo(routeLayers);
 
       // Red Destination Pin
@@ -517,6 +577,8 @@
       isNavigating = true;
       document.body.classList.add('nav-active-mode');
 
+      setupOrientationListener();
+
       const firstStep = currentSteps[0] || { instruction: `Walk to ${selectedHaven.name}`, distanceM: 200, icon: '⬆' };
       document.getElementById('hud-turn-icon').textContent = firstStep.icon || '⬆';
       document.getElementById('hud-turn-dist').textContent = `In ${formatDistance(firstStep.distanceM)}`;
@@ -560,6 +622,10 @@
           if (userMarkerLayer) userMarkerLayer.setLatLng([userPos.lat, userPos.lng]);
           if (isNavigating && routeMap) routeMap.panTo([userPos.lat, userPos.lng]);
 
+          if (pos.coords.heading !== null && !isNaN(pos.coords.heading)) {
+            updateVisionCone(pos.coords.heading);
+          }
+
           const remainM = remainingToDestination(userPos.lat, userPos.lng, selectedHaven);
           document.getElementById('hud-eta-dist').textContent = formatDistance(remainM);
           document.getElementById('hud-eta-min').textContent = Math.round((remainM / 80)) + ' min';
@@ -592,6 +658,7 @@
     // Auto Init
     async function setupInitial() {
       initMap();
+      setupOrientationListener();
       drawRoute(1);
       try {
         const pos = await getGeolocation();
