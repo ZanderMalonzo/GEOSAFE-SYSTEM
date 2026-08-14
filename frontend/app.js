@@ -204,18 +204,37 @@ async function api(path, options = {}) {
     return { message: 'Registration successful', token: 'demo-jwt-token-2026', user };
   }
 
-  // Reports: Get
+  // Reports: Get (Merged with Cloud Relay)
   if (path === '/api/reports' && method === 'GET') {
-    const reports = getLocalStore('reports', DEFAULT_REPORTS);
+    let reports = getLocalStore('reports', DEFAULT_REPORTS);
+    try {
+      const cloudRes = await fetch('https://ntfy.sh/geosafe_bayanan_reports_2026/json?poll=1&since=24h');
+      if (cloudRes.ok) {
+        const text = await cloudRes.text();
+        const lines = text.trim().split('\n');
+        lines.forEach((line) => {
+          try {
+            const parsed = JSON.parse(line);
+            if (parsed.message) {
+              const rData = JSON.parse(parsed.message);
+              if (rData && rData.id && !reports.some((x) => x.id === rData.id)) {
+                reports.unshift(rData);
+              }
+            }
+          } catch (e) {}
+        });
+        setLocalStore('reports', reports);
+      }
+    } catch (e) {}
     return { reports };
   }
 
-  // Reports: Create
+  // Reports: Create (Broadcast to Cloud)
   if (path === '/api/reports' && method === 'POST') {
     const reports = getLocalStore('reports', DEFAULT_REPORTS);
     const user = getUser() || { id: 3, name: 'Resident' };
     const newReport = {
-      id: reports.length + 101,
+      id: Date.now(),
       user_id: user.id,
       reporter_name: user.name,
       incident_type: body.incident_type || 'Flood',
@@ -230,6 +249,15 @@ async function api(path, options = {}) {
     };
     reports.unshift(newReport);
     setLocalStore('reports', reports);
+
+    // Broadcast to Cloud across all mobile & desktop devices
+    try {
+      fetch('https://ntfy.sh/geosafe_bayanan_reports_2026', {
+        method: 'POST',
+        body: JSON.stringify(newReport),
+        headers: { 'Title': `🚨 ${newReport.incident_type} Reported`, 'Priority': 'high' }
+      }).catch(() => {});
+    } catch (e) {}
 
     if (typeof BroadcastChannel !== 'undefined') {
       try {
@@ -256,6 +284,14 @@ async function api(path, options = {}) {
       }
       setLocalStore('reports', reports);
 
+      try {
+        fetch('https://ntfy.sh/geosafe_bayanan_reports_2026', {
+          method: 'POST',
+          body: JSON.stringify(report),
+          headers: { 'Title': `Status Updated: #${report.id}` }
+        }).catch(() => {});
+      } catch (e) {}
+
       if (typeof BroadcastChannel !== 'undefined') {
         try {
           const bc = new BroadcastChannel('geosafe_channel');
@@ -269,17 +305,36 @@ async function api(path, options = {}) {
     return { message: 'Report updated', report: { id, ...body } };
   }
 
-  // Alerts: Get
+  // Alerts: Get (Merged with Cloud Relay)
   if (path === '/api/alerts' && method === 'GET') {
-    const alerts = getLocalStore('alerts', DEFAULT_ALERTS);
+    let alerts = getLocalStore('alerts', DEFAULT_ALERTS);
+    try {
+      const cloudRes = await fetch('https://ntfy.sh/geosafe_bayanan_alerts_2026/json?poll=1&since=24h');
+      if (cloudRes.ok) {
+        const text = await cloudRes.text();
+        const lines = text.trim().split('\n');
+        lines.forEach((line) => {
+          try {
+            const parsed = JSON.parse(line);
+            if (parsed.message) {
+              const aData = JSON.parse(parsed.message);
+              if (aData && aData.message && !alerts.some((x) => x.id === aData.id || x.message === aData.message)) {
+                alerts.unshift(aData);
+              }
+            }
+          } catch (e) {}
+        });
+        setLocalStore('alerts', alerts);
+      }
+    } catch (e) {}
     return { alerts };
   }
 
-  // Alerts: Broadcast
+  // Alerts: Broadcast (Pushes across all devices in real-time)
   if (path === '/api/alerts' && method === 'POST') {
     const alerts = getLocalStore('alerts', DEFAULT_ALERTS);
     const newAlert = {
-      id: alerts.length + 1,
+      id: Date.now(),
       message: body.message,
       severity: body.severity || 'high',
       created_by: 1,
@@ -288,6 +343,19 @@ async function api(path, options = {}) {
     };
     alerts.unshift(newAlert);
     setLocalStore('alerts', alerts);
+
+    // Push to Cloud Relay so it lands on all mobile phones & PCs
+    try {
+      fetch('https://ntfy.sh/geosafe_bayanan_alerts_2026', {
+        method: 'POST',
+        body: JSON.stringify(newAlert),
+        headers: {
+          'Title': '🚨 BDRRMC Emergency Broadcast',
+          'Priority': 'urgent',
+          'Tags': 'warning,rotating_light'
+        }
+      }).catch(() => {});
+    } catch (e) {}
 
     if (typeof BroadcastChannel !== 'undefined') {
       try {

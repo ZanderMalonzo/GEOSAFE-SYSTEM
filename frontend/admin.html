@@ -1003,12 +1003,52 @@
       'alert-broadcast': () => loadAlertHistory()
     });
 
+    // Cloud SSE Stream for Incident Reports & Alerts across Internet
+    if (typeof EventSource !== 'undefined') {
+      try {
+        const reportSource = new EventSource('https://ntfy.sh/geosafe_bayanan_reports_2026/sse');
+        reportSource.onmessage = (event) => {
+          try {
+            const parsed = JSON.parse(event.data);
+            if (parsed.message) {
+              playAlertSound();
+              showToast('🚨 New live citizen disaster report received!', 'danger');
+              loadReports();
+            }
+          } catch (e) {}
+        };
+      } catch (e) {}
+    }
+
+    // Storage Event Listener (Instant Cross-Tab Sync)
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'geosafe_reports') loadReports();
+      if (e.key === 'geosafe_alerts') loadAlertHistory();
+    });
+
+    // Cross-Tab BroadcastChannel
+    if (typeof BroadcastChannel !== 'undefined') {
+      const bc = new BroadcastChannel('geosafe_channel');
+      bc.onmessage = (e) => {
+        if (e.data?.type === 'new-report') {
+          playAlertSound();
+          loadReports();
+        } else if (e.data?.type === 'new-alert') {
+          loadAlertHistory();
+        }
+      };
+    }
+
     // Initial Load
     initGisMap();
     loadResponders().then(() => {
       loadReports();
       loadAlertHistory();
     });
+
+    // 3-second live background polling
+    setInterval(loadReports, 3000);
+    setInterval(loadAlertHistory, 3000);
   </script>
 </body>
 </html>

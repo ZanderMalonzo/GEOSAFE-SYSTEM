@@ -378,10 +378,21 @@
         playAlertChime();
         loadAlerts();
       },
-      'status-update': () => {
-        loadMyReports();
-      }
-    });
+    // Live Cloud Push Notification Stream across Internet (Mobile Phone & PC)
+    if (typeof EventSource !== 'undefined') {
+      try {
+        const alertSource = new EventSource('https://ntfy.sh/geosafe_bayanan_alerts_2026/sse');
+        alertSource.onmessage = (event) => {
+          try {
+            const parsed = JSON.parse(event.data);
+            if (parsed.message) {
+              playAlertChime();
+              loadAlerts();
+            }
+          } catch (e) {}
+        };
+      } catch (e) {}
+    }
 
     loadCoords();
     loadAlerts();
