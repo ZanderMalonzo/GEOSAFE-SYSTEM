@@ -178,7 +178,7 @@ async function api(path, options = {}) {
     { id: 4, name: 'Juan Dela Cruz', email: 'resident@geosafe.local', password: 'resident123', role: 'resident', phone: '0917-889-2345', address: 'Purok 3, Barangay Bayanan' }
   ];
 
-  // Auth: Login with strict credential verification
+  // Auth: Login with Firestore Cloud Database Verification
   if (path === '/api/login' && method === 'POST') {
     const email = (body.email || '').trim().toLowerCase();
     const password = body.password || '';
@@ -190,6 +190,19 @@ async function api(path, options = {}) {
       throw new Error('Please enter your password.');
     }
 
+    // 1. Try Firebase Firestore Cloud Login
+    if (window.GeoSafeDB) {
+      try {
+        const cloudUser = await window.GeoSafeDB.loginUser(email, password);
+        if (cloudUser) {
+          return { message: 'Login successful', token: 'jwt-cloud-' + Date.now(), user: cloudUser };
+        }
+      } catch (err) {
+        throw err; // Password mismatch or Firestore error
+      }
+    }
+
+    // 2. Fallback to Local / Demo Accounts
     const registeredUsers = getLocalStore('registered_users', DEFAULT_REGISTERED_USERS);
     const user = registeredUsers.find((u) => u.email.toLowerCase() === email);
 
@@ -205,7 +218,7 @@ async function api(path, options = {}) {
     return { message: 'Login successful', token: 'jwt-token-' + Date.now(), user: cleanUser };
   }
 
-  // Auth: Register with uniqueness check
+  // Auth: Register with Firestore Cloud Sync
   if (path === '/api/register' && method === 'POST') {
     const email = (body.email || '').trim().toLowerCase();
     const password = body.password || '';
@@ -237,16 +250,44 @@ async function api(path, options = {}) {
       created_at: new Date().toISOString()
     };
 
+    // Save locally
     registeredUsers.push(newUser);
     setLocalStore('registered_users', registeredUsers);
+
+    // Save to Firebase Firestore Cloud Database
+    if (window.GeoSafeDB) {
+      try {
+        await window.GeoSafeDB.registerUser(newUser);
+      } catch (err) {
+        console.warn('Firestore register note:', err.message);
+      }
+    }
 
     const { password: _, ...cleanUser } = newUser;
     return { message: 'Registration successful', token: 'jwt-token-' + Date.now(), user: cleanUser };
   }
 
-  // Reports: Get (Merged with Cloud Relay)
+  // Reports: Get (Merged Firestore + Cloud Relay)
   if (path === '/api/reports' && method === 'GET') {
     let reports = getLocalStore('reports', DEFAULT_REPORTS);
+
+    // Fetch from Firebase Firestore
+    if (window.GeoSafeDB) {
+      try {
+        const fsReports = await window.GeoSafeDB.getReports();
+        if (fsReports && fsReports.length) {
+          fsReports.forEach((fr) => {
+            const numId = Number(fr.id) || fr.id;
+            if (!reports.some((r) => r.id == numId)) {
+              reports.unshift({ ...fr, id: numId });
+            }
+          });
+          setLocalStore('reports', reports);
+        }
+      } catch (e) {}
+    }
+
+    // Fetch from Cloud SSE Relay
     try {
       const cloudRes = await fetch('https://ntfy.sh/geosafe_bayanan_reports_2026/json?poll=1&since=24h');
       if (cloudRes.ok) {
@@ -269,7 +310,7 @@ async function api(path, options = {}) {
     return { reports };
   }
 
-  // Reports: Create (Broadcast to Cloud)
+  // Reports: Create (Saves to Firestore + Broadcasts to Cloud)
   if (path === '/api/reports' && method === 'POST') {
     const reports = getLocalStore('reports', DEFAULT_REPORTS);
     const user = getUser() || { id: 3, name: 'Resident' };
@@ -279,8 +320,8 @@ async function api(path, options = {}) {
       reporter_name: user.name,
       incident_type: body.incident_type || 'Flood',
       description: body.description || 'Emergency Incident',
-      latitude: parseFloat(body.latitude) || 14.3972,
-      longitude: parseFloat(body.longitude) || 121.0200,
+      latitude: parseFloat(body.latitude) || 14.4106,
+      longitude: parseFloat(body.longitude) || 121.0502,
       severity: body.incident_type === 'SOS' ? 'high' : (body.severity || 'medium'),
       status: 'pending',
       assigned_to: null,
@@ -289,6 +330,11 @@ async function api(path, options = {}) {
     };
     reports.unshift(newReport);
     setLocalStore('reports', reports);
+
+    // Save to Firebase Firestore Cloud Database
+    if (window.GeoSafeDB) {
+      window.GeoSafeDB.createReport(newReport).catch(() => {});
+    }
 
     // Broadcast to Cloud across all mobile & desktop devices
     try {
@@ -310,7 +356,7 @@ async function api(path, options = {}) {
     return { message: 'Report submitted', report: newReport };
   }
 
-  // Reports: Status Update
+  // Reports: Status Update (Firestore + Local)
   if (path.startsWith('/api/reports/') && path.endsWith('/status') && method === 'PUT') {
     const id = parseInt(path.split('/')[3], 10);
     const reports = getLocalStore('reports', DEFAULT_REPORTS);
@@ -323,6 +369,10 @@ async function api(path, options = {}) {
         report.responder_name = body.assigned_to ? 'Responder Unit 1 (Ambulance)' : null;
       }
       setLocalStore('reports', reports);
+
+      if (window.GeoSafeDB) {
+        window.GeoSafeDB.updateReport(id, report).catch(() => {});
+      }
 
       try {
         fetch('https://ntfy.sh/geosafe_bayanan_reports_2026', {
@@ -345,9 +395,26 @@ async function api(path, options = {}) {
     return { message: 'Report updated', report: { id, ...body } };
   }
 
-  // Alerts: Get (Merged with Cloud Relay)
+  // Alerts: Get (Merged Firestore + Cloud Relay)
   if (path === '/api/alerts' && method === 'GET') {
     let alerts = getLocalStore('alerts', DEFAULT_ALERTS);
+
+    // Fetch from Firebase Firestore
+    if (window.GeoSafeDB) {
+      try {
+        const fsAlerts = await window.GeoSafeDB.getAlerts();
+        if (fsAlerts && fsAlerts.length) {
+          fsAlerts.forEach((fa) => {
+            const numId = Number(fa.id) || fa.id;
+            if (!alerts.some((a) => a.id == numId || a.message === fa.message)) {
+              alerts.unshift({ ...fa, id: numId });
+            }
+          });
+          setLocalStore('alerts', alerts);
+        }
+      } catch (e) {}
+    }
+
     try {
       const cloudRes = await fetch('https://ntfy.sh/geosafe_bayanan_alerts_2026/json?poll=1&since=24h');
       if (cloudRes.ok) {
@@ -370,7 +437,7 @@ async function api(path, options = {}) {
     return { alerts };
   }
 
-  // Alerts: Broadcast (Pushes across all devices in real-time)
+  // Alerts: Broadcast (Saves to Firestore + Pushes across all devices)
   if (path === '/api/alerts' && method === 'POST') {
     const alerts = getLocalStore('alerts', DEFAULT_ALERTS);
     const newAlert = {
@@ -383,6 +450,11 @@ async function api(path, options = {}) {
     };
     alerts.unshift(newAlert);
     setLocalStore('alerts', alerts);
+
+    // Save to Firebase Firestore Cloud Database
+    if (window.GeoSafeDB) {
+      window.GeoSafeDB.createAlert(newAlert).catch(() => {});
+    }
 
     // Push to Cloud Relay so it lands on all mobile phones & PCs
     try {
