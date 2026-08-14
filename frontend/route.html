@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css?v=3.2" />
+  <link rel="stylesheet" href="/mobile-ui.css?v=3.3" />
   <title>GeoSafe — Evacuation Navigation</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -204,56 +204,35 @@
       cursor: pointer;
     }
 
-    /* ============================================================
-       GOOGLE MAPS EYE OF SIGHT / COMPASS FLASHLIGHT BEAM
-       ============================================================ */
+    /* Standard Google Maps User Dot */
     .user-gps-container {
       position: relative;
-      width: 64px;
-      height: 64px;
+      width: 32px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      pointer-events: none;
     }
 
-    /* Directional Flashlight Cone */
-    .user-vision-cone {
-      position: absolute;
-      width: 100px;
-      height: 100px;
-      top: -18px;
-      left: -18px;
-      pointer-events: none;
-      background: radial-gradient(circle at 50% 50%, rgba(26, 115, 232, 0.5) 0%, rgba(26, 115, 232, 0.18) 50%, transparent 70%);
-      clip-path: polygon(50% 50%, 15% 0%, 85% 0%);
-      transform-origin: 50% 50%;
-      transform: rotate(0deg);
-      transition: transform 0.1s linear;
-      z-index: 1;
-    }
-
-    /* Central Blue Dot */
     .user-center-dot {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       background: #1A73E8;
-      border: 3.5px solid white;
+      border: 3px solid white;
       border-radius: 50%;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-      z-index: 3;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      z-index: 2;
       position: relative;
     }
 
-    /* Pulsing GPS beacon */
     .user-pulse-ring {
       position: absolute;
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
-      background: rgba(26, 115, 232, 0.22);
+      background: rgba(26, 115, 232, 0.25);
       animation: gpsPulse 2s infinite ease-out;
-      z-index: 2;
+      z-index: 1;
     }
 
     /* Route Duration Callout Pill on Map */
@@ -293,9 +272,6 @@
 
   <!-- HUD: Floating Map Controls -->
   <div class="gmap-floating-controls">
-    <button type="button" class="gmap-float-btn" id="btn-compass-mode" onclick="enableCompassTracking(true)" title="Calibrate Compass">
-      🧭
-    </button>
     <button type="button" class="gmap-float-btn" id="btn-voice-toggle" onclick="toggleVoiceSpeech()" title="Toggle Voice Guidance">
       <span id="voice-icon">🔊</span>
     </button>
@@ -340,11 +316,7 @@
     <!-- Preview Controls Section -->
     <div class="preview-cards-section">
       <section class="ui-card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <h2 style="margin:0; font-size:15px;">Select Evacuation Haven</h2>
-          <button type="button" class="ui-btn-ghost" onclick="enableCompassTracking(true)" style="font-size:12px;">🧭 Enable Compass</button>
-        </div>
-
+        <h2 style="margin-top:0; font-size:15px;">Select Evacuation Haven</h2>
         <div class="action-grid" style="margin-bottom:12px;">
           <button type="button" class="action-card route-pick" data-route="1" id="btn-haven-1" style="border:2px solid var(--primary); cursor:pointer; width:100%; text-align:left;">
             <span class="action-card__icon" style="background:var(--success-light); color:var(--success);">🛡️</span>
@@ -387,7 +359,6 @@
     let isNavigating = false;
     let voiceEnabled = true;
     let currentSteps = [];
-    let currentHeading = 0;
 
     // 1. Voice Speech Guidance
     function speakDirection(text) {
@@ -422,68 +393,21 @@
       setTimeout(() => routeMap?.invalidateSize(), 200);
     }
 
-    // 3. User Marker with Flashlight Cone
+    // 3. User Marker (Standard Clean Blue Dot)
     function createUserMarker(lat, lng) {
       const icon = L.divIcon({
         className: 'user-marker-wrapper',
         html: `
           <div class="user-gps-container">
-            <div class="user-vision-cone" style="transform: rotate(${currentHeading}deg);"></div>
             <div class="user-pulse-ring"></div>
             <div class="user-center-dot"></div>
           </div>
         `,
-        iconSize: [64, 64],
-        iconAnchor: [32, 32]
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
       });
 
       return L.marker([lat, lng], { icon: icon, zIndexOffset: 1000 });
-    }
-
-    function updateCompassVisual(headingDeg) {
-      currentHeading = Math.round(headingDeg);
-      if (userMarkerLayer) {
-        const el = userMarkerLayer.getElement();
-        if (el) {
-          const cone = el.querySelector('.user-vision-cone');
-          if (cone) {
-            cone.style.transform = `rotate(${currentHeading}deg)`;
-          }
-        }
-      }
-    }
-
-    // 4. Robust Device Orientation / Compass Listener
-    function handleOrientationEvent(e) {
-      let heading = null;
-      if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
-        // iOS Safari true compass heading
-        heading = e.webkitCompassHeading;
-      } else if (e.alpha !== null && e.alpha !== undefined) {
-        // Android compass heading
-        heading = e.absolute ? (360 - e.alpha) : (360 - e.alpha);
-      }
-
-      if (heading !== null && !isNaN(heading)) {
-        updateCompassVisual(heading);
-      }
-    }
-
-    function enableCompassTracking(showToastMsg = false) {
-      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission()
-          .then(res => {
-            if (res === 'granted') {
-              window.addEventListener('deviceorientation', handleOrientationEvent, true);
-              if (showToastMsg) showToast('Compass motion tracking enabled', 'success');
-            }
-          })
-          .catch(() => {});
-      } else {
-        window.addEventListener('deviceorientationabsolute', handleOrientationEvent, true);
-        window.addEventListener('deviceorientation', handleOrientationEvent, true);
-        if (showToastMsg) showToast('Compass motion tracking active', 'success');
-      }
     }
 
     function calculateETAClock(durationSec) {
@@ -491,7 +415,7 @@
       return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
-    // 5. Draw Road-Snapped Walking Path (No Hallucinations)
+    // 4. Draw Clean Road Route
     async function drawRoute(havenId) {
       initMap();
       selectedHaven = getHavenById(havenId || selectedHaven.id);
@@ -504,7 +428,6 @@
       const distM = haversineKm(userPos.lat, userPos.lng, selectedHaven.lat, selectedHaven.lng) * 1000;
       const durationSec = (distM / 80) * 60;
 
-      // Clean default road waypoints along Bayanan streets
       let routeCoords = [
         [userPos.lat, userPos.lng],
         [userPos.lat, selectedHaven.lng],
@@ -522,7 +445,6 @@
         ]
       };
 
-      // Try fetching real OSRM road geometry
       try {
         const fetched = await fetchWalkingRoute(userPos.lat, userPos.lng, selectedHaven.lat, selectedHaven.lng);
         if (fetched && fetched.coordinates && fetched.coordinates.length > 1) {
@@ -532,7 +454,7 @@
 
       currentSteps = routeData.steps;
 
-      // Draw User Marker with Compass Cone
+      // Draw User Marker (Clean Blue Dot)
       userMarkerLayer = createUserMarker(userPos.lat, userPos.lng).addTo(routeLayers);
 
       // Red Destination Pin
@@ -550,7 +472,7 @@
       });
       L.marker([selectedHaven.lat, selectedHaven.lng], { icon: redPinIcon }).bindPopup(`<b>${selectedHaven.name}</b><br>Safe Evacuation Haven`).addTo(routeLayers);
 
-      // Clean Walking Polyline: Solid Blue with Round Ends
+      // Clean Solid Blue Route Polyline
       L.polyline(routeData.coordinates, {
         color: '#1A73E8',
         weight: 6,
@@ -559,7 +481,7 @@
         lineJoin: 'round'
       }).addTo(routeLayers);
 
-      // Duration Callout Badge on Path
+      // Duration Badge on Route
       const midPoint = routeData.coordinates[Math.floor(routeData.coordinates.length / 2)] || [userPos.lat, userPos.lng];
       const timeBadgeIcon = L.divIcon({
         className: 'time-badge-wrapper',
@@ -590,12 +512,10 @@
       `).join('');
     }
 
-    // 6. Navigation Controls
+    // 5. Navigation Controls
     function startNavigation() {
       isNavigating = true;
       document.body.classList.add('nav-active-mode');
-
-      enableCompassTracking(true);
 
       const firstStep = currentSteps[0] || { instruction: `Walk to ${selectedHaven.name}`, distanceM: 200, icon: '⬆' };
       document.getElementById('hud-turn-icon').textContent = firstStep.icon || '⬆';
@@ -640,10 +560,6 @@
           if (userMarkerLayer) userMarkerLayer.setLatLng([userPos.lat, userPos.lng]);
           if (isNavigating && routeMap) routeMap.panTo([userPos.lat, userPos.lng]);
 
-          if (pos.coords.heading !== null && !isNaN(pos.coords.heading)) {
-            updateCompassVisual(pos.coords.heading);
-          }
-
           const remainM = remainingToDestination(userPos.lat, userPos.lng, selectedHaven);
           document.getElementById('hud-eta-dist').textContent = formatDistance(remainM);
           document.getElementById('hud-eta-min').textContent = Math.round((remainM / 80)) + ' min';
@@ -676,7 +592,6 @@
     // Auto Init
     async function setupInitial() {
       initMap();
-      enableCompassTracking(false);
       drawRoute(1);
       try {
         const pos = await getGeolocation();
