@@ -189,7 +189,11 @@ async function api(path, options = {}) {
     const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
     if (res.ok) {
       const data = await res.json().catch(() => ({}));
-      return data;
+      if (path === '/api/family' && (options.method || 'GET').toUpperCase() === 'GET' && (!data || !data.family)) {
+        // Fall through to check local/Firestore family store
+      } else {
+        return data;
+      }
     }
   } catch (err) {
     // Network or server error -> use fallback below
@@ -204,7 +208,7 @@ async function api(path, options = {}) {
     { id: 1, name: 'BDRRMC Admin Lead', email: 'admin@geosafe.local', password: 'admin123', role: 'admin', phone: '0917-111-2222', address: 'BDRRMC Command Center, Bayanan' },
     { id: 2, name: 'Responder Unit 1 (Ambulance)', email: 'responder@geosafe.local', password: 'responder123', role: 'responder', phone: '0918-333-4444', address: 'Bayanan Health Station' },
     { id: 3, name: 'Rescue Boat Unit 3', email: 'boat@geosafe.local', password: 'responder123', role: 'responder', phone: '0919-555-6666', address: 'Lakeshore Evacuation Post' },
-    { id: 4, name: 'Juan Dela Cruz', email: 'resident@geosafe.local', password: 'resident123', role: 'resident', phone: '0917-889-2345', address: 'Purok 3, Barangay Bayanan' }
+    { id: 4, name: 'Juan Dela Cruz', email: 'resident@geosafe.local', password: 'resident123', role: 'resident', phone: '0917-889-2345', address: 'Purok 3, Barangay Bayanan', family_id: 'default_circle', is_family_head: true, family_relationship: 'Head' }
   ];
 
   // Auth: Login with Firestore Cloud Database Verification
@@ -276,6 +280,9 @@ async function api(path, options = {}) {
       role: 'resident',
       phone: '0917-000-0000',
       address: 'Barangay Bayanan, Muntinlupa',
+      family_id: null,
+      is_family_head: false,
+      family_relationship: null,
       created_at: new Date().toISOString()
     };
 
@@ -514,35 +521,411 @@ async function api(path, options = {}) {
     return { users: DEFAULT_USERS };
   }
 
-  // Family: Get
-  if (path === '/api/family' && method === 'GET') {
-    return getLocalStore('family_data', {
-      family: {
-        id: 1,
-        name: 'Dela Cruz Family',
-        description: 'Barangay Bayanan Circle',
-        invite_code: 'BAYANAN8'
-      },
+  // Default Families Collection (Indexed by family_id)
+  const DEFAULT_FAMILIES = {
+    'default_circle': {
+      id: 'default_circle',
+      name: 'Dela Cruz Family Circle',
+      description: 'Purok 3, Barangay Bayanan',
+      invite_code: 'BAYANAN8',
+      head_user_id: 4,
       members: [
-        { id: 4, name: 'Juan Dela Cruz', relationship: 'Head', safety_status: 'safe', is_family_head: true, battery_level: 85, last_latitude: 14.3972, last_longitude: 121.0200 },
-        { id: 5, name: 'Maria Dela Cruz', relationship: 'Spouse', safety_status: 'safe', is_family_head: false, battery_level: 60, last_latitude: 14.3970, last_longitude: 121.0210 }
-      ],
-      is_head: true
-    });
+        {
+          id: 4,
+          name: 'Juan Dela Cruz',
+          email: 'resident@geosafe.local',
+          relationship: 'Head',
+          safety_status: 'safe',
+          is_family_head: true,
+          battery_level: 85,
+          phone: '0917-889-2345',
+          last_latitude: 14.4106,
+          last_longitude: 121.0502,
+          last_location_name: 'Near Bayanan Covered Court',
+          last_location_at: new Date().toISOString()
+        },
+        {
+          id: 5,
+          name: 'Maria Dela Cruz',
+          email: 'maria@geosafe.local',
+          relationship: 'Spouse',
+          safety_status: 'safe',
+          is_family_head: false,
+          battery_level: 64,
+          phone: '0918-765-4321',
+          last_latitude: 14.4095,
+          last_longitude: 121.0486,
+          last_location_name: 'At Baywalk Lakeshore Court',
+          last_location_at: new Date(Date.now() - 4 * 60000).toISOString()
+        },
+        {
+          id: 6,
+          name: 'Leo Dela Cruz',
+          email: 'leo@geosafe.local',
+          relationship: 'Son (Student)',
+          safety_status: 'safe',
+          is_family_head: false,
+          battery_level: 42,
+          phone: '0919-456-7890',
+          last_latitude: 14.4118,
+          last_longitude: 121.0517,
+          last_location_name: 'Bayanan Elementary School Unit 1',
+          last_location_at: new Date(Date.now() - 10 * 60000).toISOString()
+        }
+      ]
+    }
+  };
+
+  function getFamiliesStore() {
+    const stored = getLocalStore('families', {});
+    return { ...DEFAULT_FAMILIES, ...stored };
   }
 
-  // Family: Update
+  function setFamiliesStore(data) {
+    setLocalStore('families', data);
+  }
+
+  function generateInviteCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 8; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+
+  // Family: Get Current User's Family Group
+  if (path === '/api/family' && method === 'GET') {
+    const user = getUser();
+    if (!user) return { family: null, members: [], is_head: false };
+
+    // For Juan Dela Cruz (demo account), default to default_circle if not explicitly set
+    let famId = user.family_id;
+    if (!famId && (user.id === 4 || user.email === 'resident@geosafe.local')) {
+      famId = 'default_circle';
+      user.family_id = famId;
+      setAuth(getToken() || 'demo-token', user);
+    }
+
+    if (!famId) {
+      return { family: null, members: [], is_head: false };
+    }
+
+    const families = getFamiliesStore();
+    let family = families[famId];
+
+    // Try fetching from Firestore Cloud Database
+    if (window.GeoSafeDB) {
+      try {
+        const cloudFam = await window.GeoSafeDB.getFamily(famId);
+        if (cloudFam && cloudFam.members) {
+          family = cloudFam;
+          families[famId] = cloudFam;
+          setFamiliesStore(families);
+        }
+      } catch (e) {}
+    }
+
+    if (!family) {
+      return { family: null, members: [], is_head: false };
+    }
+
+    const isHead = family.head_user_id === user.id || !!family.members?.find(m => m.id === user.id)?.is_family_head;
+    return { family, members: family.members || [], is_head: isHead };
+  }
+
+  // Family: Create New Family Circle
+  if (path === '/api/family' && method === 'POST') {
+    const user = getUser();
+    if (!user) throw new Error('Please sign in first.');
+
+    const name = (body.name || '').trim();
+    if (!name || name.length < 2) {
+      throw new Error('Please enter a valid family circle name (min 2 characters).');
+    }
+
+    const circleId = 'circle_' + Date.now();
+    const inviteCode = generateInviteCode();
+    const newCircle = {
+      id: circleId,
+      name: name,
+      description: (body.description || '').trim() || 'Barangay Bayanan Circle',
+      invite_code: inviteCode,
+      head_user_id: user.id,
+      created_at: new Date().toISOString(),
+      members: [
+        {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone || '0917-000-0000',
+          relationship: 'Head',
+          safety_status: 'safe',
+          is_family_head: true,
+          battery_level: 85,
+          last_latitude: 14.4106,
+          last_longitude: 121.0502,
+          last_location_name: 'Near Bayanan Covered Court',
+          last_location_at: new Date().toISOString()
+        }
+      ]
+    };
+
+    const families = getFamiliesStore();
+    families[circleId] = newCircle;
+    setFamiliesStore(families);
+
+    // Save to Firebase Firestore Cloud
+    if (window.GeoSafeDB) {
+      try {
+        await window.GeoSafeDB.saveFamily(circleId, newCircle);
+        await window.GeoSafeDB.updateUserFamily(user.email, circleId, true, 'Head');
+      } catch (e) {}
+    }
+
+    // Update current session user
+    user.family_id = circleId;
+    user.is_family_head = true;
+    user.family_relationship = 'Head';
+    setAuth(getToken() || 'demo-token', user);
+
+    const regUsers = getLocalStore('registered_users', DEFAULT_REGISTERED_USERS);
+    const ruIdx = regUsers.findIndex(u => u.email.toLowerCase() === user.email.toLowerCase());
+    if (ruIdx >= 0) {
+      regUsers[ruIdx].family_id = circleId;
+      regUsers[ruIdx].is_family_head = true;
+      regUsers[ruIdx].family_relationship = 'Head';
+      setLocalStore('registered_users', regUsers);
+    }
+
+    return { message: 'Family group created', family: newCircle, members: newCircle.members, is_head: true };
+  }
+
+  // Family: Join Family Circle with Invite Code
+  if (path === '/api/family/join' && method === 'POST') {
+    const user = getUser();
+    if (!user) throw new Error('Please sign in first.');
+
+    const inviteCode = (body.invite_code || '').trim().toUpperCase();
+    if (!inviteCode || inviteCode.length < 4) {
+      throw new Error('Please enter a valid invite code (e.g. BAYANAN8).');
+    }
+
+    const families = getFamiliesStore();
+    let foundId = null;
+    let foundCircle = null;
+
+    // Search in local store
+    for (const [id, f] of Object.entries(families)) {
+      if (f.invite_code && f.invite_code.toUpperCase() === inviteCode) {
+        foundId = id;
+        foundCircle = f;
+        break;
+      }
+    }
+
+    // Search in Firestore Cloud
+    if (window.GeoSafeDB) {
+      try {
+        const cloudCircle = await window.GeoSafeDB.findFamilyByInviteCode(inviteCode);
+        if (cloudCircle) {
+          foundId = cloudCircle.id;
+          foundCircle = cloudCircle;
+          families[foundId] = cloudCircle;
+        }
+      } catch (e) {}
+    }
+
+    if (!foundCircle) {
+      throw new Error('Invalid invite code. No family circle found with code: ' + inviteCode);
+    }
+
+    if (!foundCircle.members) foundCircle.members = [];
+    const rel = (body.relationship || 'Member').trim();
+
+    const existingIdx = foundCircle.members.findIndex(m => m.id === user.id || (m.email && m.email.toLowerCase() === user.email.toLowerCase()));
+    const memberObj = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone || '0917-000-0000',
+      relationship: rel,
+      safety_status: 'safe',
+      is_family_head: false,
+      battery_level: 85,
+      last_latitude: 14.4106 + (Math.random() - 0.5) * 0.003,
+      last_longitude: 121.0502 + (Math.random() - 0.5) * 0.003,
+      last_location_name: 'Purok 3, Barangay Bayanan',
+      last_location_at: new Date().toISOString()
+    };
+
+    if (existingIdx >= 0) {
+      foundCircle.members[existingIdx] = { ...foundCircle.members[existingIdx], ...memberObj };
+    } else {
+      foundCircle.members.push(memberObj);
+    }
+
+    families[foundId] = foundCircle;
+    setFamiliesStore(families);
+
+    if (window.GeoSafeDB) {
+      try {
+        await window.GeoSafeDB.saveFamily(foundId, foundCircle);
+        await window.GeoSafeDB.updateUserFamily(user.email, foundId, false, rel);
+      } catch (e) {}
+    }
+
+    user.family_id = foundId;
+    user.is_family_head = false;
+    user.family_relationship = rel;
+    setAuth(getToken() || 'demo-token', user);
+
+    const regUsers = getLocalStore('registered_users', DEFAULT_REGISTERED_USERS);
+    const ruIdx = regUsers.findIndex(u => u.email.toLowerCase() === user.email.toLowerCase());
+    if (ruIdx >= 0) {
+      regUsers[ruIdx].family_id = foundId;
+      regUsers[ruIdx].is_family_head = false;
+      regUsers[ruIdx].family_relationship = rel;
+      setLocalStore('registered_users', regUsers);
+    }
+
+    return { message: 'Joined family group', family: foundCircle, members: foundCircle.members, is_head: false };
+  }
+
+  // Family: Leave Current Family Circle
+  if (path === '/api/family/leave' && method === 'POST') {
+    const user = getUser();
+    if (!user) throw new Error('Please sign in first.');
+
+    const famId = user.family_id;
+    if (famId) {
+      const families = getFamiliesStore();
+      const circle = families[famId];
+      if (circle && circle.members) {
+        circle.members = circle.members.filter(m => m.id !== user.id && m.email?.toLowerCase() !== user.email?.toLowerCase());
+        if (circle.members.length === 0) {
+          delete families[famId];
+          if (window.GeoSafeDB) window.GeoSafeDB.deleteFamily(famId);
+        } else {
+          if (circle.head_user_id === user.id) {
+            circle.head_user_id = circle.members[0].id;
+            circle.members[0].is_family_head = true;
+            circle.members[0].relationship = 'Head';
+          }
+          families[famId] = circle;
+          if (window.GeoSafeDB) window.GeoSafeDB.saveFamily(famId, circle);
+        }
+        setFamiliesStore(families);
+      }
+      if (window.GeoSafeDB) {
+        window.GeoSafeDB.updateUserFamily(user.email, null, false, null);
+      }
+    }
+
+    user.family_id = null;
+    user.is_family_head = false;
+    user.family_relationship = null;
+    setAuth(getToken() || 'demo-token', user);
+
+    const regUsers = getLocalStore('registered_users', DEFAULT_REGISTERED_USERS);
+    const ruIdx = regUsers.findIndex(u => u.email.toLowerCase() === user.email.toLowerCase());
+    if (ruIdx >= 0) {
+      regUsers[ruIdx].family_id = null;
+      regUsers[ruIdx].is_family_head = false;
+      regUsers[ruIdx].family_relationship = null;
+      setLocalStore('registered_users', regUsers);
+    }
+
+    return { message: 'Left family group' };
+  }
+
+  // Family: Add Member Directly to Circle
+  if (path === '/api/family/members' && method === 'POST') {
+    const user = getUser();
+    if (!user || !user.family_id) throw new Error('You must belong to a family circle to add members.');
+
+    const families = getFamiliesStore();
+    const circle = families[user.family_id];
+    if (!circle) throw new Error('Family circle not found.');
+
+    const name = (body.name || '').trim();
+    if (!name) throw new Error('Please enter member name.');
+
+    const newMem = {
+      id: Date.now(),
+      name: name,
+      relationship: body.relationship || 'Household Member',
+      phone: body.phone || '0917-000-0000',
+      safety_status: 'safe',
+      is_family_head: false,
+      battery_level: body.battery_level || 90,
+      last_latitude: body.latitude || (14.4106 + (Math.random() - 0.5) * 0.003),
+      last_longitude: body.longitude || (121.0502 + (Math.random() - 0.5) * 0.003),
+      last_location_name: body.location_name || 'Purok 3, Barangay Bayanan',
+      last_location_at: new Date().toISOString()
+    };
+
+    if (!circle.members) circle.members = [];
+    circle.members.push(newMem);
+    families[user.family_id] = circle;
+    setFamiliesStore(families);
+
+    if (window.GeoSafeDB) {
+      window.GeoSafeDB.saveFamily(user.family_id, circle);
+    }
+
+    return { message: 'Member added', member: newMem, family: circle, members: circle.members };
+  }
+
+  // Family: Remove Member from Circle
+  if (path.startsWith('/api/family/members/') && method === 'DELETE') {
+    const user = getUser();
+    if (!user || !user.family_id) throw new Error('Unauthorized');
+
+    const memberId = Number(path.split('/')[4]);
+    const families = getFamiliesStore();
+    const circle = families[user.family_id];
+    if (circle && circle.members) {
+      circle.members = circle.members.filter(m => m.id !== memberId);
+      families[user.family_id] = circle;
+      setFamiliesStore(families);
+      if (window.GeoSafeDB) {
+        window.GeoSafeDB.saveFamily(user.family_id, circle);
+      }
+    }
+    return { message: 'Member removed', family: circle, members: circle?.members || [] };
+  }
+
+  // Family: Update My Live Status / Location / Battery
   if (path === '/api/family/me' && method === 'PUT') {
-    const current = getLocalStore('family_data', {});
-    if (current.members) {
-      const me = current.members[0];
+    const user = getUser();
+    if (!user || !user.family_id) return { status: 'no_family' };
+
+    const families = getFamiliesStore();
+    const circle = families[user.family_id];
+    if (circle && circle.members) {
+      let me = circle.members.find(m => m.id === user.id || (m.email && m.email.toLowerCase() === user.email.toLowerCase()));
+      if (!me) {
+        me = { id: user.id, name: user.name, email: user.email, relationship: 'Head', safety_status: 'safe', is_family_head: true, battery_level: 85 };
+        circle.members.push(me);
+      }
       if (body.safety_status) me.safety_status = body.safety_status;
       if (body.relationship) me.relationship = body.relationship;
-      if (body.battery_level) me.battery_level = body.battery_level;
-      if (body.latitude) { me.last_latitude = body.latitude; me.last_longitude = body.longitude; }
-      setLocalStore('family_data', current);
+      if (body.battery_level !== undefined) me.battery_level = body.battery_level;
+      if (body.latitude && body.longitude) {
+        me.last_latitude = body.latitude;
+        me.last_longitude = body.longitude;
+        me.last_location_name = body.location_name || 'Live GPS Updated · Bayanan';
+        me.last_location_at = new Date().toISOString();
+      }
+      families[user.family_id] = circle;
+      setFamiliesStore(families);
+      if (window.GeoSafeDB) {
+        window.GeoSafeDB.saveFamily(user.family_id, circle);
+      }
+      return { message: 'Family status updated', family: circle, members: circle.members };
     }
-    return current;
+    return { status: 'ok' };
   }
 
   return { status: 'ok' };

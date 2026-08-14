@@ -7,6 +7,7 @@ const {
   getFamily,
   joinFamily,
   leaveFamily,
+  addMember,
   removeMember,
   updateSettings,
   transferHead,
@@ -69,6 +70,7 @@ router.put(
   updateMyProfile
 );
 
+router.post('/members', addMember);
 router.delete('/members/:userId', removeMember);
 
 module.exports = router;

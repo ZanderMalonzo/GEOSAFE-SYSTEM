@@ -372,11 +372,40 @@ async function updateMyProfile(req, res) {
   res.json({ message: 'Profile updated', ...dashboard });
 }
 
+async function addMember(req, res) {
+  const head = await getUserFamilyRow(req.user.id);
+  if (!head?.family_group_id) {
+    return res.status(400).json({ error: 'You must belong to a family group to add members' });
+  }
+
+  const { name, relationship, phone } = req.body;
+  if (!name || name.trim().length === 0) {
+    return res.status(400).json({ error: 'Name is required' });
+  }
+
+  try {
+    const dummyEmail = `mem_${Date.now()}@geosafe.local`;
+    await pool.query(
+      `INSERT INTO users (name, email, password_hash, role, family_group_id, is_family_head, family_relationship, safety_status, battery_level)
+       VALUES (?, ?, 'managed_member', 'resident', ?, 0, ?, 'safe', 90)`,
+      [name.trim(), dummyEmail, head.family_group_id, relationship || 'Household Member']
+    );
+
+    const dashboard = await buildDashboard(head);
+    emitFamilyUpdate(head.family_group_id, dashboard);
+    res.status(201).json({ message: 'Member added', ...dashboard });
+  } catch (err) {
+    console.error('Add member error:', err);
+    res.status(500).json({ error: 'Failed to add member' });
+  }
+}
+
 module.exports = {
   createFamily,
   getFamily,
   joinFamily,
   leaveFamily,
+  addMember,
   removeMember,
   updateSettings,
   transferHead,

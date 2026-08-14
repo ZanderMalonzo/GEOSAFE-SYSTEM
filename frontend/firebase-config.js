@@ -157,39 +157,98 @@
       return alertData;
     },
 
-    // Family Circles: Get
-    async getFamily(circleId = 'default_circle') {
+    // Family Circles: Get by Circle ID
+    async getFamily(circleId) {
+      if (!circleId) return null;
       const database = await initFirebase();
       if (!database) return null;
       try {
-        const doc = await database.collection('family_circles').doc(circleId).get();
-        return doc.exists ? doc.data() : null;
+        const doc = await database.collection('family_circles').doc(String(circleId)).get();
+        return doc.exists ? { id: doc.id, ...doc.data() } : null;
       } catch (e) {
+        console.warn('Firestore getFamily error:', e);
+        return null;
+      }
+    },
+
+    // Family Circles: Find Circle by 8-Char Invite Code
+    async findFamilyByInviteCode(inviteCode) {
+      if (!inviteCode) return null;
+      const database = await initFirebase();
+      if (!database) return null;
+      try {
+        const code = String(inviteCode).trim().toUpperCase();
+        const snap = await database.collection('family_circles').where('invite_code', '==', code).limit(1).get();
+        if (!snap.empty) {
+          const doc = snap.docs[0];
+          return { id: doc.id, ...doc.data() };
+        }
+        return null;
+      } catch (e) {
+        console.warn('Firestore findFamilyByInviteCode error:', e);
         return null;
       }
     },
 
     // Family Circles: Save / Update Entire Circle
-    async saveFamily(circleId = 'default_circle', familyData) {
+    async saveFamily(circleId, familyData) {
+      if (!circleId) return null;
       const database = await initFirebase();
       if (!database) return null;
-      await database.collection('family_circles').doc(circleId).set({
+      const idStr = String(circleId);
+      await database.collection('family_circles').doc(idStr).set({
         ...familyData,
+        id: idStr,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
       return familyData;
     },
 
+    // Family Circles: Delete Circle
+    async deleteFamily(circleId) {
+      if (!circleId) return;
+      const database = await initFirebase();
+      if (!database) return;
+      try {
+        await database.collection('family_circles').doc(String(circleId)).delete();
+      } catch (e) {
+        console.warn('Firestore deleteFamily error:', e);
+      }
+    },
+
+    // User: Update user's family_id linkage in Firestore
+    async updateUserFamily(email, familyId, isHead = false, relationship = 'Member') {
+      if (!email) return;
+      const database = await initFirebase();
+      if (!database) return;
+      try {
+        const emailKey = email.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        await database.collection('users').doc(emailKey).set({
+          family_id: familyId || null,
+          is_family_head: !!isHead,
+          family_relationship: relationship || null,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      } catch (e) {
+        console.warn('Firestore updateUserFamily error:', e);
+      }
+    },
+
     // Family Circles: Live Real-Time Listener (Life360 Live GPS Sync)
-    listenFamily(circleId = 'default_circle', callback) {
+    listenFamily(circleId, callback) {
+      if (!circleId) return () => {};
+      let unsubscribe = () => {};
       initFirebase().then((database) => {
         if (!database) return;
-        database.collection('family_circles').doc(circleId).onSnapshot((doc) => {
+        unsubscribe = database.collection('family_circles').doc(String(circleId)).onSnapshot((doc) => {
           if (doc.exists) {
-            callback(doc.data());
+            callback({ id: doc.id, ...doc.data() });
           }
+        }, (err) => {
+          console.warn('Firestore listenFamily error:', err);
         });
       });
+      return () => unsubscribe();
     },
 
     // Real-Time Listeners (Live Push Sync)

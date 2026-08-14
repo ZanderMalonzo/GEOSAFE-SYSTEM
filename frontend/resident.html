@@ -450,27 +450,40 @@
     async function loadBackendFamily() {
       const container = document.getElementById('backend-family-list');
       try {
-        const data = await api('/api/family/my-group');
-        if (data && data.members) {
+        const data = await api('/api/family');
+        if (data && data.family && data.members && data.members.length) {
           container.innerHTML = data.members.map(m => `
             <div class="card-section" style="display:flex; justify-content:space-between; align-items:center;">
               <div>
                 <strong style="font-size:13px;">${escapeHtml(m.name)}</strong>
-                <p style="font-size:11px; color:var(--text-muted);">${m.role || 'Member'}</p>
+                <p style="font-size:11px; color:var(--text-muted);">${m.relationship || 'Member'}</p>
               </div>
-              <span class="status-chip" style="background:var(--success-light); color:var(--success); font-weight:700;">${m.safety_status || 'Safe'}</span>
+              <span class="status-chip" style="background:${m.safety_status === 'safe' ? 'var(--success-light)' : 'var(--emergency-light)'}; color:${m.safety_status === 'safe' ? 'var(--success)' : 'var(--emergency)'}; font-weight:700;">
+                ${(m.safety_status || 'safe').toUpperCase()}
+              </span>
             </div>
-          `).join('');
+          `).join('') + `
+            <a href="family.html" class="btn-primary" style="text-align:center; text-decoration:none; margin-top:10px; display:block; padding:12px;">
+              Open Full Life360 Tracker Map ➔
+            </a>
+          `;
+        } else {
+          container.innerHTML = `
+            <div class="card-section" style="text-align:center; padding:20px 14px;">
+              <p style="font-size:13px; color:var(--text-muted); margin:0 0 10px;">You are not in a Family Circle yet.</p>
+              <a href="family.html" class="btn-primary" style="text-align:center; text-decoration:none; display:inline-block; padding:10px 16px;">
+                🛡️ Create or Join Family Circle
+              </a>
+            </div>
+          `;
         }
       } catch {
         container.innerHTML = `
-          <div class="card-section" style="display:flex; justify-content:space-between; align-items:center;">
-            <div><strong style="font-size:13px;">Maria Dela Cruz</strong><p style="font-size:11px; color:var(--text-muted);">Spouse</p></div>
-            <span class="status-chip" style="background:var(--success-light); color:var(--success); font-weight:700;">Safe</span>
-          </div>
-          <div class="card-section" style="display:flex; justify-content:space-between; align-items:center;">
-            <div><strong style="font-size:13px;">Carlo Dela Cruz</strong><p style="font-size:11px; color:var(--text-muted);">Son</p></div>
-            <span class="status-chip" style="background:var(--success-light); color:var(--success); font-weight:700;">Safe</span>
+          <div class="card-section" style="text-align:center; padding:20px 14px;">
+            <p style="font-size:13px; color:var(--text-muted); margin:0 0 10px;">Open Family Safety Tracker</p>
+            <a href="family.html" class="btn-primary" style="text-align:center; text-decoration:none; display:inline-block; padding:10px 16px;">
+              🛡️ Go to Family Tracker
+            </a>
           </div>
         `;
       }
@@ -478,13 +491,14 @@
 
     async function updateMyStatus(st) {
       try {
-        await api('/api/family/status', {
+        await api('/api/family/me', {
           method: 'PUT',
           body: JSON.stringify({ safety_status: st })
         });
-        showToast(`Safety status updated to ${st.toUpperCase()}`);
+        showToast(`Safety status updated to ${st.toUpperCase().replace('_', ' ')}`, st === 'safe' ? 'success' : 'warning');
+        loadBackendFamily();
       } catch {
-        showToast(`Status updated to ${st.toUpperCase()}`);
+        showToast(`Status updated to ${st.toUpperCase().replace('_', ' ')}`);
       }
     }
 
