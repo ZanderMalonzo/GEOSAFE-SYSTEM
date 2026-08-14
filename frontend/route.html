@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css?v=2.1" />
+  <link rel="stylesheet" href="/mobile-ui.css?v=2.6" />
   <title>GeoSafe — Safe Evacuation Navigation</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -15,13 +15,13 @@
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 8px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
     .nav-stat {
       background: var(--bg-app);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 10px 8px;
+      padding: 10px 6px;
       text-align: center;
     }
     .nav-stat__val {
@@ -40,8 +40,26 @@
     .nav-stat--remain .nav-stat__val {
       color: var(--orange);
     }
+    .map-frame-box {
+      width: 100%;
+      height: 300px;
+      min-height: 300px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1.5px solid var(--border);
+      position: relative;
+      background: #E5E7EB;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 16px;
+    }
+    #route-map {
+      width: 100%;
+      height: 100%;
+      min-height: 300px;
+      z-index: 1;
+    }
     .directions-list {
-      max-height: 200px;
+      max-height: 220px;
       overflow-y: auto;
       margin: 0;
       padding: 0;
@@ -53,6 +71,7 @@
       padding: 10px 0;
       border-bottom: 1px solid var(--border);
       font-size: 0.85rem;
+      align-items: flex-start;
     }
     .directions-list li:last-child {
       border-bottom: none;
@@ -68,7 +87,7 @@
       align-items: center;
       justify-content: center;
       font-size: 0.75rem;
-      font-weight: 700;
+      font-weight: 800;
     }
     .step-dist {
       color: var(--text-muted);
@@ -82,7 +101,7 @@
       font-size: 0.75rem;
       color: var(--green);
       margin-top: 6px;
-      font-weight: 600;
+      font-weight: 700;
     }
     .live-badge::before {
       content: '';
@@ -104,61 +123,87 @@
       <button type="button" class="ui-btn-ghost" onclick="logout()">Logout</button>
     </header>
 
-    <div style="margin-bottom:14px;">
-      <h1 style="font-size:22px; font-weight:800; margin:0;">Safe Evacuation Navigation</h1>
-      <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Barangay Bayanan Evacuation Centers & Havens</p>
+    <div style="margin-bottom:12px;">
+      <h1 style="font-size:22px; font-weight:800; margin:0;">Safe Evacuation Routes</h1>
+      <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Turn-by-turn walking guidance to safe havens in Barangay Bayanan.</p>
     </div>
 
+    <!-- Distance & Time Summary -->
     <section class="ui-card" style="padding-bottom:12px;">
       <div class="nav-summary">
         <div class="nav-stat">
-          <div class="nav-stat__val" id="stat-distance">—</div>
+          <div class="nav-stat__val" id="stat-distance">650 m</div>
           <div class="nav-stat__lbl">Distance</div>
         </div>
         <div class="nav-stat">
-          <div class="nav-stat__val" id="stat-duration">—</div>
+          <div class="nav-stat__val" id="stat-duration">8 min</div>
           <div class="nav-stat__lbl">Walk Time</div>
         </div>
         <div class="nav-stat nav-stat--remain">
-          <div class="nav-stat__val" id="stat-remaining">—</div>
+          <div class="nav-stat__val" id="stat-remaining">650 m</div>
           <div class="nav-stat__lbl">Remaining</div>
         </div>
       </div>
-      <p id="nav-destination" class="text-muted" style="margin:0; font-size:0.85rem; font-weight:600;"></p>
+      <p id="nav-destination" style="margin:0; font-size:0.85rem; font-weight:700; color:var(--text);">Destination: Baywalk Covered Court</p>
       <p id="live-tracking" class="live-badge hidden">Live GPS tracking active</p>
     </section>
 
-    <section class="map-card" style="min-height:260px;">
+    <!-- Map Container -->
+    <section class="map-frame-box">
       <div class="map-card__badge">
         <span class="map-card__badge-dot" style="background:var(--green);"></span>
-        <span id="nav-status">Calculating route…</span>
+        <span id="nav-status">Safe Route Ready</span>
       </div>
-      <div id="route-map" style="height:260px;"></div>
+      <div id="route-map"></div>
     </section>
 
+    <!-- Evacuation Center Selectors -->
     <section class="ui-card">
-      <h2 style="margin-top:0;">Evacuation Centers (Bayanan)</h2>
+      <h2 style="margin-top:0; font-size:15px;">Select Safe Haven (Bayanan)</h2>
       <div class="action-grid" style="margin-bottom:12px;">
-        <button type="button" class="action-card route-pick" data-route="1" style="border:none; cursor:pointer; width:100%;">
+        <button type="button" class="action-card route-pick" data-route="1" id="btn-haven-1" style="border:2px solid var(--primary); cursor:pointer; width:100%; text-align:left;">
           <span class="action-card__icon" style="background:var(--success-light); color:var(--success);">🛡️</span>
-          <span class="action-card__label">Baywalk Covered Court</span>
+          <span class="action-card__label">Baywalk Covered Court<br><small style="font-size:11px; font-weight:500; color:var(--text-muted);">Lakeshore Haven</small></span>
         </button>
-        <button type="button" class="action-card route-pick" data-route="2" style="border:none; cursor:pointer; width:100%;">
+        <button type="button" class="action-card route-pick" data-route="2" id="btn-haven-2" style="border:1px solid var(--border); cursor:pointer; width:100%; text-align:left;">
           <span class="action-card__icon" style="background:var(--primary-light); color:var(--primary);">🏫</span>
-          <span class="action-card__label">Elementary School Unit 1</span>
+          <span class="action-card__label">Elementary School Unit 1<br><small style="font-size:11px; font-weight:500; color:var(--text-muted);">National Rd Gym</small></span>
         </button>
       </div>
+
       <button type="button" id="start-nav" class="ui-btn ui-btn-primary" style="background:var(--green); margin-bottom:8px;">
-        ▶ Start Navigation
+        ▶ Start Walking Navigation
       </button>
-      <button type="button" id="refresh-route" class="ui-btn ui-btn-secondary" style="margin-bottom:8px;">🧭 Recalculate Route</button>
-      <button type="button" id="open-maps" class="ui-btn ui-btn-secondary">Open in Google Maps</button>
+      <button type="button" id="open-maps" class="ui-btn ui-btn-secondary">
+        🧭 Open in Google Maps / Waze
+      </button>
     </section>
 
+    <!-- Turn by Turn Directions -->
     <section class="ui-card">
-      <h2 style="margin-top:0;">Turn-by-turn directions</h2>
+      <h2 style="margin-top:0; font-size:15px;">Turn-by-turn directions</h2>
       <ol id="directions-list" class="directions-list">
-        <li class="text-muted">Select an evacuation center and tap Start Navigation</li>
+        <li>
+          <span class="step-num">1</span>
+          <div>
+            <div style="font-weight:700; color:var(--text);">Head towards designated safe evacuation route</div>
+            <div class="step-dist">150 m · 2 min</div>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <div>
+            <div style="font-weight:700; color:var(--text);">Continue along Bayanan Road toward Lakeshore</div>
+            <div class="step-dist">350 m · 4 min</div>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">3</span>
+          <div>
+            <div style="font-weight:700; color:var(--text);">Arrive at Baywalk Covered Court Safe Haven</div>
+            <div class="step-dist">150 m · 2 min</div>
+          </div>
+        </li>
       </ol>
     </section>
   </div>
@@ -173,186 +218,184 @@
     let routeMap = null;
     let routeLayers = null;
     let userMarkerLayer = null;
-    let userPos = { lat: BAYANAN_CENTER.lat, lng: BAYANAN_CENTER.lng };
+    let userPos = { lat: 14.4106, lng: 121.0502 };
     let selectedHaven = EVACUATION_HAVENS[0];
-    let currentRoute = null;
     let watchId = null;
     let isNavigating = false;
 
-    function clearRouteLayers() {
-      if (routeLayers && routeMap) {
-        routeMap.removeLayer(routeLayers);
-        routeLayers = null;
-        userMarkerLayer = null;
-      }
+    // 1. Initialize Map IMMEDIATELY (Zero Delay on Mobile)
+    function initMap() {
+      if (routeMap) return;
+      routeMap = L.map('route-map', {
+        zoomControl: true,
+        attributionControl: false
+      }).setView([userPos.lat, userPos.lng], 16);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        subdomains: 'abcd'
+      }).addTo(routeMap);
+
+      routeLayers = L.layerGroup().addTo(routeMap);
+
+      // Force Leaflet to recalculate container size
+      setTimeout(() => {
+        if (routeMap) routeMap.invalidateSize();
+      }, 200);
     }
 
     function renderDirections(steps) {
       const list = document.getElementById('directions-list');
-      if (!steps?.length) {
-        list.innerHTML = '<li class="text-muted">No directions available</li>';
+      if (!steps || !steps.length) {
+        list.innerHTML = '<li class="text-muted">Follow highlighted green path on map to destination.</li>';
         return;
       }
       list.innerHTML = steps
-        .map(
-          (s, i) => `<li>
-        <span class="step-num">${i + 1}</span>
-        <div>
-          <div style="font-weight:600; color:var(--text);">${escapeHtml(s.instruction)}</div>
-          <div class="step-dist">${formatDistance(s.distanceM)} · ${formatDuration(s.durationSec)}</div>
-        </div>
-      </li>`
-        )
-        .join('');
+        .map((s, i) => `
+          <li>
+            <span class="step-num">${i + 1}</span>
+            <div>
+              <div style="font-weight:700; color:var(--text);">${escapeHtml(s.instruction)}</div>
+              <div class="step-dist">${formatDistance(s.distanceM)} · ${formatDuration(s.durationSec)}</div>
+            </div>
+          </li>
+        `).join('');
     }
 
-    function updateStats(routeData) {
-      document.getElementById('stat-distance').textContent = formatDistance(routeData.distanceM);
-      document.getElementById('stat-duration').textContent = formatDuration(routeData.durationSec);
-      updateRemaining();
+    function updateStats(distM, durationSec) {
+      document.getElementById('stat-distance').textContent = formatDistance(distM);
+      document.getElementById('stat-duration').textContent = formatDuration(durationSec);
+      document.getElementById('stat-remaining').textContent = formatDistance(distM);
       document.getElementById('nav-destination').textContent = `Destination: ${selectedHaven.name}`;
     }
 
-    function updateRemaining() {
-      const remainM = remainingToDestination(userPos.lat, userPos.lng, selectedHaven);
-      document.getElementById('stat-remaining').textContent = formatDistance(remainM);
-      if (remainM < 30) {
-        document.getElementById('nav-status').textContent = 'Arrived at evacuation center';
-      } else if (isNavigating) {
-        document.getElementById('nav-status').textContent = `${formatDistance(remainM)} to destination`;
+    async function drawRoute(havenId, startNav = false) {
+      initMap();
+      selectedHaven = getHavenById(havenId || selectedHaven.id);
+      document.getElementById('nav-status').textContent = 'Safe Route Active';
+
+      // Update button visual selection
+      document.getElementById('btn-haven-1').style.border = selectedHaven.id === 1 ? '2px solid var(--primary)' : '1px solid var(--border)';
+      document.getElementById('btn-haven-2').style.border = selectedHaven.id === 2 ? '2px solid var(--primary)' : '1px solid var(--border)';
+
+      if (routeLayers) routeLayers.clearLayers();
+
+      // Fallback direct path waypoints
+      const distM = haversineKm(userPos.lat, userPos.lng, selectedHaven.lat, selectedHaven.lng) * 1000;
+      const durationSec = (distM / 80) * 60;
+      let routeData = {
+        distanceM: distM,
+        durationSec: durationSec,
+        coordinates: routeWaypoints(userPos.lat, userPos.lng, selectedHaven.lat, selectedHaven.lng),
+        steps: [
+          { instruction: `Walk toward ${selectedHaven.name}`, distanceM: distM * 0.4, durationSec: durationSec * 0.4 },
+          { instruction: `Follow designated evacuation signs along Bayanan`, distanceM: distM * 0.4, durationSec: durationSec * 0.4 },
+          { instruction: `Arrive at ${selectedHaven.name} safe haven`, distanceM: distM * 0.2, durationSec: durationSec * 0.2 }
+        ]
+      };
+
+      // Try fetching online walking route
+      try {
+        const fetched = await fetchWalkingRoute(userPos.lat, userPos.lng, selectedHaven.lat, selectedHaven.lng);
+        if (fetched && fetched.coordinates) routeData = fetched;
+      } catch (e) {
+        // Use generated waypoints
+      }
+
+      // Draw user marker
+      userMarkerLayer = L.circleMarker([userPos.lat, userPos.lng], {
+        radius: 10,
+        color: '#1565C0',
+        fillColor: '#1565C0',
+        fillOpacity: 1,
+        weight: 2
+      }).bindPopup('<b>Your Location</b>').addTo(routeLayers);
+
+      // Draw haven marker
+      L.marker([selectedHaven.lat, selectedHaven.lng]).bindPopup(`<b>${selectedHaven.name}</b><br>Safe Evacuation Haven`).addTo(routeLayers);
+
+      // Draw green route line
+      L.polyline(routeData.coordinates, {
+        color: '#2E7D32',
+        weight: 6,
+        opacity: 0.95
+      }).addTo(routeLayers);
+
+      // Draw other havens
+      drawAllHavens(routeMap, routeLayers);
+
+      // Fit map view to route
+      fitMapToPath(routeMap, routeData.coordinates);
+      updateStats(routeData.distanceM, routeData.durationSec);
+      renderDirections(routeData.steps);
+
+      if (startNav) {
+        isNavigating = true;
+        document.getElementById('start-nav').textContent = '■ Stop Navigation';
+        document.getElementById('live-tracking').classList.remove('hidden');
+        startTracking();
       }
     }
 
-    function updateUserMarkerPosition(lat, lng) {
-      userPos = { lat, lng };
-      if (userMarkerLayer) {
-        userMarkerLayer.setLatLng([lat, lng]);
-      }
-      updateRemaining();
-    }
-
-    function startLiveTracking() {
+    function startTracking() {
       if (!navigator.geolocation || watchId != null) return;
-      document.getElementById('live-tracking').classList.remove('hidden');
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
-          updateUserMarkerPosition(pos.coords.latitude, pos.coords.longitude);
+          userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          if (userMarkerLayer) userMarkerLayer.setLatLng([userPos.lat, userPos.lng]);
+          const remainM = remainingToDestination(userPos.lat, userPos.lng, selectedHaven);
+          document.getElementById('stat-remaining').textContent = formatDistance(remainM);
         },
         () => {},
-        { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
       );
     }
 
-    function stopLiveTracking() {
+    function stopTracking() {
       if (watchId != null) {
         navigator.geolocation.clearWatch(watchId);
         watchId = null;
       }
-      document.getElementById('live-tracking').classList.add('hidden');
       isNavigating = false;
+      document.getElementById('live-tracking').classList.add('hidden');
+      document.getElementById('start-nav').textContent = '▶ Start Walking Navigation';
     }
 
-    async function drawRoute(havenId, startNav = false) {
-      selectedHaven = getHavenById(havenId || selectedHaven.id);
-      document.getElementById('nav-status').textContent = 'Calculating safe route…';
-
-      try {
-        const pos = await getGeolocation();
-        userPos = { lat: pos.latitude, lng: pos.longitude };
-      } catch {
-        userPos = { lat: BAYANAN_CENTER.lat, lng: BAYANAN_CENTER.lng };
-      }
-
-      let routeData;
-      try {
-        routeData = await fetchWalkingRoute(
-          userPos.lat,
-          userPos.lng,
-          selectedHaven.lat,
-          selectedHaven.lng
-        );
-        currentRoute = routeData;
-      } catch (err) {
-        const distM = haversineKm(userPos.lat, userPos.lng, selectedHaven.lat, selectedHaven.lng) * 1000;
-        routeData = {
-          distanceM: distM,
-          durationSec: (distM / 80) * 60,
-          coordinates: routeWaypoints(userPos.lat, userPos.lng, selectedHaven.lat, selectedHaven.lng),
-          steps: [
-            { instruction: `Walk along designated route to ${selectedHaven.name}`, distanceM: distM, durationSec: (distM / 80) * 60 },
-            { instruction: 'Arrive at evacuation center', distanceM: 0, durationSec: 0 },
-          ],
-        };
-        currentRoute = routeData;
-      }
-
-      if (!routeMap) {
-        routeMap = L.map('route-map', { zoomControl: true }).setView([userPos.lat, userPos.lng], 16);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(routeMap);
-      }
-
-      clearRouteLayers();
-      routeLayers = L.layerGroup();
-      const drawn = drawNavigationRoute(
-        routeMap,
-        userPos.lat,
-        userPos.lng,
-        selectedHaven,
-        routeData,
-        routeLayers
-      );
-      userMarkerLayer = drawn.userMarker;
-      drawAllHavens(routeMap, routeLayers);
-      routeLayers.addTo(routeMap);
-      fitMapToPath(routeMap, routeData.coordinates);
-
-      updateStats(routeData);
-      renderDirections(routeData.steps);
-      document.getElementById('nav-status').textContent = 'Safe route ready — follow path';
-
-      document.querySelectorAll('.route-pick').forEach((btn) => {
-        btn.style.borderColor = btn.dataset.route === String(selectedHaven.id) ? 'var(--primary)' : 'var(--border)';
-      });
-
-      if (startNav) {
-        isNavigating = true;
-        startLiveTracking();
-        document.getElementById('start-nav').textContent = '■ Stop Navigation';
-      }
-
-      setTimeout(() => routeMap.invalidateSize(), 150);
-    }
-
+    // Event Handlers
     document.querySelectorAll('.route-pick').forEach((btn) => {
       btn.addEventListener('click', () => {
-        stopLiveTracking();
-        document.getElementById('start-nav').textContent = '▶ Start Navigation';
         drawRoute(parseInt(btn.dataset.route, 10));
       });
     });
 
     document.getElementById('start-nav').addEventListener('click', () => {
-      if (isNavigating) {
-        stopLiveTracking();
-        document.getElementById('start-nav').textContent = '▶ Start Navigation';
-        document.getElementById('nav-status').textContent = 'Navigation stopped';
-      } else {
-        drawRoute(selectedHaven.id, true);
-      }
-    });
-
-    document.getElementById('refresh-route').addEventListener('click', () => {
-      const { haven } = getNearestHaven(userPos.lat, userPos.lng);
-      drawRoute(haven.id, isNavigating);
+      if (isNavigating) stopTracking();
+      else drawRoute(selectedHaven.id, true);
     });
 
     document.getElementById('open-maps').addEventListener('click', () => {
       openGoogleMapsDirections(selectedHaven, userPos.lat, userPos.lng);
     });
 
+    // Background GPS acquisition (doesn't block map display)
+    async function acquireGPSInBackground() {
+      try {
+        const pos = await getGeolocation();
+        userPos = { lat: pos.latitude, lng: pos.longitude };
+        drawRoute(selectedHaven.id, isNavigating);
+      } catch (e) {
+        // Default Bayanan center is already active
+      }
+    }
+
+    // Start immediate render
+    initMap();
     drawRoute(1);
-    window.addEventListener('resize', () => routeMap?.invalidateSize());
-    window.addEventListener('beforeunload', stopLiveTracking);
+    acquireGPSInBackground();
+
+    window.addEventListener('resize', () => {
+      if (routeMap) routeMap.invalidateSize();
+    });
   </script>
 </body>
 </html>
