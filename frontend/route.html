@@ -6,45 +6,41 @@
   <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css?v=2.6" />
-  <title>GeoSafe — Safe Evacuation Navigation</title>
+  <link rel="stylesheet" href="/mobile-ui.css?v=3.0" />
+  <title>GeoSafe — Evacuation Navigation</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    .nav-summary {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 12px;
+    /* Google Maps Navigation Mode Styling */
+    :root {
+      --gmap-green: #1B873F;
+      --gmap-dark: #202124;
+      --gmap-blue: #1A73E8;
     }
-    .nav-stat {
-      background: var(--bg-app);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 6px;
-      text-align: center;
+
+    body.nav-active-mode {
+      overflow: hidden;
+      padding-bottom: 0 !important;
     }
-    .nav-stat__val {
-      font-size: 1.1rem;
-      font-weight: 800;
-      color: var(--primary);
+
+    body.nav-active-mode .bottom-nav,
+    body.nav-active-mode .resident-topbar,
+    body.nav-active-mode .page-intro-header {
+      display: none !important;
     }
-    .nav-stat__lbl {
-      font-size: 0.65rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-top: 4px;
-      font-weight: 600;
+
+    .nav-viewport {
+      position: relative;
+      width: 100%;
+      height: 100%;
     }
-    .nav-stat--remain .nav-stat__val {
-      color: var(--orange);
-    }
+
+    /* Standard Preview Mode Layout */
     .map-frame-box {
       width: 100%;
-      height: 300px;
-      min-height: 300px;
-      border-radius: var(--radius);
+      height: 320px;
+      min-height: 320px;
+      border-radius: var(--radius-lg);
       overflow: hidden;
       border: 1.5px solid var(--border);
       position: relative;
@@ -52,68 +48,213 @@
       box-shadow: var(--shadow-sm);
       margin-bottom: 16px;
     }
+
     #route-map {
       width: 100%;
       height: 100%;
-      min-height: 300px;
+      min-height: 320px;
       z-index: 1;
     }
-    .directions-list {
-      max-height: 220px;
-      overflow-y: auto;
+
+    /* Fullscreen Mode when Navigation is ACTIVE */
+    .nav-active-mode .map-frame-box {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100dvh;
+      min-height: 100dvh;
+      border-radius: 0;
+      border: none;
       margin: 0;
-      padding: 0;
-      list-style: none;
+      z-index: 9999;
     }
-    .directions-list li {
+
+    .nav-active-mode #route-map {
+      height: 100dvh;
+    }
+
+    /* Top Google Maps Turn Guidance Banner */
+    .gmap-top-hud {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      z-index: 10000;
+      background: var(--gmap-green);
+      color: white;
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      display: none;
+      align-items: center;
+      gap: 14px;
+      animation: slideDown 0.3s ease;
+    }
+
+    .nav-active-mode .gmap-top-hud {
       display: flex;
-      gap: 10px;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.85rem;
-      align-items: flex-start;
     }
-    .directions-list li:last-child {
-      border-bottom: none;
-    }
-    .step-num {
-      flex-shrink: 0;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: var(--primary-light);
-      color: var(--primary);
+
+    .gmap-turn-icon {
+      width: 46px;
+      height: 46px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.75rem;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .gmap-turn-dist {
+      font-size: 13px;
+      font-weight: 700;
+      color: #A7F3D0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+
+    .gmap-turn-instruction {
+      font-size: 16px;
       font-weight: 800;
+      line-height: 1.25;
+      margin: 0;
     }
-    .step-dist {
+
+    /* Floating Map Controls (Recenter & Voice Toggle) */
+    .gmap-floating-controls {
+      position: absolute;
+      right: 16px;
+      bottom: 110px;
+      z-index: 10000;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .nav-active-mode .gmap-floating-controls {
+      display: flex;
+    }
+
+    .gmap-float-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: white;
+      color: var(--text);
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .gmap-float-btn:active {
+      transform: scale(0.92);
+    }
+
+    /* Bottom Google Maps Navigation Dock */
+    .gmap-bottom-dock {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 10000;
+      background: white;
+      padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+      border-radius: 24px 24px 0 0;
+      box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25);
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-active-mode .gmap-bottom-dock {
+      display: flex;
+    }
+
+    .gmap-eta-time {
+      font-size: 26px;
+      font-weight: 900;
+      color: var(--gmap-green);
+      line-height: 1;
+    }
+
+    .gmap-eta-sub {
+      font-size: 13px;
       color: var(--text-muted);
-      font-size: 0.75rem;
-      margin-top: 2px;
-    }
-    .live-badge {
-      display: inline-flex;
+      font-weight: 600;
+      margin-top: 4px;
+      display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 0.75rem;
-      color: var(--green);
-      margin-top: 6px;
-      font-weight: 700;
     }
-    .live-badge::before {
-      content: '';
-      width: 8px;
-      height: 8px;
-      background: var(--green);
+
+    .gmap-exit-btn {
+      background: #FEE2E2;
+      color: #DC2626;
+      border: none;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
-      animation: pulse 1.5s infinite;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+    }
+
+    @keyframes slideDown {
+      from { transform: translateY(-30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
     }
   </style>
 </head>
 <body class="app-shell">
+
+  <!-- HUD: Top Turn Instruction (Shown in Navigation Mode) -->
+  <div class="gmap-top-hud" id="gmap-top-hud">
+    <div class="gmap-turn-icon" id="hud-turn-icon">⬆</div>
+    <div style="flex:1;">
+      <div class="gmap-turn-dist" id="hud-turn-dist">In 120 meters</div>
+      <p class="gmap-turn-instruction" id="hud-turn-instruction">Head northeast on designated route</p>
+    </div>
+  </div>
+
+  <!-- HUD: Floating Map Controls -->
+  <div class="gmap-floating-controls">
+    <button type="button" class="gmap-float-btn" id="btn-voice-toggle" onclick="toggleVoiceSpeech()" title="Toggle Voice Guidance">
+      <span id="voice-icon">🔊</span>
+    </button>
+    <button type="button" class="gmap-float-btn" onclick="recenterGPS()" title="Recenter GPS">
+      🎯
+    </button>
+  </div>
+
+  <!-- HUD: Bottom ETA Dock -->
+  <div class="gmap-bottom-dock" id="gmap-bottom-dock">
+    <div>
+      <div class="gmap-eta-time" id="hud-eta-min">8 min</div>
+      <div class="gmap-eta-sub">
+        <span id="hud-eta-dist">650 m</span> · <span id="hud-eta-clock">11:55 AM</span> arrival
+      </div>
+    </div>
+    <button type="button" class="gmap-exit-btn" onclick="stopNavigation()" title="Exit Navigation">
+      ✕
+    </button>
+  </div>
+
+  <!-- Standard Screen Container (Hidden during Navigation Mode) -->
   <div class="app-container">
     <header class="resident-topbar">
       <div class="resident-brand">
@@ -123,33 +264,13 @@
       <button type="button" class="ui-btn-ghost" onclick="logout()">Logout</button>
     </header>
 
-    <div style="margin-bottom:12px;">
+    <div class="page-intro-header" style="margin-bottom:12px;">
       <h1 style="font-size:22px; font-weight:800; margin:0;">Safe Evacuation Routes</h1>
       <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Turn-by-turn walking guidance to safe havens in Barangay Bayanan.</p>
     </div>
 
-    <!-- Distance & Time Summary -->
-    <section class="ui-card" style="padding-bottom:12px;">
-      <div class="nav-summary">
-        <div class="nav-stat">
-          <div class="nav-stat__val" id="stat-distance">650 m</div>
-          <div class="nav-stat__lbl">Distance</div>
-        </div>
-        <div class="nav-stat">
-          <div class="nav-stat__val" id="stat-duration">8 min</div>
-          <div class="nav-stat__lbl">Walk Time</div>
-        </div>
-        <div class="nav-stat nav-stat--remain">
-          <div class="nav-stat__val" id="stat-remaining">650 m</div>
-          <div class="nav-stat__lbl">Remaining</div>
-        </div>
-      </div>
-      <p id="nav-destination" style="margin:0; font-size:0.85rem; font-weight:700; color:var(--text);">Destination: Baywalk Covered Court</p>
-      <p id="live-tracking" class="live-badge hidden">Live GPS tracking active</p>
-    </section>
-
-    <!-- Map Container -->
-    <section class="map-frame-box">
+    <!-- Map Box -->
+    <section class="map-frame-box" id="map-wrapper">
       <div class="map-card__badge">
         <span class="map-card__badge-dot" style="background:var(--green);"></span>
         <span id="nav-status">Safe Route Ready</span>
@@ -157,54 +278,33 @@
       <div id="route-map"></div>
     </section>
 
-    <!-- Evacuation Center Selectors -->
+    <!-- Destination Pickers -->
     <section class="ui-card">
-      <h2 style="margin-top:0; font-size:15px;">Select Safe Haven (Bayanan)</h2>
+      <h2 style="margin-top:0; font-size:15px;">Select Evacuation Haven</h2>
       <div class="action-grid" style="margin-bottom:12px;">
         <button type="button" class="action-card route-pick" data-route="1" id="btn-haven-1" style="border:2px solid var(--primary); cursor:pointer; width:100%; text-align:left;">
           <span class="action-card__icon" style="background:var(--success-light); color:var(--success);">🛡️</span>
-          <span class="action-card__label">Baywalk Covered Court<br><small style="font-size:11px; font-weight:500; color:var(--text-muted);">Lakeshore Haven</small></span>
+          <span class="action-card__label">Baywalk Covered Court<br><small style="font-size:11px; font-weight:500; color:var(--text-muted);">Lakeshore · 8 min</small></span>
         </button>
         <button type="button" class="action-card route-pick" data-route="2" id="btn-haven-2" style="border:1px solid var(--border); cursor:pointer; width:100%; text-align:left;">
           <span class="action-card__icon" style="background:var(--primary-light); color:var(--primary);">🏫</span>
-          <span class="action-card__label">Elementary School Unit 1<br><small style="font-size:11px; font-weight:500; color:var(--text-muted);">National Rd Gym</small></span>
+          <span class="action-card__label">Elementary School Unit 1<br><small style="font-size:11px; font-weight:500; color:var(--text-muted);">National Rd · 12 min</small></span>
         </button>
       </div>
 
-      <button type="button" id="start-nav" class="ui-btn ui-btn-primary" style="background:var(--green); margin-bottom:8px;">
-        ▶ Start Walking Navigation
+      <!-- Start Turn by Turn Navigation Button -->
+      <button type="button" id="start-nav-btn" class="ui-btn ui-btn-primary" style="background:var(--gmap-green); font-size:15px; padding:14px; margin-bottom:8px; box-shadow:0 4px 14px rgba(27, 135, 63, 0.3);">
+        🧭 Start Turn-by-Turn Navigation
       </button>
-      <button type="button" id="open-maps" class="ui-btn ui-btn-secondary">
-        🧭 Open in Google Maps / Waze
+      <button type="button" id="open-maps-btn" class="ui-btn ui-btn-secondary">
+        ↗ Open in External Google Maps
       </button>
     </section>
 
-    <!-- Turn by Turn Directions -->
+    <!-- Directions Step List -->
     <section class="ui-card">
-      <h2 style="margin-top:0; font-size:15px;">Turn-by-turn directions</h2>
-      <ol id="directions-list" class="directions-list">
-        <li>
-          <span class="step-num">1</span>
-          <div>
-            <div style="font-weight:700; color:var(--text);">Head towards designated safe evacuation route</div>
-            <div class="step-dist">150 m · 2 min</div>
-          </div>
-        </li>
-        <li>
-          <span class="step-num">2</span>
-          <div>
-            <div style="font-weight:700; color:var(--text);">Continue along Bayanan Road toward Lakeshore</div>
-            <div class="step-dist">350 m · 4 min</div>
-          </div>
-        </li>
-        <li>
-          <span class="step-num">3</span>
-          <div>
-            <div style="font-weight:700; color:var(--text);">Arrive at Baywalk Covered Court Safe Haven</div>
-            <div class="step-dist">150 m · 2 min</div>
-          </div>
-        </li>
-      </ol>
+      <h2 style="margin-top:0; font-size:15px;">Route Guidance Preview</h2>
+      <ol id="directions-list" class="directions-list"></ol>
     </section>
   </div>
 
@@ -222,12 +322,32 @@
     let selectedHaven = EVACUATION_HAVENS[0];
     let watchId = null;
     let isNavigating = false;
+    let voiceEnabled = true;
+    let currentSteps = [];
+    let currentStepIdx = 0;
 
-    // 1. Initialize Map IMMEDIATELY (Zero Delay on Mobile)
+    // 1. Voice Speech Guidance
+    function speakDirection(text) {
+      if (!voiceEnabled || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.lang = 'en-US';
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function toggleVoiceSpeech() {
+      voiceEnabled = !voiceEnabled;
+      document.getElementById('voice-icon').textContent = voiceEnabled ? '🔊' : '🔇';
+      showToast(voiceEnabled ? 'Voice guidance ON' : 'Voice guidance MUTED');
+    }
+
+    // 2. Initialize Leaflet Map
     function initMap() {
       if (routeMap) return;
       routeMap = L.map('route-map', {
-        zoomControl: true,
+        zoomControl: false,
         attributionControl: false
       }).setView([userPos.lat, userPos.lng], 16);
 
@@ -238,160 +358,174 @@
 
       routeLayers = L.layerGroup().addTo(routeMap);
 
-      // Force Leaflet to recalculate container size
-      setTimeout(() => {
-        if (routeMap) routeMap.invalidateSize();
-      }, 200);
+      setTimeout(() => routeMap?.invalidateSize(), 200);
     }
 
-    function renderDirections(steps) {
-      const list = document.getElementById('directions-list');
-      if (!steps || !steps.length) {
-        list.innerHTML = '<li class="text-muted">Follow highlighted green path on map to destination.</li>';
-        return;
-      }
-      list.innerHTML = steps
-        .map((s, i) => `
-          <li>
-            <span class="step-num">${i + 1}</span>
-            <div>
-              <div style="font-weight:700; color:var(--text);">${escapeHtml(s.instruction)}</div>
-              <div class="step-dist">${formatDistance(s.distanceM)} · ${formatDuration(s.durationSec)}</div>
-            </div>
-          </li>
-        `).join('');
+    function calculateETAClock(durationSec) {
+      const d = new Date(Date.now() + durationSec * 1000);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
-    function updateStats(distM, durationSec) {
-      document.getElementById('stat-distance').textContent = formatDistance(distM);
-      document.getElementById('stat-duration').textContent = formatDuration(durationSec);
-      document.getElementById('stat-remaining').textContent = formatDistance(distM);
-      document.getElementById('nav-destination').textContent = `Destination: ${selectedHaven.name}`;
-    }
-
-    async function drawRoute(havenId, startNav = false) {
+    async function drawRoute(havenId) {
       initMap();
       selectedHaven = getHavenById(havenId || selectedHaven.id);
-      document.getElementById('nav-status').textContent = 'Safe Route Active';
 
-      // Update button visual selection
       document.getElementById('btn-haven-1').style.border = selectedHaven.id === 1 ? '2px solid var(--primary)' : '1px solid var(--border)';
       document.getElementById('btn-haven-2').style.border = selectedHaven.id === 2 ? '2px solid var(--primary)' : '1px solid var(--border)';
 
       if (routeLayers) routeLayers.clearLayers();
 
-      // Fallback direct path waypoints
       const distM = haversineKm(userPos.lat, userPos.lng, selectedHaven.lat, selectedHaven.lng) * 1000;
       const durationSec = (distM / 80) * 60;
+
       let routeData = {
         distanceM: distM,
         durationSec: durationSec,
         coordinates: routeWaypoints(userPos.lat, userPos.lng, selectedHaven.lat, selectedHaven.lng),
         steps: [
-          { instruction: `Walk toward ${selectedHaven.name}`, distanceM: distM * 0.4, durationSec: durationSec * 0.4 },
-          { instruction: `Follow designated evacuation signs along Bayanan`, distanceM: distM * 0.4, durationSec: durationSec * 0.4 },
-          { instruction: `Arrive at ${selectedHaven.name} safe haven`, distanceM: distM * 0.2, durationSec: durationSec * 0.2 }
+          { instruction: `Head toward designated safe evacuation route on Bayanan`, distanceM: distM * 0.35, durationSec: durationSec * 0.35, icon: '⬆' },
+          { instruction: `Follow safe signs along route to ${selectedHaven.name}`, distanceM: distM * 0.45, durationSec: durationSec * 0.45, icon: '↱' },
+          { instruction: `Arrive at ${selectedHaven.name} safe haven`, distanceM: distM * 0.2, durationSec: durationSec * 0.2, icon: '🏁' }
         ]
       };
 
-      // Try fetching online walking route
       try {
         const fetched = await fetchWalkingRoute(userPos.lat, userPos.lng, selectedHaven.lat, selectedHaven.lng);
         if (fetched && fetched.coordinates) routeData = fetched;
-      } catch (e) {
-        // Use generated waypoints
-      }
+      } catch (e) {}
 
-      // Draw user marker
+      currentSteps = routeData.steps;
+
+      // Draw custom user marker with pulsing beacon
       userMarkerLayer = L.circleMarker([userPos.lat, userPos.lng], {
-        radius: 10,
+        radius: 11,
         color: '#1565C0',
-        fillColor: '#1565C0',
+        fillColor: '#2196F3',
         fillOpacity: 1,
-        weight: 2
-      }).bindPopup('<b>Your Location</b>').addTo(routeLayers);
+        weight: 3
+      }).bindPopup('<b>Your Live Position</b>').addTo(routeLayers);
 
-      // Draw haven marker
+      // Haven marker
       L.marker([selectedHaven.lat, selectedHaven.lng]).bindPopup(`<b>${selectedHaven.name}</b><br>Safe Evacuation Haven`).addTo(routeLayers);
 
-      // Draw green route line
+      // Route polyline with high visibility
       L.polyline(routeData.coordinates, {
-        color: '#2E7D32',
-        weight: 6,
+        color: '#1B873F',
+        weight: 7,
         opacity: 0.95
       }).addTo(routeLayers);
 
-      // Draw other havens
       drawAllHavens(routeMap, routeLayers);
-
-      // Fit map view to route
       fitMapToPath(routeMap, routeData.coordinates);
-      updateStats(routeData.distanceM, routeData.durationSec);
-      renderDirections(routeData.steps);
 
-      if (startNav) {
-        isNavigating = true;
-        document.getElementById('start-nav').textContent = '■ Stop Navigation';
-        document.getElementById('live-tracking').classList.remove('hidden');
-        startTracking();
+      // Update HUD values
+      const minStr = Math.round(routeData.durationSec / 60) + ' min';
+      const distStr = formatDistance(routeData.distanceM);
+      document.getElementById('hud-eta-min').textContent = minStr;
+      document.getElementById('hud-eta-dist').textContent = distStr;
+      document.getElementById('hud-eta-clock').textContent = calculateETAClock(routeData.durationSec);
+
+      // Render step list preview
+      document.getElementById('directions-list').innerHTML = currentSteps.map((s, i) => `
+        <li style="display:flex; gap:12px; padding:10px 0; border-bottom:1px solid var(--border);">
+          <span style="width:26px; height:26px; border-radius:50%; background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px;">${i + 1}</span>
+          <div>
+            <div style="font-weight:700; color:var(--text);">${escapeHtml(s.instruction)}</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${formatDistance(s.distanceM)} · ${formatDuration(s.durationSec)}</div>
+          </div>
+        </li>
+      `).join('');
+    }
+
+    // 3. Start Google Maps Fullscreen Navigation Mode
+    function startNavigation() {
+      isNavigating = true;
+      document.body.classList.add('nav-active-mode');
+
+      const firstStep = currentSteps[0] || { instruction: `Walk to ${selectedHaven.name}`, distanceM: 200, icon: '⬆' };
+      document.getElementById('hud-turn-icon').textContent = firstStep.icon || '⬆';
+      document.getElementById('hud-turn-dist').textContent = `In ${formatDistance(firstStep.distanceM)}`;
+      document.getElementById('hud-turn-instruction').textContent = firstStep.instruction;
+
+      speakDirection(`Starting walking navigation to ${selectedHaven.name}. ${firstStep.instruction}`);
+
+      if (routeMap) {
+        routeMap.invalidateSize();
+        routeMap.setView([userPos.lat, userPos.lng], 18);
+      }
+
+      startGPSTracking();
+    }
+
+    function stopNavigation() {
+      isNavigating = false;
+      document.body.classList.remove('nav-active-mode');
+      if (watchId != null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      if (routeMap) {
+        routeMap.invalidateSize();
+        drawRoute(selectedHaven.id);
+      }
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    }
+
+    function recenterGPS() {
+      if (routeMap && userPos) {
+        routeMap.setView([userPos.lat, userPos.lng], 18);
       }
     }
 
-    function startTracking() {
+    function startGPSTracking() {
       if (!navigator.geolocation || watchId != null) return;
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
           userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           if (userMarkerLayer) userMarkerLayer.setLatLng([userPos.lat, userPos.lng]);
+          if (isNavigating && routeMap) routeMap.panTo([userPos.lat, userPos.lng]);
+
           const remainM = remainingToDestination(userPos.lat, userPos.lng, selectedHaven);
-          document.getElementById('stat-remaining').textContent = formatDistance(remainM);
+          document.getElementById('hud-eta-dist').textContent = formatDistance(remainM);
+          document.getElementById('hud-eta-min').textContent = Math.round((remainM / 80)) + ' min';
+
+          if (remainM < 25) {
+            document.getElementById('hud-turn-instruction').textContent = `Arrived at ${selectedHaven.name}`;
+            speakDirection(`You have arrived at ${selectedHaven.name} safe evacuation haven.`);
+          }
         },
         () => {},
-        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+        { enableHighAccuracy: true, maximumAge: 2000, timeout: 8000 }
       );
     }
 
-    function stopTracking() {
-      if (watchId != null) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-      }
-      isNavigating = false;
-      document.getElementById('live-tracking').classList.add('hidden');
-      document.getElementById('start-nav').textContent = '▶ Start Walking Navigation';
-    }
+    // Bind Buttons
+    document.getElementById('start-nav-btn').addEventListener('click', () => {
+      startNavigation();
+    });
 
-    // Event Handlers
-    document.querySelectorAll('.route-pick').forEach((btn) => {
+    document.querySelectorAll('.route-pick').forEach(btn => {
       btn.addEventListener('click', () => {
         drawRoute(parseInt(btn.dataset.route, 10));
       });
     });
 
-    document.getElementById('start-nav').addEventListener('click', () => {
-      if (isNavigating) stopTracking();
-      else drawRoute(selectedHaven.id, true);
-    });
-
-    document.getElementById('open-maps').addEventListener('click', () => {
+    document.getElementById('open-maps-btn').addEventListener('click', () => {
       openGoogleMapsDirections(selectedHaven, userPos.lat, userPos.lng);
     });
 
-    // Background GPS acquisition (doesn't block map display)
-    async function acquireGPSInBackground() {
+    // Acquire GPS
+    async function setupInitial() {
+      initMap();
+      drawRoute(1);
       try {
         const pos = await getGeolocation();
         userPos = { lat: pos.latitude, lng: pos.longitude };
-        drawRoute(selectedHaven.id, isNavigating);
-      } catch (e) {
-        // Default Bayanan center is already active
-      }
+        drawRoute(1);
+      } catch (e) {}
     }
 
-    // Start immediate render
-    initMap();
-    drawRoute(1);
-    acquireGPSInBackground();
+    setupInitial();
 
     window.addEventListener('resize', () => {
       if (routeMap) routeMap.invalidateSize();
