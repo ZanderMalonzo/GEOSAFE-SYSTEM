@@ -13,7 +13,7 @@
   <div class="auth-bg" aria-hidden="true"></div>
 
   <div class="auth-layout">
-    <header class="auth-header">
+    <header class="auth-header" style="display:flex; justify-content:space-between; align-items:center;">
       <a href="/" class="auth-logo">
         <div class="auth-logo__icon">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -23,6 +23,7 @@
           <span class="auth-logo__sub">Barangay Bayanan Emergency System</span>
         </div>
       </a>
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Dark Mode" title="Toggle Dark/Light Mode">🌙</button>
     </header>
 
     <main class="auth-main">

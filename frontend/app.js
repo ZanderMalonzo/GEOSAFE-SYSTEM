@@ -2,6 +2,35 @@ const API_BASE = window.location.origin;
 let socket = null;
 let deferredPrompt = null;
 
+// ==========================================================================
+// Theme Management (Dark Mode / Light Mode)
+// ==========================================================================
+function getPreferredTheme() {
+  const stored = localStorage.getItem('geosafe_theme');
+  if (stored) return stored;
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('geosafe_theme', theme);
+  document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
+    btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode');
+    btn.setAttribute('title', theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode');
+  });
+}
+
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  showToast(next === 'dark' ? '🌙 Dark Mode Activated' : '☀️ Light Mode Activated');
+}
+
+// Auto-apply immediately
+applyTheme(getPreferredTheme());
+
 // Local persistent mock storage for database-free Vercel preview
 function getLocalStore(key, defaultVal) {
   try {
