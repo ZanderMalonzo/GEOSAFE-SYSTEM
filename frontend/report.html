@@ -122,21 +122,34 @@
         statusEl.textContent = 'Enter valid coordinates';
         return;
       }
-      setLocationOnForm(lat, lng, statusEl, 'map-preview');
-      document.getElementById('map-preview').style.display = 'block';
-    });
+    function playDispatchChime() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15); // A5
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+      } catch (e) {}
+    }
 
     document.getElementById('report-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const errEl = document.getElementById('report-error');
       errEl.classList.add('hidden');
       const fd = new FormData(e.target);
-      let lat = parseFloat(fd.get('latitude')) || 14.3972;
-      let lng = parseFloat(fd.get('longitude')) || 121.0200;
+      let lat = parseFloat(fd.get('latitude')) || 14.4106;
+      let lng = parseFloat(fd.get('longitude')) || 121.0502;
 
       const submitBtn = document.getElementById('submit-btn');
       const origText = submitBtn.textContent;
-      submitBtn.textContent = 'Submitting…';
+      submitBtn.textContent = 'Transmitting to BDRRMC…';
       submitBtn.disabled = true;
 
       try {
@@ -147,15 +160,16 @@
             description: fd.get('description'),
             latitude: lat,
             longitude: lng,
+            severity: isSos || fd.get('incident_type') === 'SOS' ? 'high' : 'medium'
           }),
         });
-        showToast(isSos ? '🚨 SOS Request Sent to BDRRMC!' : '✓ Incident Report Submitted', 'success');
+        playDispatchChime();
+        showToast(isSos ? '🚨 SOS RESCUE DISPATCHED TO BDRRMC!' : '✓ Incident Report Submitted', 'success');
         e.target.reset();
         if (isSos) {
           document.getElementById('incident_type_select').value = 'SOS';
+          document.querySelector('[name=description]').value = 'EMERGENCY SOS: Rescue assistance requested.';
         }
-        statusEl.textContent = 'Location not captured';
-        document.getElementById('map-preview').style.display = 'none';
         loadReports();
       } catch (err) {
         errEl.textContent = err.message;
@@ -187,15 +201,22 @@
       }
     }
 
+    // Live Cross-Device Cloud Sync
+    if (typeof EventSource !== 'undefined') {
+      try {
+        const repSource = new EventSource('https://ntfy.sh/geosafe_bayanan_reports_2026/sse');
+        repSource.onmessage = () => loadReports();
+      } catch (e) {}
+    }
+
     initSocket({
-      'status-update': (r) => {
-        if (r.user_id === user.id) loadReports();
-      },
+      'status-update': () => loadReports(),
       'alert-broadcast': (a) => showToast(a.message, 'danger'),
     });
 
+    fetchGPS();
     loadReports();
-    if (isSos) fetchGPS();
+    setInterval(loadReports, 3000);
   </script>
 </body>
 </html>

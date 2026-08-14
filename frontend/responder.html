@@ -584,8 +584,42 @@
       }
     });
 
+    // Live Cloud Push for Incoming Citizen Incident Reports & Broadcasts
+    if (typeof EventSource !== 'undefined') {
+      try {
+        const repSource = new EventSource('https://ntfy.sh/geosafe_bayanan_reports_2026/sse');
+        repSource.onmessage = () => {
+          playMissionChime();
+          showToast('🚨 New live citizen disaster report received!', 'warning');
+          loadIncidents();
+        };
+
+        const alertSource = new EventSource('https://ntfy.sh/geosafe_bayanan_alerts_2026/sse');
+        alertSource.onmessage = (e) => {
+          try {
+            const parsed = JSON.parse(e.data);
+            if (parsed.message) {
+              const aData = JSON.parse(parsed.message);
+              if (aData && aData.message) {
+                const box = document.getElementById('broadcast-alert-box');
+                if (box) box.classList.remove('hidden');
+                document.getElementById('broadcast-alert-text').textContent = aData.message;
+                showToast(`🚨 BDRRMC Alert: ${aData.message}`, 'danger');
+              }
+            }
+          } catch (err) {}
+        };
+      } catch (e) {}
+    }
+
+    // Storage Event Listener (Instant Multi-Tab Sync)
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'geosafe_reports') loadIncidents();
+    });
+
     trackGPS();
     loadIncidents();
+    setInterval(loadIncidents, 3000);
   </script>
 </body>
 </html>

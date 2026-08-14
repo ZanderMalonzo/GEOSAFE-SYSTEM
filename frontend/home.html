@@ -378,6 +378,9 @@
         playAlertChime();
         loadAlerts();
       },
+      'status-update': () => loadMyReports()
+    });
+
     // Live Cloud Push Notification Stream across Internet (Mobile Phone & PC)
     if (typeof EventSource !== 'undefined') {
       try {
