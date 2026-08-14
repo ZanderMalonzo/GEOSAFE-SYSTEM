@@ -170,38 +170,78 @@ async function api(path, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
   const body = options.body ? JSON.parse(options.body) : {};
 
-  // Auth: Login
-  if (path === '/api/login' && method === 'POST') {
-    const email = (body.email || '').toLowerCase();
-    let role = 'resident';
-    let name = 'Resident User';
-    let id = 4;
+  // Registered Users Store (Demo accounts + Newly Registered residents)
+  const DEFAULT_REGISTERED_USERS = [
+    { id: 1, name: 'BDRRMC Admin Lead', email: 'admin@geosafe.local', password: 'admin123', role: 'admin', phone: '0917-111-2222', address: 'BDRRMC Command Center, Bayanan' },
+    { id: 2, name: 'Responder Unit 1 (Ambulance)', email: 'responder@geosafe.local', password: 'responder123', role: 'responder', phone: '0918-333-4444', address: 'Bayanan Health Station' },
+    { id: 3, name: 'Rescue Boat Unit 3', email: 'boat@geosafe.local', password: 'responder123', role: 'responder', phone: '0919-555-6666', address: 'Lakeshore Evacuation Post' },
+    { id: 4, name: 'Juan Dela Cruz', email: 'resident@geosafe.local', password: 'resident123', role: 'resident', phone: '0917-889-2345', address: 'Purok 3, Barangay Bayanan' }
+  ];
 
-    if (email.includes('admin')) {
-      role = 'admin';
-      name = 'BDRRMC Admin Lead';
-      id = 1;
-    } else if (email.includes('responder') || email.includes('boat')) {
-      role = 'responder';
-      name = 'Responder Unit 1 (Ambulance)';
-      id = 2;
-    } else {
-      name = email.split('@')[0] || 'Juan Dela Cruz';
+  // Auth: Login with strict credential verification
+  if (path === '/api/login' && method === 'POST') {
+    const email = (body.email || '').trim().toLowerCase();
+    const password = body.password || '';
+
+    if (!email) {
+      throw new Error('Please enter your email address.');
+    }
+    if (!password) {
+      throw new Error('Please enter your password.');
     }
 
-    const user = { id, name, email: body.email, role };
-    return { message: 'Login successful', token: 'demo-jwt-token-2026', user };
+    const registeredUsers = getLocalStore('registered_users', DEFAULT_REGISTERED_USERS);
+    const user = registeredUsers.find((u) => u.email.toLowerCase() === email);
+
+    if (!user) {
+      throw new Error('Account not found. Please create an account first.');
+    }
+
+    if (user.password && user.password !== password) {
+      throw new Error('Incorrect password. Please verify and try again.');
+    }
+
+    const { password: _, ...cleanUser } = user;
+    return { message: 'Login successful', token: 'jwt-token-' + Date.now(), user: cleanUser };
   }
 
-  // Auth: Register
+  // Auth: Register with uniqueness check
   if (path === '/api/register' && method === 'POST') {
-    const user = {
-      id: Math.floor(Math.random() * 1000) + 10,
-      name: body.name || 'New Resident',
-      email: body.email,
-      role: 'resident'
+    const email = (body.email || '').trim().toLowerCase();
+    const password = body.password || '';
+    const name = (body.name || '').trim();
+
+    if (!name || name.length < 2) {
+      throw new Error('Please enter your full name (minimum 2 characters).');
+    }
+    if (!email || !email.includes('@')) {
+      throw new Error('Please enter a valid email address.');
+    }
+    if (!password || password.length < 6) {
+      throw new Error('Password must be at least 6 characters.');
+    }
+
+    const registeredUsers = getLocalStore('registered_users', DEFAULT_REGISTERED_USERS);
+    if (registeredUsers.some((u) => u.email.toLowerCase() === email)) {
+      throw new Error('This email is already registered. Please sign in instead.');
+    }
+
+    const newUser = {
+      id: Date.now(),
+      name: name,
+      email: email,
+      password: password,
+      role: 'resident',
+      phone: '0917-000-0000',
+      address: 'Barangay Bayanan, Muntinlupa',
+      created_at: new Date().toISOString()
     };
-    return { message: 'Registration successful', token: 'demo-jwt-token-2026', user };
+
+    registeredUsers.push(newUser);
+    setLocalStore('registered_users', registeredUsers);
+
+    const { password: _, ...cleanUser } = newUser;
+    return { message: 'Registration successful', token: 'jwt-token-' + Date.now(), user: cleanUser };
   }
 
   // Reports: Get (Merged with Cloud Relay)

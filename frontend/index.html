@@ -66,7 +66,10 @@
             </div>
             <div class="auth-field">
               <label for="login-password">Password</label>
-              <input type="password" id="login-password" name="password" required autocomplete="current-password" placeholder="••••••••" value="admin123" />
+              <div style="position:relative; display:flex; align-items:center;">
+                <input type="password" id="login-password" name="password" required autocomplete="current-password" placeholder="••••••••" value="admin123" style="padding-right:42px; width:100%;" />
+                <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('login-password', this)" style="position:absolute; right:12px; background:none; border:none; cursor:pointer; font-size:16px; color:var(--text-muted); padding:4px;" aria-label="Show password">👁️</button>
+              </div>
             </div>
             <p id="login-error" class="auth-error hidden" role="alert"></p>
             <button type="submit" class="auth-submit" id="login-btn">Sign In to Dashboard</button>
@@ -82,6 +85,10 @@
               <button type="button" class="auth-demo-btn" data-email="responder@geosafe.local" data-pass="responder123">
                 <span>🚑 Responder Unit</span>
                 <span>responder@geosafe.local</span>
+              </button>
+              <button type="button" class="auth-demo-btn" data-email="resident@geosafe.local" data-pass="resident123">
+                <span>🏠 Resident User</span>
+                <span>resident@geosafe.local</span>
               </button>
             </div>
           </details>
@@ -104,7 +111,10 @@
             </div>
             <div class="auth-field">
               <label for="reg-password">Password</label>
-              <input type="password" id="reg-password" name="password" required minlength="6" autocomplete="new-password" placeholder="Min. 6 characters" />
+              <div style="position:relative; display:flex; align-items:center;">
+                <input type="password" id="reg-password" name="password" required minlength="6" autocomplete="new-password" placeholder="Min. 6 characters" style="padding-right:42px; width:100%;" />
+                <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('reg-password', this)" style="position:absolute; right:12px; background:none; border:none; cursor:pointer; font-size:16px; color:var(--text-muted); padding:4px;" aria-label="Show password">👁️</button>
+              </div>
             </div>
             <p id="register-error" class="auth-error hidden" role="alert"></p>
             <button type="submit" class="auth-submit" id="register-btn">Register Resident Account</button>
@@ -151,6 +161,15 @@
 
     if (location.hash === '#register') showRegister();
     else showLogin();
+
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      const isPass = input.type === 'password';
+      input.type = isPass ? 'text' : 'password';
+      btn.textContent = isPass ? '🙈' : '👁️';
+      btn.setAttribute('aria-label', isPass ? 'Hide password' : 'Show password');
+    }
 
     document.querySelectorAll('.auth-demo-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
