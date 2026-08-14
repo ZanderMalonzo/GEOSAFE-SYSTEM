@@ -157,6 +157,41 @@
       return alertData;
     },
 
+    // Family Circles: Get
+    async getFamily(circleId = 'default_circle') {
+      const database = await initFirebase();
+      if (!database) return null;
+      try {
+        const doc = await database.collection('family_circles').doc(circleId).get();
+        return doc.exists ? doc.data() : null;
+      } catch (e) {
+        return null;
+      }
+    },
+
+    // Family Circles: Save / Update Entire Circle
+    async saveFamily(circleId = 'default_circle', familyData) {
+      const database = await initFirebase();
+      if (!database) return null;
+      await database.collection('family_circles').doc(circleId).set({
+        ...familyData,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      return familyData;
+    },
+
+    // Family Circles: Live Real-Time Listener (Life360 Live GPS Sync)
+    listenFamily(circleId = 'default_circle', callback) {
+      initFirebase().then((database) => {
+        if (!database) return;
+        database.collection('family_circles').doc(circleId).onSnapshot((doc) => {
+          if (doc.exists) {
+            callback(doc.data());
+          }
+        });
+      });
+    },
+
     // Real-Time Listeners (Live Push Sync)
     listenAlerts(callback) {
       initFirebase().then((database) => {

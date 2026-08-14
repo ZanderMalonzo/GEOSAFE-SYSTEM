@@ -6,18 +6,12 @@
   <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css?v=3.5" />
+  <link rel="stylesheet" href="/mobile-ui.css?v=3.6" />
   <title>GeoSafe — Life360 Family Safety Tracker</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     /* Life360-Style Theme & Component Tokens */
-    :root {
-      --l360-purple: #6A1B9A;
-      --l360-purple-light: #F3E5F5;
-      --l360-blue: #1A73E8;
-    }
-
     .family-circle-header {
       background: white;
       border: 1px solid var(--border);
@@ -255,47 +249,10 @@
 
     <div style="margin-bottom:12px;">
       <h1 style="font-size:22px; font-weight:800; margin:0;">Family Safety Circle</h1>
-      <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Live Life360-style GPS location, battery levels, and SOS status.</p>
+      <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Live Life360-style GPS tracking, battery levels, and safety status.</p>
     </div>
 
-    <!-- State 1: No Family Circle -->
-    <div id="no-family" class="hidden" style="display:flex; flex-direction:column; gap:16px;">
-      <section class="ui-card">
-        <h2>👨‍👩‍👧 Create Family Circle</h2>
-        <p class="text-muted" style="font-size:12px; margin-bottom:12px;">Create a private circle for your household in Barangay Bayanan.</p>
-        <form id="create-family-form">
-          <label style="font-size:13px; font-weight:700; display:block; margin-bottom:4px;">Circle Name</label>
-          <input name="name" required minlength="2" class="ui-input" placeholder="e.g. Dela Cruz Family" />
-          
-          <label style="font-size:13px; font-weight:700; display:block; margin-bottom:4px;">Purok / Area Description</label>
-          <textarea name="description" rows="2" class="ui-textarea" placeholder="e.g. Block 4, Purok 3, Bayanan"></textarea>
-          
-          <button type="submit" class="ui-btn ui-btn-primary" style="margin-top:10px;">Create Circle</button>
-        </form>
-      </section>
-
-      <section class="ui-card">
-        <h2>🔗 Join with Invite Code</h2>
-        <p class="text-muted" style="font-size:12px; margin-bottom:12px;">Enter the 8-character code shared by your family head.</p>
-        <form id="join-family-form">
-          <label style="font-size:13px; font-weight:700; display:block; margin-bottom:4px;">Invite Code</label>
-          <input name="invite_code" required class="ui-input" style="text-transform:uppercase; letter-spacing:1px; font-weight:700;" placeholder="e.g. BAYANAN8" />
-          
-          <label style="font-size:13px; font-weight:700; display:block; margin-bottom:4px;">Your Relationship in Household</label>
-          <select name="relationship" class="ui-select">
-            <option>Spouse</option>
-            <option>Child</option>
-            <option>Parent</option>
-            <option>Sibling</option>
-            <option>Member</option>
-          </select>
-          
-          <button type="submit" class="ui-btn ui-btn-secondary" style="margin-top:10px;">Join Circle</button>
-        </form>
-      </section>
-    </div>
-
-    <!-- State 2: Active Family Circle (Life360 View) -->
+    <!-- Active Family Circle (Life360 View) -->
     <div id="has-family" style="display:flex; flex-direction:column; gap:14px;">
       
       <!-- Circle Header Info -->
@@ -308,7 +265,7 @@
           <p id="family-desc" style="font-size:12px; color:var(--text-muted); margin:2px 0 0;">Purok 3, Barangay Bayanan</p>
         </div>
         <div style="text-align:right;">
-          <span class="circle-status-chip">● All Safe</span>
+          <span id="circle-summary-badge" class="circle-status-chip">● All Safe</span>
           <div style="margin-top:4px;">
             <button type="button" onclick="copyInviteCode()" style="background:var(--primary-light); color:var(--primary); border:none; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700; cursor:pointer;">
               Code: <span id="invite-code-chip">BAYANAN8</span> 📋
@@ -329,7 +286,7 @@
       <!-- Quick Check-in & Share Live GPS -->
       <section class="ui-card" style="padding:14px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <h2 style="margin:0; font-size:15px;">My Live Status & Check-In</h2>
+          <h2 style="margin:0; font-size:15px;">My Live Status &amp; Check-In</h2>
           <span id="my-batt-display" class="l360-batt-pill">🔋 85% Battery</span>
         </div>
         
@@ -341,23 +298,55 @@
             🟠 Need Help
           </button>
           <button type="button" onclick="quickSetSafety('injured')" id="btn-status-sos" class="ui-btn" style="background:var(--emergency-light); color:var(--emergency); font-size:12px; padding:8px 4px; border:1px solid var(--border);">
-            🚨 SOS / Help
+            🚨 SOS Rescue
           </button>
         </div>
 
         <button type="button" id="share-gps-btn" onclick="syncMyLiveGPS()" class="ui-btn ui-btn-primary" style="font-size:13px; padding:10px;">
-          📍 Check-In & Sync My Live Location
+          📍 Check-In &amp; Sync My Live Location
         </button>
       </section>
 
       <!-- Family Members List (Life360 Tray) -->
       <section class="ui-card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h2 style="margin:0; font-size:16px;">Family Members (<span id="member-count">2</span>)</h2>
-          <button type="button" id="leave-btn" class="ui-btn-ghost" style="color:var(--emergency); font-size:11px;">Leave Circle</button>
+          <h2 style="margin:0; font-size:16px;">Family Members (<span id="member-count">3</span>)</h2>
+          <button type="button" onclick="openAddMemberModal()" class="ui-btn ui-btn-secondary" style="width:auto; padding:6px 12px; font-size:11px; font-weight:700;">
+            ➕ Add Member
+          </button>
         </div>
         <div id="members-list"></div>
       </section>
+    </div>
+  </div>
+
+  <!-- Add Member Modal -->
+  <div id="add-member-modal" class="profile-modal-backdrop" style="display:none;" onclick="if(event.target===this) closeAddMemberModal()">
+    <div class="profile-modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h2 style="margin:0; font-size:17px; font-weight:800;">Add Family Member</h2>
+        <button type="button" class="profile-modal-close" onclick="closeAddMemberModal()">&times;</button>
+      </div>
+
+      <form id="add-member-form" onsubmit="handleAddMember(event)">
+        <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">Full Name</label>
+        <input name="name" id="new-mem-name" required placeholder="e.g. Maria Dela Cruz" class="ui-input" />
+
+        <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">Relationship</label>
+        <select name="relationship" id="new-mem-rel" class="ui-select">
+          <option value="Spouse">Spouse / Partner</option>
+          <option value="Child (Student)">Child / Student</option>
+          <option value="Parent">Parent / Elderly</option>
+          <option value="Sibling">Sibling</option>
+          <option value="Relative">Relative</option>
+          <option value="Household Member">Household Member</option>
+        </select>
+
+        <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">Mobile Phone Number</label>
+        <input type="tel" name="phone" id="new-mem-phone" required placeholder="0918-000-0000" class="ui-input" />
+
+        <button type="submit" class="ui-btn ui-btn-primary" style="margin-top:10px; padding:12px;">Add to Family Circle</button>
+      </form>
     </div>
   </div>
 
@@ -369,21 +358,24 @@
     if (!user) throw new Error('unauthorized');
     injectBottomNav('family');
 
+    if (user.name) {
+      const initials = user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+      document.getElementById('header-avatar').textContent = initials || 'JD';
+    }
+
     let familyMap = null;
     let memberMarkers = {};
     let markerLayerGroup = null;
 
-    // Sample Default Household Members in Barangay Bayanan
-    let familyData = {
-      family: {
-        id: 1,
-        name: 'Dela Cruz Family Circle',
-        description: 'Purok 3, Barangay Bayanan',
-        invite_code: 'BAYANAN8'
-      },
+    // Default Seed Data
+    const DEFAULT_FAMILY = {
+      id: 'default_circle',
+      name: 'Dela Cruz Family Circle',
+      description: 'Purok 3, Barangay Bayanan',
+      invite_code: 'BAYANAN8',
       members: [
         {
-          id: 4,
+          id: user.id || 4,
           name: user.name || 'Juan Dela Cruz',
           relationship: 'Head',
           safety_status: 'safe',
@@ -424,7 +416,19 @@
       ]
     };
 
-    // 1. Initialize Life360 Map
+    let familyData = getLocalStore('family_circle', DEFAULT_FAMILY);
+
+    // Save & Sync Family Data
+    async function persistFamilyData() {
+      setLocalStore('family_circle', familyData);
+      if (window.GeoSafeDB) {
+        try {
+          await window.GeoSafeDB.saveFamily('default_circle', familyData);
+        } catch (e) {}
+      }
+    }
+
+    // 1. Initialize Life360 Leaflet Map
     function initFamilyMap() {
       if (familyMap) return;
       familyMap = L.map('family-map', {
@@ -441,7 +445,7 @@
       setTimeout(() => familyMap?.invalidateSize(), 200);
     }
 
-    // 2. Render Life360 Custom Member Marker
+    // 2. Render Life360 Custom Pin Marker
     function createMemberIcon(member) {
       const initials = (member.name || 'Member')
         .split(' ')
@@ -452,7 +456,8 @@
 
       const isSOS = member.safety_status === 'injured' || member.safety_status === 'need_help';
       const avatarClass = isSOS ? 'l360-pin-avatar l360-pin-avatar--sos' : 'l360-pin-avatar';
-      const battIcon = (member.battery_level || 50) < 20 ? '🪫' : '🔋';
+      const batt = member.battery_level || 75;
+      const battIcon = batt < 20 ? '🪫' : '🔋';
 
       return L.divIcon({
         className: 'l360-custom-icon',
@@ -460,7 +465,7 @@
           <div class="l360-member-pin">
             <div class="l360-pin-pulse"></div>
             <div class="${avatarClass}">${initials}</div>
-            <div class="l360-pin-battery">${battIcon} ${member.battery_level || 80}%</div>
+            <div class="l360-pin-battery">${battIcon} ${batt}%</div>
           </div>
         `,
         iconSize: [52, 52],
@@ -486,7 +491,9 @@
               <div style="font-family:sans-serif;">
                 <strong style="font-size:14px;">${escapeHtml(m.name)}</strong><br>
                 <span style="font-size:12px; color:var(--text-muted);">${escapeHtml(m.relationship || 'Family Member')}</span><br>
-                <span class="ui-badge ui-badge--safety-${m.safety_status}" style="margin:4px 0;">${m.safety_status === 'safe' ? 'Safe' : 'Needs Help'}</span><br>
+                <span style="display:inline-block; margin:4px 0; font-size:11px; font-weight:700; color:${m.safety_status === 'safe' ? 'var(--success)' : 'var(--emergency)'}">
+                  ● ${m.safety_status === 'safe' ? 'Safe' : 'Needs Help'}
+                </span><br>
                 <small style="color:#666;">📍 ${escapeHtml(m.last_location_name || 'Barangay Bayanan')}</small>
               </div>
             `);
@@ -506,6 +513,20 @@
       const container = document.getElementById('members-list');
       const countEl = document.getElementById('member-count');
       if (countEl) countEl.textContent = familyData.members.length;
+
+      const anyInDanger = familyData.members.some(m => m.safety_status !== 'safe');
+      const badge = document.getElementById('circle-summary-badge');
+      if (badge) {
+        if (anyInDanger) {
+          badge.textContent = '🚨 Action Needed';
+          badge.style.background = 'var(--emergency-light)';
+          badge.style.color = 'var(--emergency)';
+        } else {
+          badge.textContent = '● All Safe';
+          badge.style.background = 'var(--success-light)';
+          badge.style.color = 'var(--green)';
+        }
+      }
 
       container.innerHTML = familyData.members.map(m => {
         const initials = (m.name || 'Member').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
@@ -572,10 +593,11 @@
     }
 
     function copyInviteCode() {
-      navigator.clipboard.writeText('BAYANAN8').then(() => {
-        showToast('📋 Family Invite Code copied to clipboard: BAYANAN8', 'success');
+      const code = familyData.family?.invite_code || 'BAYANAN8';
+      navigator.clipboard.writeText(code).then(() => {
+        showToast(`📋 Family Invite Code copied: ${code}`, 'success');
       }).catch(() => {
-        showToast('Invite code: BAYANAN8');
+        showToast(`Invite code: ${code}`);
       });
     }
 
@@ -590,6 +612,7 @@
         me.safety_status = status;
         renderMapPins();
         renderMembersList();
+        persistFamilyData();
         showToast(`Status updated: ${status.toUpperCase()}`, status === 'safe' ? 'success' : 'warning');
       }
     }
@@ -617,8 +640,10 @@
           me.last_longitude = pos.longitude;
           me.battery_level = battLevel;
           me.last_location_name = 'Live GPS Updated · Bayanan';
+          me.last_location_at = new Date().toISOString();
           renderMapPins();
           renderMembersList();
+          persistFamilyData();
           showToast('✅ Live GPS & battery synced with family circle!', 'success');
         }
       } catch (err) {
@@ -627,6 +652,65 @@
         btn.disabled = false;
         btn.textContent = '📍 Check-In & Sync My Live Location';
       }
+    }
+
+    // 8. Add Member Modal
+    function openAddMemberModal() {
+      document.getElementById('add-member-modal').style.display = 'flex';
+    }
+
+    function closeAddMemberModal() {
+      document.getElementById('add-member-modal').style.display = 'none';
+    }
+
+    function handleAddMember(e) {
+      e.preventDefault();
+      const name = document.getElementById('new-mem-name').value.trim();
+      const rel = document.getElementById('new-mem-rel').value;
+      const phone = document.getElementById('new-mem-phone').value.trim();
+
+      if (!name) return;
+
+      const newMember = {
+        id: Date.now(),
+        name: name,
+        relationship: rel,
+        safety_status: 'safe',
+        is_family_head: false,
+        battery_level: 90,
+        phone: phone || '0917-000-0000',
+        last_latitude: 14.4106 + (Math.random() - 0.5) * 0.004,
+        last_longitude: 121.0502 + (Math.random() - 0.5) * 0.004,
+        last_location_name: 'Purok 3, Barangay Bayanan',
+        last_location_at: new Date().toISOString()
+      };
+
+      familyData.members.push(newMember);
+      persistFamilyData();
+      renderMapPins();
+      renderMembersList();
+      closeAddMemberModal();
+      document.getElementById('add-member-form').reset();
+      showToast(`Added ${name} to Family Circle!`, 'success');
+    }
+
+    // 9. Real-time Firestore Cloud Listener
+    if (window.GeoSafeDB) {
+      window.GeoSafeDB.getFamily('default_circle').then((cloudData) => {
+        if (cloudData && cloudData.members) {
+          familyData = cloudData;
+          renderMapPins();
+          renderMembersList();
+        }
+      });
+
+      window.GeoSafeDB.listenFamily('default_circle', (cloudData) => {
+        if (cloudData && cloudData.members) {
+          familyData = cloudData;
+          renderMapPins();
+          renderMembersList();
+        }
+      });
     }
 
     // Auto Init
