@@ -6,10 +6,56 @@
   <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css" />
+  <link rel="stylesheet" href="/mobile-ui.css?v=3.6" />
   <title>GeoSafe — Resident Dashboard</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    .weather-card {
+      background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+      color: white;
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      margin-top: 10px;
+      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
+    }
+    .weather-card__top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .weather-card__label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #BBDEFB;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .weather-card strong {
+      font-size: 26px;
+      font-weight: 900;
+      display: block;
+      line-height: 1.1;
+    }
+    #weather-advisory {
+      margin: 10px 0 0;
+      font-size: 12px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 6px 10px;
+      border-radius: 8px;
+      line-height: 1.3;
+    }
+    #home-map {
+      width: 100%;
+      height: 220px;
+      min-height: 220px;
+      border-radius: 12px;
+    }
+  </style>
 </head>
 <body class="app-shell">
   <div class="app-container">
@@ -41,29 +87,29 @@
     <!-- Welcome & Greeting Section -->
     <section class="resident-welcome" aria-label="Resident overview">
       <div>
-        <p>Good day,</p>
-        <h1 id="resident-name">Juan Dela Cruz</h1>
+        <p style="margin:0; font-size:13px; color:var(--text-muted);">Good day,</p>
+        <h1 id="resident-name" style="margin:2px 0 0; font-size:22px; font-weight:800;">Juan Dela Cruz</h1>
       </div>
       
-      <!-- Weather Widget Card (Real-Time Open-Meteo Weather) -->
+      <!-- Weather Widget Card (Real-Time Open-Meteo Stream) -->
       <div class="weather-card">
         <div class="weather-card__top">
           <div>
             <span class="weather-card__label" id="weather-loc">Live Weather · Bayanan, Muntinlupa</span>
             <strong id="weather-temp">--°C</strong>
-            <span style="font-size:13px; color:#E3F2FD; display:block; margin-top:2px;" id="weather-condition">Loading live meteorological data…</span>
+            <span style="font-size:13px; color:#E3F2FD; display:block; margin-top:2px;" id="weather-condition">Connecting to meteorological stream…</span>
           </div>
           <span style="font-size:36px;" id="weather-icon" aria-hidden="true">⛅</span>
         </div>
-        <p id="weather-advisory">🔄 Connecting to Philippine Atmospheric Weather stream…</p>
+        <p id="weather-advisory">🔄 Fetching real-time weather & flood advisory…</p>
       </div>
     </section>
 
-    <!-- Broadcast Banner -->
+    <!-- Broadcast Alert Banner -->
     <div id="broadcast-banner" class="broadcast-banner hidden">
       <span class="broadcast-banner__icon">🚨</span>
       <div>
-        <p class="broadcast-banner__title">BDRRMC Broadcast</p>
+        <p class="broadcast-banner__title">BDRRMC Emergency Warning</p>
         <p id="broadcast-text" class="broadcast-banner__text"></p>
       </div>
     </div>
@@ -101,8 +147,8 @@
     <!-- Map & GPS Coordinates View -->
     <section class="map-card">
       <div class="map-card__badge">
-        <span class="map-card__badge-dot"></span>
-        <span id="coord-status">Device Coordinates: Acquiring…</span>
+        <span class="map-card__badge-dot" style="background:var(--green);"></span>
+        <span id="coord-status">Nearest Haven: Baywalk Covered Court</span>
       </div>
       <div id="home-map"></div>
       <div class="map-card__legend">
@@ -113,18 +159,17 @@
 
     <!-- Recent Alerts -->
     <section class="ui-card">
-      <h2>Recent BDRRMC Alerts</h2>
-      <div id="alerts-preview" class="text-muted">Loading alerts…</div>
+      <h2 style="margin-top:0; font-size:15px;">Recent BDRRMC Alerts</h2>
+      <div id="alerts-preview" class="text-muted" style="font-size:13px;">Loading alerts…</div>
     </section>
 
     <!-- My Incident Reports -->
     <section class="ui-card">
-      <h2>My Incident Reports</h2>
-      <div id="my-reports-preview" class="text-muted">Loading your reports…</div>
+      <h2 style="margin-top:0; font-size:15px;">My Incident Reports</h2>
+      <div id="my-reports-preview" class="text-muted" style="font-size:13px;">Loading your reports…</div>
     </section>
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
   <script src="/evacuation-routes.js"></script>
   <script src="/app.js"></script>
   <script>
@@ -140,16 +185,13 @@
 
     let homeMap = null;
     let homeLayers = null;
+    let lastKnownAlertMsg = '';
 
-    async function initHomeMap(lat, lng) {
+    // 1. Initialize Map
+    function initHomeMap(lat, lng) {
       if (!homeMap) {
-        homeMap = L.map('home-map', { zoomControl: false, attributionControl: false }).setView(
-          [lat, lng],
-          15
-        );
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-          maxZoom: 19,
-        }).addTo(homeMap);
+        homeMap = L.map('home-map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 15);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(homeMap);
       }
 
       if (homeLayers) homeMap.removeLayer(homeLayers);
@@ -157,29 +199,18 @@
 
       try {
         const { haven } = getNearestHaven(lat, lng);
-        let routeData;
-        try {
-          routeData = await fetchWalkingRoute(lat, lng, haven.lat, haven.lng);
-          document.getElementById('coord-status').textContent =
-            `Active · ${formatDistance(routeData.distanceM)} · ${formatDuration(routeData.durationSec)} to ${haven.name}`;
-        } catch {
-          routeData = null;
-          document.getElementById('coord-status').textContent = `Active · Nearest: ${haven.name}`;
-        }
-
-        drawNavigationRoute(homeMap, lat, lng, haven, routeData, homeLayers);
+        drawNavigationRoute(homeMap, lat, lng, haven, null, homeLayers);
         homeLayers.addTo(homeMap);
-        fitMapToPath(homeMap, routeData?.coordinates || [[lat, lng], [haven.lat, haven.lng]]);
+        fitMapToPath(homeMap, [[lat, lng], [haven.lat, haven.lng]]);
+        document.getElementById('coord-status').textContent = `Nearest: ${haven.name}`;
       } catch (e) {
-        // Fallback marker
         L.marker([lat, lng]).addTo(homeLayers).bindPopup('Your Location').openPopup();
         homeLayers.addTo(homeMap);
-        document.getElementById('coord-status').textContent = `📍 ${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`;
       }
-      setTimeout(() => homeMap.invalidateSize(), 100);
+      setTimeout(() => homeMap?.invalidateSize(), 150);
     }
 
-    // Real-Time Open-Meteo Weather Service (Zero API Key, 100% Free & Accurate)
+    // 2. Real-Time Open-Meteo Weather Stream
     async function loadRealtimeWeather(lat = 14.4106, lng = 121.0502) {
       try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&timezone=Asia%2FManila`;
@@ -195,32 +226,30 @@
         const rainMm = cur.precipitation;
         const code = cur.weather_code;
 
-        // WMO Code interpretation & icons
         let icon = '⛅';
         let desc = 'Partly Cloudy';
         if (code === 0) { icon = '☀️'; desc = 'Clear & Sunny'; }
         else if (code === 1 || code === 2) { icon = '🌤️'; desc = 'Mainly Clear'; }
         else if (code === 3) { icon = '☁️'; desc = 'Overcast'; }
-        else if (code >= 45 && code <= 48) { icon = '🌫️'; desc = 'Hazy / Fog'; }
+        else if (code >= 45 && code <= 48) { icon = '🌫️'; desc = 'Hazy / Mist'; }
         else if (code >= 51 && code <= 55) { icon = '🌦️'; desc = 'Light Drizzle'; }
         else if (code >= 61 && code <= 65) { icon = '🌧️'; desc = 'Rain Showers'; }
-        else if (code >= 80 && code <= 82) { icon = '🌧️'; desc = 'Heavy Rain Showers'; }
+        else if (code >= 80 && code <= 82) { icon = '🌧️'; desc = 'Heavy Rain'; }
         else if (code >= 95) { icon = '⛈️'; desc = 'Thunderstorm Warning'; }
 
         document.getElementById('weather-temp').textContent = `${temp}°C`;
-        document.getElementById('weather-condition').textContent = `${desc} · Feels like ${feels}°C · ${humidity}% Humidity`;
+        document.getElementById('weather-condition').textContent = `${desc} · Feels like ${feels}°C · ${humidity}% Hum`;
         document.getElementById('weather-icon').textContent = icon;
 
-        // Dynamic Disaster Weather Advisory
         const advEl = document.getElementById('weather-advisory');
         if (code >= 95 || rainMm > 10) {
-          advEl.textContent = `🚨 Severe Thunderstorm Warning — Flash flood risk along Bayanan lowlands.`;
+          advEl.textContent = `🚨 Thunderstorm Alert — Elevated flood risk along Bayanan Creek.`;
           advEl.style.color = '#FFCDD2';
         } else if (rainMm > 0.5) {
-          advEl.textContent = `🌧️ Active Precipitation (${rainMm}mm/h) — Keep drainage paths clear.`;
+          advEl.textContent = `🌧️ Active Rain (${rainMm}mm/h) — Keep drainage ways clear.`;
           advEl.style.color = '#FFF9C4';
         } else if (feels >= 38) {
-          advEl.textContent = `☀️ Extreme Heat Index (${feels}°C) — Stay hydrated and avoid heat stress.`;
+          advEl.textContent = `☀️ High Heat Index (${feels}°C) — Stay hydrated & limit sun exposure.`;
           advEl.style.color = '#FFE0B2';
         } else {
           advEl.textContent = `✅ Normal weather conditions — Monitored 24/7 by BDRRMC Bayanan.`;
@@ -234,74 +263,7 @@
       }
     }
 
-    async function loadCoords() {
-      // 1. Render map immediately on default Bayanan coordinates
-      await initHomeMap(14.4106, 121.0502);
-      loadRealtimeWeather(14.4106, 121.0502);
-      document.getElementById('coord-status').textContent = 'Acquiring device GPS…';
-
-      // 2. Asynchronously update with real GPS
-      try {
-        const { latitude, longitude } = await getGeolocation();
-        await initHomeMap(latitude, longitude);
-        loadRealtimeWeather(latitude, longitude);
-      } catch {
-        document.getElementById('coord-status').textContent = '📍 Bayanan Haven Active';
-      }
-    }
-
-    async function loadAlerts() {
-      const el = document.getElementById('alerts-preview');
-      const banner = document.getElementById('broadcast-banner');
-      try {
-        const { alerts } = await api('/api/alerts');
-        if (alerts && alerts.length) {
-          const latest = alerts[0];
-          banner.classList.remove('hidden');
-          document.getElementById('broadcast-text').textContent = latest.message;
-          el.innerHTML = alerts
-            .slice(0, 3)
-            .map(
-              (a) =>
-                `<div class="report-item"><div class="flex gap-2 mb-1" style="margin-bottom:4px;">${severityBadge(a.severity)}</div><p style="margin:0 0 4px; font-weight:600; font-size:13px;">${escapeHtml(a.message)}</p><p class="text-muted" style="margin:0; font-size:11px;">${formatDate(a.created_at)}</p></div>`
-            )
-            .join('');
-        } else {
-          banner.classList.add('hidden');
-          el.innerHTML = '<p class="text-muted">No active emergency broadcasts.</p>';
-        }
-      } catch {
-        el.innerHTML = '<p class="text-muted">No active broadcasts.</p>';
-      }
-    }
-
-    async function loadMyReports() {
-      const el = document.getElementById('my-reports-preview');
-      try {
-        const { reports } = await api('/api/reports');
-        if (reports && reports.length) {
-          el.innerHTML = reports
-            .slice(0, 3)
-            .map(
-              (r) =>
-                `<div class="report-item" style="display:flex; justify-content:space-between; align-items:center;">
-                  <div>
-                    <strong style="font-size:13px; color:var(--text);">${escapeHtml(r.incident_type)}</strong>
-                    <p class="text-muted" style="margin:2px 0 0; font-size:11px;">${formatDate(r.created_at)}</p>
-                  </div>
-                  ${statusBadge(r.status)}
-                </div>`
-            )
-            .join('');
-        } else {
-          el.innerHTML = '<p class="text-muted">No incidents reported yet.</p>';
-        }
-      } catch {
-        el.innerHTML = '<p class="text-muted">No reports filed.</p>';
-      }
-    }
-
-    // Web Audio Emergency Alarm Chime
+    // 3. Audio Alarm Chime
     function playAlertChime() {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -319,8 +281,7 @@
       } catch (e) {}
     }
 
-    let lastKnownAlertMsg = '';
-
+    // 4. Load Alerts
     async function loadAlerts() {
       const el = document.getElementById('alerts-preview');
       const banner = document.getElementById('broadcast-banner');
@@ -331,57 +292,66 @@
           banner.classList.remove('hidden');
           document.getElementById('broadcast-text').textContent = latest.message;
 
-          // Sound alarm if brand new alert received
           if (lastKnownAlertMsg && lastKnownAlertMsg !== latest.message) {
             playAlertChime();
             showToast('🚨 NEW BDRRMC BROADCAST: ' + latest.message, 'danger');
           }
           lastKnownAlertMsg = latest.message;
 
-          el.innerHTML = alerts
-            .slice(0, 3)
-            .map(
-              (a) =>
-                `<div class="report-item"><div class="flex gap-2 mb-1" style="margin-bottom:4px;">${severityBadge(a.severity)}</div><p style="margin:0 0 4px; font-weight:600; font-size:13px;">${escapeHtml(a.message)}</p><p class="text-muted" style="margin:0; font-size:11px;">${formatDate(a.created_at)}</p></div>`
-            )
-            .join('');
+          el.innerHTML = alerts.slice(0, 3).map(a => `
+            <div class="report-item" style="margin-bottom:8px;">
+              <div style="margin-bottom:4px;">${severityBadge(a.severity)}</div>
+              <p style="margin:0 0 4px; font-weight:700; font-size:13px; color:var(--text);">${escapeHtml(a.message)}</p>
+              <p class="text-muted" style="margin:0; font-size:11px;">${formatDate(a.created_at)}</p>
+            </div>
+          `).join('');
         } else {
           banner.classList.add('hidden');
-          el.innerHTML = '<p class="text-muted">No active emergency broadcasts.</p>';
+          el.innerHTML = '<p class="text-muted" style="font-size:13px;">No active emergency broadcasts.</p>';
         }
-      } catch {
-        el.innerHTML = '<p class="text-muted">No active broadcasts.</p>';
+      } catch (err) {
+        el.innerHTML = '<p class="text-muted" style="font-size:13px;">No active broadcasts.</p>';
       }
     }
 
-    // Real-Time Cross-Tab / Cross-Window BroadcastChannel
-    if (typeof BroadcastChannel !== 'undefined') {
-      const bc = new BroadcastChannel('geosafe_channel');
-      bc.onmessage = (e) => {
-        if (e.data?.type === 'new-alert') {
-          playAlertChime();
-          loadAlerts();
-        } else if (e.data?.type === 'status-update' || e.data?.type === 'new-report') {
-          loadMyReports();
+    // 5. Load My Incident Reports
+    async function loadMyReports() {
+      const el = document.getElementById('my-reports-preview');
+      try {
+        const { reports } = await api('/api/reports');
+        if (reports && reports.length) {
+          el.innerHTML = reports.slice(0, 4).map(r => `
+            <div class="report-item" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div>
+                <strong style="font-size:13px; color:var(--text);">${escapeHtml(r.incident_type)}</strong>
+                <p class="text-muted" style="margin:2px 0 0; font-size:11px;">📍 ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)} · ${formatDate(r.created_at)}</p>
+              </div>
+              <div>${statusBadge(r.status)}</div>
+            </div>
+          `).join('');
+        } else {
+          el.innerHTML = '<p class="text-muted" style="font-size:13px;">No incidents reported yet.</p>';
         }
-      };
+      } catch (err) {
+        el.innerHTML = '<p class="text-muted" style="font-size:13px;">No reports filed.</p>';
+      }
     }
 
-    // Storage Event Listener (Instant Multi-Tab Sync)
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'geosafe_alerts') loadAlerts();
-      if (e.key === 'geosafe_reports') loadMyReports();
-    });
+    // 6. Background GPS & Weather Initialization
+    async function loadCoords() {
+      initHomeMap(14.4106, 121.0502);
+      loadRealtimeWeather(14.4106, 121.0502);
 
-    initSocket({
-      'alert-broadcast': (alert) => {
-        playAlertChime();
-        loadAlerts();
-      },
-      'status-update': () => loadMyReports()
-    });
+      try {
+        const pos = await getGeolocation();
+        initHomeMap(pos.latitude, pos.longitude);
+        loadRealtimeWeather(pos.latitude, pos.longitude);
+      } catch (e) {
+        // Default Bayanan coordinates active
+      }
+    }
 
-    // Live Cloud Push Notification Stream across Internet (Mobile Phone & PC)
+    // 7. Live Cross-Device Cloud Stream (SSE)
     if (typeof EventSource !== 'undefined') {
       try {
         const alertSource = new EventSource('https://ntfy.sh/geosafe_bayanan_alerts_2026/sse');
@@ -397,11 +367,30 @@
       } catch (e) {}
     }
 
+    // Storage and Tab Sync
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'geosafe_alerts') loadAlerts();
+      if (e.key === 'geosafe_reports') loadMyReports();
+    });
+
+    if (typeof BroadcastChannel !== 'undefined') {
+      const bc = new BroadcastChannel('geosafe_channel');
+      bc.onmessage = (e) => {
+        if (e.data?.type === 'new-alert') {
+          playAlertChime();
+          loadAlerts();
+        } else if (e.data?.type === 'status-update' || e.data?.type === 'new-report') {
+          loadMyReports();
+        }
+      };
+    }
+
+    // Initial Execution
     loadCoords();
     loadAlerts();
     loadMyReports();
 
-    // 2.5-second live background sync
+    // 2.5s live polling
     setInterval(loadAlerts, 2500);
     setInterval(loadMyReports, 3000);
 

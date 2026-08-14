@@ -6,13 +6,68 @@
   <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css?v=2.1" />
-  <title>GeoSafe — Report Incident</title>
+  <link rel="stylesheet" href="/mobile-ui.css?v=3.6" />
+  <title>GeoSafe — Disaster Incident &amp; SOS Report</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    .hazard-chips-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .hazard-chip {
+      background: var(--bg-app);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 6px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .hazard-chip.active {
+      border-color: var(--primary);
+      background: rgba(21, 101, 192, 0.08);
+      color: var(--primary);
+    }
+    .hazard-chip--sos.active {
+      border-color: var(--emergency);
+      background: rgba(211, 47, 47, 0.08);
+      color: var(--emergency);
+    }
+    .photo-upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+      cursor: pointer;
+      background: var(--bg-app);
+      margin-bottom: 14px;
+      transition: all 0.2s;
+    }
+    .photo-upload-zone:hover {
+      border-color: var(--primary);
+    }
+    #map-preview {
+      width: 100%;
+      height: 180px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+    }
+  </style>
 </head>
 <body class="app-shell">
   <div class="app-container">
+    <!-- Topbar -->
     <header class="resident-topbar">
       <div class="resident-brand">
         <span class="resident-brand__mark">⌖</span>
@@ -23,153 +78,274 @@
       </div>
     </header>
 
+    <!-- Header Title -->
     <div style="margin-bottom:14px;">
       <h1 style="font-size:22px; font-weight:800; margin:0;" id="page-title">Report Disaster Incident</h1>
-      <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Barangay Bayanan Emergency Assistance</p>
+      <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Barangay Bayanan Incident &amp; Rescue Dispatch</p>
     </div>
 
+    <!-- Active SOS Mode Banner (If in SOS mode) -->
+    <div id="sos-active-banner" style="display:none; background:linear-gradient(135deg, #D32F2F, #B71C1C); color:white; padding:12px 14px; border-radius:12px; margin-bottom:14px; box-shadow:var(--shadow-md);">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:26px; animation:pulse 1.2s infinite;">🚨</span>
+        <div>
+          <strong style="font-size:14px; display:block;">EMERGENCY SOS MODE ACTIVE</strong>
+          <span style="font-size:11px; color:#FFCDD2;">Your live GPS coordinates will be sent to BDRRMC responders.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Incident Report Card -->
     <section class="ui-card">
       <form id="report-form">
-        <label style="font-size:13px; font-weight:700; color:var(--text); display:block; margin-bottom:6px;">Incident Type</label>
-        <select name="incident_type" id="incident_type_select" required class="ui-select">
-          <option value="">Select type…</option>
-          <option value="Flood">💧 Flood</option>
-          <option value="Earthquake">⚡ Earthquake</option>
-          <option value="Fire">🔥 Fire</option>
-          <option value="Landslide">⛰️ Landslide</option>
-          <option value="Storm">🌀 Storm / Typhoon</option>
-          <option value="Medical">🚑 Medical Emergency</option>
-          <option value="SOS">🚨 SOS Rescue</option>
-          <option value="Other">⚠️ Other</option>
-        </select>
+        <!-- 1-Tap Quick Hazard Selector Chips -->
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:8px;">
+          Select Incident Category
+        </label>
+        <div class="hazard-chips-grid">
+          <div class="hazard-chip active" data-type="Flood" onclick="selectHazardChip('Flood', this)">
+            <span style="font-size:20px;">🌊</span>
+            <span>Flood Level</span>
+          </div>
+          <div class="hazard-chip" data-type="Fire" onclick="selectHazardChip('Fire', this)">
+            <span style="font-size:20px;">🔥</span>
+            <span>Fire Hazard</span>
+          </div>
+          <div class="hazard-chip" data-type="Medical" onclick="selectHazardChip('Medical', this)">
+            <span style="font-size:20px;">🚑</span>
+            <span>Medical SOS</span>
+          </div>
+          <div class="hazard-chip" data-type="Earthquake" onclick="selectHazardChip('Earthquake', this)">
+            <span style="font-size:20px;">⚡</span>
+            <span>Structural</span>
+          </div>
+          <div class="hazard-chip" data-type="Storm" onclick="selectHazardChip('Storm', this)">
+            <span style="font-size:20px;">🌀</span>
+            <span>Typhoon Gale</span>
+          </div>
+          <div class="hazard-chip hazard-chip--sos" data-type="SOS" onclick="selectHazardChip('SOS', this)">
+            <span style="font-size:20px;">🚨</span>
+            <span>SOS Rescue</span>
+          </div>
+        </div>
 
-        <label style="font-size:13px; font-weight:700; color:var(--text); display:block; margin-bottom:6px;">Description & Situation</label>
-        <textarea name="description" required minlength="6" rows="4" class="ui-textarea" placeholder="Describe the incident (e.g. water height, stranded family members, nearest landmark)…"></textarea>
+        <input type="hidden" name="incident_type" id="incident_type_input" value="Flood" />
 
+        <!-- Description Input -->
+        <label style="font-size:13px; font-weight:700; color:var(--text); display:block; margin-bottom:6px;">
+          Situation Details &amp; Landmarks
+        </label>
+        <textarea name="description" id="report_desc" required minlength="6" rows="3" class="ui-textarea" placeholder="Describe situation (e.g. Waist-high flood water, 4 family members trapped on 2nd floor, near Bayanan Creek)..."></textarea>
+
+        <!-- GPS Coordinates Capture Status -->
         <div style="background:var(--bg-app); border:1.5px solid var(--border); border-radius:12px; padding:12px; margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <div>
-              <strong style="font-size:13px; color:var(--text);">Current Location GPS</strong>
-              <p id="location-status" style="font-size:11px; color:var(--text-muted); margin:2px 0 0;">Location not acquired</p>
+              <strong style="font-size:13px; color:var(--text);">Incident GPS Location</strong>
+              <p id="location-status" style="font-size:11px; color:var(--primary); margin:2px 0 0; font-weight:600;">📍 Acquiring GPS coordinates…</p>
             </div>
-            <button type="button" id="get-location" class="ui-btn ui-btn-secondary" style="width:auto; padding:8px 14px; font-size:12px;">
-              📍 Capture GPS
+            <button type="button" id="get-location" onclick="fetchGPS()" class="ui-btn ui-btn-secondary" style="width:auto; padding:8px 12px; font-size:12px;">
+              🔄 Recapture
             </button>
           </div>
         </div>
 
-        <details style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">
-          <summary style="cursor:pointer; font-weight:600;">Manual Coordinates Override</summary>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
-            <input type="number" id="manual-lat" step="any" placeholder="Latitude" class="ui-input" style="margin:0;" />
-            <input type="number" id="manual-lng" step="any" placeholder="Longitude" class="ui-input" style="margin:0;" />
-          </div>
-          <button type="button" id="use-manual" class="ui-btn ui-btn-secondary" style="margin-top:8px; font-size:12px;">Apply coordinates</button>
-        </details>
+        <!-- Interactive Map Preview Pin -->
+        <div id="map-preview"></div>
+        <input type="hidden" name="latitude" id="latitude" value="14.4106" />
+        <input type="hidden" name="longitude" id="longitude" value="121.0502" />
 
-        <input type="hidden" name="latitude" id="latitude" />
-        <input type="hidden" name="longitude" id="longitude" />
-        <div id="map-preview" class="map-card" style="min-height:160px; margin-bottom:12px; display:none;"></div>
+        <!-- Optional Photo Capture -->
+        <div class="photo-upload-zone" onclick="document.getElementById('photo-input').click()">
+          <input type="file" id="photo-input" accept="image/*" style="display:none;" onchange="previewPhoto(this)" />
+          <div id="photo-preview-placeholder">
+            <span style="font-size:24px;">📸</span>
+            <p style="margin:4px 0 0; font-size:12px; font-weight:600; color:var(--text);">Attach Incident Photo (Optional)</p>
+            <span style="font-size:10px; color:var(--text-muted);">Tap to take photo or upload from gallery</span>
+          </div>
+          <img id="photo-preview-img" style="display:none; max-height:140px; border-radius:8px; margin:0 auto;" alt="Incident snapshot preview" />
+        </div>
+
         <p id="report-error" class="text-error hidden" style="color:var(--emergency); font-size:12px; margin-bottom:8px;"></p>
-        <button type="submit" class="ui-btn ui-btn-primary" id="submit-btn">Submit Incident Report</button>
+        <button type="submit" class="ui-btn ui-btn-primary" id="submit-btn" style="padding:14px; font-size:15px; font-weight:800;">
+          📢 Transmit Incident Report
+        </button>
       </form>
     </section>
 
+    <!-- Citizen Emergency Hotline Quick Card -->
+    <div style="background:var(--bg-app); border:1.5px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <strong style="font-size:12px; color:var(--text);">BDRRMC Emergency Hotline</strong>
+        <p style="font-size:11px; color:var(--text-muted); margin:2px 0 0;">24/7 Barangay Bayanan Rescue Command</p>
+      </div>
+      <a href="tel:0288622525" class="ui-btn ui-btn-secondary" style="width:auto; padding:8px 12px; font-size:12px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+        📞 Call (02) 8862-2525
+      </a>
+    </div>
+
+    <!-- My Incident Reports History Feed -->
     <section class="ui-card">
-      <h2>My Incident Reports</h2>
-      <div id="reports-list"><p class="text-muted">Loading reports…</p></div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h2 style="margin:0; font-size:16px;">My Disaster Reports History</h2>
+        <button type="button" class="ui-btn-ghost" onclick="loadReports()" style="font-size:12px;">↻ Refresh</button>
+      </div>
+      <div id="reports-list">
+        <p class="text-muted" style="font-size:13px;">Loading reports…</p>
+      </div>
     </section>
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
   <script src="/app.js"></script>
   <script>
     const user = requireAuth(['resident']);
     if (!user) throw new Error('unauthorized');
     injectBottomNav('report');
 
+    if (user.name) {
+      const initials = user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+      document.getElementById('header-avatar').textContent = initials || 'JD';
+    }
+
+    let reportMap = null;
+    let reportMarker = null;
+
     const isSos = new URLSearchParams(location.search).get('sos') === '1';
     if (isSos) {
       document.getElementById('page-title').textContent = 'Emergency SOS Rescue';
-      document.getElementById('incident_type_select').value = 'SOS';
-      document.querySelector('[name=description]').value =
-        'EMERGENCY SOS: Immediate rescue assistance requested at my current GPS location.';
+      document.getElementById('sos-active-banner').style.display = 'block';
+      selectHazardChip('SOS', document.querySelector('[data-type="SOS"]'));
+      document.getElementById('report_desc').value = '🚨 EMERGENCY SOS: Immediate rescue assistance requested at my current GPS location in Barangay Bayanan.';
       const sBtn = document.getElementById('submit-btn');
-      sBtn.textContent = '🚨 Dispatch SOS Rescue Immediately';
+      sBtn.textContent = '🚨 Dispatch Immediate SOS Rescue';
       sBtn.style.background = 'var(--emergency)';
     }
 
-    const statusEl = document.getElementById('location-status');
-
-    async function fetchGPS() {
-      statusEl.textContent = 'Acquiring GPS…';
-      try {
-        const { latitude, longitude } = await getGeolocation();
-        setLocationOnForm(latitude, longitude, statusEl, 'map-preview');
-        document.getElementById('map-preview').style.display = 'block';
-      } catch (err) {
-        statusEl.textContent = 'GPS simulated: 14.3972, 121.0200 (Bayanan)';
-        setLocationOnForm(14.3972, 121.0200, statusEl, 'map-preview');
+    // Hazard Chip Selector
+    function selectHazardChip(type, chipEl) {
+      document.querySelectorAll('.hazard-chip').forEach(c => c.classList.remove('active'));
+      if (chipEl) chipEl.classList.add('active');
+      document.getElementById('incident_type_input').value = type;
+      
+      const sBtn = document.getElementById('submit-btn');
+      if (type === 'SOS') {
+        sBtn.style.background = 'var(--emergency)';
+        sBtn.textContent = '🚨 Dispatch Immediate SOS Rescue';
+      } else {
+        sBtn.style.background = 'var(--primary)';
+        sBtn.textContent = `📢 Transmit ${type} Incident Report`;
       }
     }
 
-    document.getElementById('get-location').addEventListener('click', fetchGPS);
+    // Initialize Leaflet Map Preview with Draggable Pin
+    function initReportMap(lat, lng) {
+      document.getElementById('latitude').value = lat;
+      document.getElementById('longitude').value = lng;
 
-    document.getElementById('use-manual').addEventListener('click', () => {
-      const lat = parseFloat(document.getElementById('manual-lat').value);
-      const lng = parseFloat(document.getElementById('manual-lng').value);
-      if (Number.isNaN(lat) || Number.isNaN(lng)) {
-        statusEl.textContent = 'Enter valid coordinates';
-        return;
+      if (!reportMap) {
+        reportMap = L.map('map-preview', { zoomControl: false, attributionControl: false }).setView([lat, lng], 16);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(reportMap);
+        
+        reportMarker = L.marker([lat, lng], { draggable: true }).addTo(reportMap);
+        reportMarker.bindPopup('<b>Incident Location</b><br>Drag marker to adjust exact street').openPopup();
+
+        reportMarker.on('dragend', (e) => {
+          const pos = e.target.getLatLng();
+          document.getElementById('latitude').value = pos.lat.toFixed(5);
+          document.getElementById('longitude').value = pos.lng.toFixed(5);
+          document.getElementById('location-status').textContent = `📍 Selected Pin: ${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`;
+        });
+      } else {
+        reportMap.setView([lat, lng], 16);
+        if (reportMarker) reportMarker.setLatLng([lat, lng]);
       }
+      setTimeout(() => reportMap?.invalidateSize(), 150);
+    }
+
+    // GPS Fetching
+    async function fetchGPS() {
+      const statusEl = document.getElementById('location-status');
+      statusEl.textContent = 'Acquiring GPS location…';
+      try {
+        const { latitude, longitude } = await getGeolocation();
+        initReportMap(latitude, longitude);
+        statusEl.textContent = `📍 GPS Acquired: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+      } catch (err) {
+        initReportMap(14.4106, 121.0502);
+        statusEl.textContent = '📍 Bayanan Standard Coordinates (14.4106, 121.0502)';
+      }
+    }
+
+    // Photo Preview
+    function previewPhoto(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = document.getElementById('photo-preview-img');
+          img.src = e.target.result;
+          img.style.display = 'block';
+          document.getElementById('photo-preview-placeholder').style.display = 'none';
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    // Acoustic Dispatch Chime
     function playDispatchChime() {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15); // A5
-        gain.gain.setValueAtTime(0.2, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.45);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start();
-        osc.stop(ctx.currentTime + 0.4);
+        osc.stop(ctx.currentTime + 0.45);
       } catch (e) {}
     }
 
+    // Form Submit Handler
     document.getElementById('report-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const errEl = document.getElementById('report-error');
       errEl.classList.add('hidden');
+
       const fd = new FormData(e.target);
-      let lat = parseFloat(fd.get('latitude')) || 14.4106;
-      let lng = parseFloat(fd.get('longitude')) || 121.0502;
+      const incType = fd.get('incident_type') || 'Flood';
+      const desc = fd.get('description') || '';
+      const lat = parseFloat(fd.get('latitude')) || 14.4106;
+      const lng = parseFloat(fd.get('longitude')) || 121.0502;
 
       const submitBtn = document.getElementById('submit-btn');
       const origText = submitBtn.textContent;
-      submitBtn.textContent = 'Transmitting to BDRRMC…';
+      submitBtn.textContent = 'Transmitting to Command Center…';
       submitBtn.disabled = true;
 
       try {
         await api('/api/reports', {
           method: 'POST',
           body: JSON.stringify({
-            incident_type: fd.get('incident_type'),
-            description: fd.get('description'),
+            incident_type: incType,
+            description: desc,
             latitude: lat,
             longitude: lng,
-            severity: isSos || fd.get('incident_type') === 'SOS' ? 'high' : 'medium'
+            severity: isSos || incType === 'SOS' ? 'high' : 'medium'
           }),
         });
+
         playDispatchChime();
-        showToast(isSos ? '🚨 SOS RESCUE DISPATCHED TO BDRRMC!' : '✓ Incident Report Submitted', 'success');
-        e.target.reset();
+        showToast(isSos || incType === 'SOS' ? '🚨 SOS EMERGENCY RESCUE DISPATCHED!' : '✓ Incident Report Submitted to BDRRMC', 'success');
+        
+        // Reset description but keep location
+        document.getElementById('report_desc').value = '';
         if (isSos) {
-          document.getElementById('incident_type_select').value = 'SOS';
-          document.querySelector('[name=description]').value = 'EMERGENCY SOS: Rescue assistance requested.';
+          document.getElementById('report_desc').value = 'EMERGENCY SOS: Rescue assistance requested.';
         }
+
         loadReports();
       } catch (err) {
         errEl.textContent = err.message;
@@ -180,28 +356,45 @@
       }
     });
 
+    // Render Report Item in History
     function renderReport(r) {
-      return `<div class="report-item">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
-          <strong style="font-size:13px; color:var(--text);">${escapeHtml(r.incident_type)}</strong>
-          <span>${r.severity ? severityBadge(r.severity) : ''} ${statusBadge(r.status)}</span>
+      return `
+        <div class="report-item" style="margin-bottom:10px; padding:12px; background:var(--bg-app); border-radius:10px; border:1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+            <strong style="font-size:13px; color:var(--text);">
+              ${r.incident_type === 'SOS' ? '🚨' : r.incident_type === 'Flood' ? '🌊' : r.incident_type === 'Fire' ? '🔥' : '⚠️'} ${escapeHtml(r.incident_type)} Incident
+            </strong>
+            <div style="display:flex; gap:6px; align-items:center;">
+              ${r.severity ? severityBadge(r.severity) : ''}
+              ${statusBadge(r.status)}
+            </div>
+          </div>
+          <p style="margin:0 0 6px; font-size:12px; color:var(--text); line-height:1.4;">${escapeHtml(r.description)}</p>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted);">
+            <span>📍 ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)}</span>
+            <span>${formatDate(r.created_at)}</span>
+          </div>
+          ${r.responder_name ? `<div style="margin-top:6px; font-size:11px; color:var(--primary); font-weight:700;">🚑 Unit: ${escapeHtml(r.responder_name)}</div>` : ''}
         </div>
-        <p style="margin:0 0 4px; font-size:12px; color:var(--text-muted);">${escapeHtml(r.description)}</p>
-        <p class="text-muted" style="margin:0; font-size:11px;">📍 ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)} · ${formatDate(r.created_at)}</p>
-      </div>`;
+      `;
     }
 
+    // Load Reports
     async function loadReports() {
       const el = document.getElementById('reports-list');
       try {
         const { reports } = await api('/api/reports');
-        el.innerHTML = reports && reports.length ? reports.map(renderReport).join('') : '<p class="text-muted">No reports filed yet.</p>';
+        if (reports && reports.length) {
+          el.innerHTML = reports.map(renderReport).join('');
+        } else {
+          el.innerHTML = '<p class="text-muted" style="font-size:13px;">No incident reports submitted yet.</p>';
+        }
       } catch (err) {
-        el.innerHTML = `<p class="text-muted">No reports yet.</p>`;
+        el.innerHTML = '<p class="text-muted" style="font-size:13px;">Unable to load reports.</p>';
       }
     }
 
-    // Live Cross-Device Cloud Sync
+    // Live Cross-Device Cloud Sync Listener
     if (typeof EventSource !== 'undefined') {
       try {
         const repSource = new EventSource('https://ntfy.sh/geosafe_bayanan_reports_2026/sse');
@@ -209,14 +402,25 @@
       } catch (e) {}
     }
 
-    initSocket({
-      'status-update': () => loadReports(),
-      'alert-broadcast': (a) => showToast(a.message, 'danger'),
+    // Tab Sync Listener
+    if (typeof BroadcastChannel !== 'undefined') {
+      const bc = new BroadcastChannel('geosafe_channel');
+      bc.onmessage = (e) => {
+        if (e.data?.type === 'new-report' || e.data?.type === 'status-update') {
+          loadReports();
+        }
+      };
+    }
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'geosafe_reports') loadReports();
     });
 
+    // Start Up
     fetchGPS();
     loadReports();
     setInterval(loadReports, 3000);
+    window.addEventListener('resize', () => reportMap?.invalidateSize());
   </script>
 </body>
 </html>
