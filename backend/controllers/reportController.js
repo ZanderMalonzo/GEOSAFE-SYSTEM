@@ -1,6 +1,8 @@
 const { validationResult } = require('express-validator');
 const pool = require('../models/db');
 const { emitNewReport, emitStatusUpdate } = require('../socket');
+const { detectSeverity } = require('../utils/severityDetector');
+const { calculateReportPriority, sortReportsByPriority } = require('../utils/prioritizer');
 
 const VALID_STATUSES = ['pending', 'verified', 'responding', 'on_site', 'resolved'];
 const VALID_SEVERITIES = ['low', 'medium', 'high'];
@@ -44,12 +46,14 @@ async function createReport(req, res) {
   }
 
   const { incident_type, description, latitude, longitude } = req.body;
+  const detection = detectSeverity(incident_type, description);
+  const detectedSeverity = req.body.severity || detection.severity;
 
   try {
     const [result] = await pool.query(
-      `INSERT INTO reports (user_id, incident_type, description, latitude, longitude, status)
-       VALUES (?, ?, ?, ?, ?, 'pending')`,
-      [req.user.id, incident_type, description, latitude, longitude]
+      `INSERT INTO reports (user_id, incident_type, description, latitude, longitude, severity, status)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
+      [req.user.id, incident_type, description, latitude, longitude, detectedSeverity]
     );
 
     const [rows] = await pool.query(
@@ -58,28 +62,29 @@ async function createReport(req, res) {
       [result.insertId]
     );
 
-    const report = rows[0];
+    const report = calculateReportPriority(rows[0]);
     emitNewReport(report);
     return res.status(201).json({ message: 'Report submitted', report });
   } catch (err) {
     console.warn('Database offline, saving report to demo store:', err.message);
-    const newReport = {
+    const rawReport = {
       id: IN_MEMORY_REPORTS.length + 101,
       user_id: req.user.id,
       reporter_name: req.user.name || 'Resident',
       incident_type,
       description,
-      latitude: parseFloat(latitude) || 14.3972,
-      longitude: parseFloat(longitude) || 121.0200,
-      severity: incident_type === 'SOS' ? 'high' : 'medium',
+      latitude: parseFloat(latitude) || 14.4106,
+      longitude: parseFloat(longitude) || 121.0502,
+      severity: detectedSeverity,
       status: 'pending',
       assigned_to: null,
       responder_name: null,
       created_at: new Date().toISOString()
     };
-    IN_MEMORY_REPORTS.unshift(newReport);
-    emitNewReport(newReport);
-    return res.status(201).json({ message: 'Report submitted (Demo Mode)', report: newReport });
+    const prioritized = calculateReportPriority(rawReport);
+    IN_MEMORY_REPORTS.unshift(prioritized);
+    emitNewReport(prioritized);
+    return res.status(201).json({ message: 'Report submitted (Demo Mode)', report: prioritized });
   }
 }
 
@@ -98,14 +103,15 @@ async function getReports(req, res) {
       query += ' WHERE r.user_id = ?';
       params.push(req.user.id);
     } else if (req.user.role === 'responder') {
-      query += ' WHERE r.assigned_to = ?';
+      query += ' WHERE (r.assigned_to = ? OR r.status != \'resolved\')';
       params.push(req.user.id);
     }
 
     query += ' ORDER BY r.created_at DESC';
 
     const [rows] = await pool.query(query, params);
-    return res.json({ reports: rows });
+    const enriched = sortReportsByPriority(rows);
+    return res.json({ reports: enriched });
   } catch (err) {
     console.warn('Database offline, returning demo reports:', err.message);
     let filtered = [...IN_MEMORY_REPORTS];
@@ -114,7 +120,8 @@ async function getReports(req, res) {
     } else if (req.user.role === 'responder') {
       filtered = filtered.filter(r => r.assigned_to === req.user.id || r.status !== 'resolved');
     }
-    return res.json({ reports: filtered });
+    const prioritized = sortReportsByPriority(filtered);
+    return res.json({ reports: prioritized });
   }
 }
 
@@ -130,7 +137,7 @@ async function getReportById(req, res) {
     );
 
     if (rows && rows.length) {
-      const report = rows[0];
+      const report = calculateReportPriority(rows[0]);
       return res.json({ report });
     }
   } catch (err) {
@@ -138,7 +145,7 @@ async function getReportById(req, res) {
   }
 
   const report = IN_MEMORY_REPORTS.find(r => r.id === parseInt(req.params.id, 10));
-  if (report) return res.json({ report });
+  if (report) return res.json({ report: calculateReportPriority(report) });
   return res.status(404).json({ error: 'Report not found' });
 }
 
@@ -176,7 +183,7 @@ async function updateReportStatus(req, res) {
            FROM reports r JOIN users u ON r.user_id = u.id LEFT JOIN users resp ON r.assigned_to = resp.id WHERE r.id = ?`,
           [reportId]
         );
-        const updated = rows[0];
+        const updated = calculateReportPriority(rows[0]);
         emitStatusUpdate(updated);
         return res.json({ message: 'Report updated', report: updated });
       }
@@ -193,8 +200,9 @@ async function updateReportStatus(req, res) {
       memReport.assigned_to = assigned_to;
       memReport.responder_name = assigned_to === 2 ? 'Responder Unit 1 (Ambulance)' : null;
     }
-    emitStatusUpdate(memReport);
-    return res.json({ message: 'Report updated (Demo Mode)', report: memReport });
+    const prioritized = calculateReportPriority(memReport);
+    emitStatusUpdate(prioritized);
+    return res.json({ message: 'Report updated (Demo Mode)', report: prioritized });
   }
 
   return res.status(404).json({ error: 'Report not found' });

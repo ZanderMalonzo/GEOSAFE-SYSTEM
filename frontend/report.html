@@ -136,7 +136,20 @@
         <label style="font-size:13px; font-weight:700; color:var(--text); display:block; margin-bottom:6px;">
           Situation Details &amp; Landmarks
         </label>
-        <textarea name="description" id="report_desc" required minlength="6" rows="3" class="ui-textarea" placeholder="Describe situation (e.g. Waist-high flood water, 4 family members trapped on 2nd floor, near Bayanan Creek)..."></textarea>
+        <textarea name="description" id="report_desc" required minlength="6" rows="3" class="ui-textarea" oninput="updateSeverityPreview()" placeholder="Describe situation (e.g. Waist-high flood water, 4 family members trapped on 2nd floor, near Bayanan Creek)..."></textarea>
+
+        <!-- Live Severity Detection Preview -->
+        <div id="severity-preview-box" style="margin-bottom:12px; padding:10px 12px; border-radius:10px; background:rgba(21, 101, 192, 0.05); border:1.5px solid var(--border); display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:14px;">🧠</span>
+              <strong style="font-size:12px; color:var(--text);">Severity Detection Analysis (Rule-Based)</strong>
+            </div>
+            <span id="detected-severity-badge"></span>
+          </div>
+          <p id="severity-score-text" style="margin:0; font-size:11px; color:var(--text-muted);"></p>
+          <div id="severity-triggers-list" style="margin-top:4px; font-size:11px; color:var(--primary); font-weight:600;"></div>
+        </div>
 
         <!-- GPS Coordinates Capture Status -->
         <div style="background:var(--bg-app); border:1.5px solid var(--border); border-radius:12px; padding:12px; margin-bottom:12px;">
@@ -238,6 +251,33 @@
         sBtn.style.background = 'var(--primary)';
         sBtn.textContent = `📢 Transmit ${type} Incident Report`;
       }
+      updateSeverityPreview();
+    }
+
+    function updateSeverityPreview() {
+      const incType = document.getElementById('incident_type_input')?.value || 'Flood';
+      const desc = document.getElementById('report_desc')?.value || '';
+      const box = document.getElementById('severity-preview-box');
+      if (!box) return;
+
+      if (desc.trim().length < 4 && incType !== 'SOS') {
+        box.style.display = 'none';
+        return;
+      }
+      box.style.display = 'block';
+      const detection = detectSeverity(incType, desc);
+      const badgeEl = document.getElementById('detected-severity-badge');
+      badgeEl.innerHTML = severityBadge(detection.severity);
+      
+      document.getElementById('severity-score-text').textContent = 
+        `Urgency Score: ${detection.score}/100 • ${detection.recommendation}`;
+
+      const triggersEl = document.getElementById('severity-triggers-list');
+      if (detection.matchedKeywords.length > 0) {
+        triggersEl.innerHTML = `⚠️ Urgency Triggers: <strong>${escapeHtml(detection.matchedKeywords.join(', '))}</strong>`;
+      } else {
+        triggersEl.innerHTML = `Standard situation baseline`;
+      }
     }
 
     // Initialize Leaflet Map Preview with Draggable Pin
@@ -322,6 +362,7 @@
       const desc = fd.get('description') || '';
       const lat = parseFloat(fd.get('latitude')) || 14.4106;
       const lng = parseFloat(fd.get('longitude')) || 121.0502;
+      const detection = detectSeverity(incType, desc);
 
       const submitBtn = document.getElementById('submit-btn');
       const origText = submitBtn.textContent;
@@ -336,7 +377,7 @@
             description: desc,
             latitude: lat,
             longitude: lng,
-            severity: isSos || incType === 'SOS' ? 'high' : 'medium'
+            severity: isSos || incType === 'SOS' ? 'high' : detection.severity
           }),
         });
 
@@ -348,7 +389,7 @@
         if (isSos) {
           document.getElementById('report_desc').value = 'EMERGENCY SOS: Rescue assistance requested.';
         }
-
+        updateSeverityPreview();
         loadReports();
       } catch (err) {
         errEl.textContent = err.message;
@@ -361,23 +402,25 @@
 
     // Render Report Item in History
     function renderReport(r) {
+      const rep = calculateReportPriority ? calculateReportPriority(r) : r;
       return `
-        <div class="report-item" style="margin-bottom:10px; padding:12px; background:var(--bg-app); border-radius:10px; border:1px solid var(--border);">
+        <div class="report-item" style="margin-bottom:10px; padding:12px; background:var(--bg-app); border-radius:10px; border:1.5px solid var(--border);">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
             <strong style="font-size:13px; color:var(--text);">
-              ${r.incident_type === 'SOS' ? '🚨' : r.incident_type === 'Flood' ? '🌊' : r.incident_type === 'Fire' ? '🔥' : '⚠️'} ${escapeHtml(r.incident_type)} Incident
+              ${rep.incident_type === 'SOS' ? '🚨' : rep.incident_type === 'Flood' ? '🌊' : rep.incident_type === 'Fire' ? '🔥' : '⚠️'} ${escapeHtml(rep.incident_type)} Incident
             </strong>
-            <div style="display:flex; gap:6px; align-items:center;">
-              ${r.severity ? severityBadge(r.severity) : ''}
-              ${statusBadge(r.status)}
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+              ${priorityBadge(rep)}
+              ${rep.severity ? severityBadge(rep.severity) : ''}
+              ${statusBadge(rep.status)}
             </div>
           </div>
-          <p style="margin:0 0 6px; font-size:12px; color:var(--text); line-height:1.4;">${escapeHtml(r.description)}</p>
-          <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted);">
-            <span>📍 ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)}</span>
-            <span>${formatDate(r.created_at)}</span>
+          <p style="margin:0 0 6px; font-size:12px; color:var(--text); line-height:1.4;">${escapeHtml(rep.description)}</p>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted); flex-wrap:wrap; gap:4px;">
+            <span>📍 ${Number(rep.latitude).toFixed(4)}, ${Number(rep.longitude).toFixed(4)}</span>
+            <span>${formatDate(rep.created_at)}</span>
           </div>
-          ${r.responder_name ? `<div style="margin-top:6px; font-size:11px; color:var(--primary); font-weight:700;">🚑 Unit: ${escapeHtml(r.responder_name)}</div>` : ''}
+          ${rep.responder_name ? `<div style="margin-top:6px; font-size:11px; color:var(--primary); font-weight:700;">🚑 Dispatched: ${escapeHtml(rep.responder_name)}</div>` : ''}
         </div>
       `;
     }

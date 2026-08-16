@@ -364,9 +364,10 @@
             <thead>
               <tr>
                 <th>Ticket ID</th>
+                <th>Priority Rank</th>
                 <th>Incident Type</th>
                 <th>Reporter / Resident</th>
-                <th>Severity</th>
+                <th>Severity Level</th>
                 <th>Lifecycle Status</th>
                 <th>Assigned Responder</th>
                 <th>Actions</th>
@@ -783,40 +784,44 @@
 
     // Render Incident Table Row
     function renderRow(r) {
+      const rep = calculateReportPriority ? calculateReportPriority(r) : r;
+      const triggers = rep.priority_details?.matched_keywords || [];
       return `
-        <tr data-id="${r.id}">
-          <td style="font-weight:800; color:#1565C0;">#${r.id}</td>
+        <tr data-id="${rep.id}">
+          <td style="font-weight:800; color:#1565C0;">#${rep.id}</td>
+          <td>${priorityBadge(rep)}</td>
           <td>
-            <strong>${escapeHtml(r.incident_type)}</strong>
+            <strong>${escapeHtml(rep.incident_type)}</strong>
           </td>
           <td>
-            <div>${escapeHtml(r.reporter_name || 'Resident')}</div>
-            <span style="font-size:11px; color:var(--text-muted);">📍 ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)}</span>
+            <div>${escapeHtml(rep.reporter_name || 'Resident')}</div>
+            <span style="font-size:11px; color:var(--text-muted);">📍 ${Number(rep.latitude).toFixed(4)}, ${Number(rep.longitude).toFixed(4)}</span>
           </td>
           <td>
-            <select aria-label="Severity" class="severity-select ui-select" data-id="${r.id}" style="padding:4px 8px; font-size:12px; margin:0; width:100px;">
-              <option value="low" ${r.severity === 'low' ? 'selected' : ''}>Low</option>
-              <option value="medium" ${r.severity === 'medium' || !r.severity ? 'selected' : ''}>Medium</option>
-              <option value="high" ${r.severity === 'high' ? 'selected' : ''}>High</option>
+            <select aria-label="Severity" class="severity-select ui-select" data-id="${rep.id}" style="padding:4px 8px; font-size:12px; margin:0; width:100px;">
+              <option value="low" ${rep.severity === 'low' ? 'selected' : ''}>Low</option>
+              <option value="medium" ${rep.severity === 'medium' || !rep.severity ? 'selected' : ''}>Medium</option>
+              <option value="high" ${rep.severity === 'high' ? 'selected' : ''}>High</option>
             </select>
           </td>
-          <td>${statusBadge(r.status)}</td>
+          <td>${statusBadge(rep.status)}</td>
           <td>
-            <select aria-label="Responder" class="assign-select ui-select" data-id="${r.id}" style="padding:4px 8px; font-size:12px; margin:0; width:140px;">
-              ${responderOptions(r.assigned_to)}
+            <select aria-label="Responder" class="assign-select ui-select" data-id="${rep.id}" style="padding:4px 8px; font-size:12px; margin:0; width:140px;">
+              ${responderOptions(rep.assigned_to)}
             </select>
           </td>
           <td>
             <div style="display:flex; gap:6px;">
-              ${r.status === 'pending' ? `<button class="table-btn table-btn--verify" data-id="${r.id}">Verify</button>` : ''}
-              ${r.status === 'verified' ? `<button class="table-btn table-btn--dispatch" data-id="${r.id}">Dispatch</button>` : ''}
-              ${r.status === 'responding' ? `<button class="table-btn" style="background:#2E7D32; color:white;" onclick="updateReport(${r.id}, {status:'resolved'})">Resolve</button>` : ''}
+              ${rep.status === 'pending' ? `<button class="table-btn table-btn--verify" data-id="${rep.id}">Verify</button>` : ''}
+              ${rep.status === 'verified' ? `<button class="table-btn table-btn--dispatch" data-id="${rep.id}">Dispatch</button>` : ''}
+              ${rep.status === 'responding' ? `<button class="table-btn" style="background:#2E7D32; color:white;" onclick="updateReport(${rep.id}, {status:'resolved'})">Resolve</button>` : ''}
             </div>
           </td>
         </tr>
         <tr style="background:var(--bg-app); font-size:12px; color:var(--text-muted);">
-          <td colspan="7" style="padding:8px 16px; border-bottom:1.5px solid var(--border);">
-            💬 "${escapeHtml(r.description)}" · Logged: ${formatDate(r.created_at)}
+          <td colspan="8" style="padding:8px 16px; border-bottom:1.5px solid var(--border);">
+            💬 "${escapeHtml(rep.description)}" · Logged: ${formatDate(rep.created_at)}
+            ${triggers.length > 0 ? `<span style="display:inline-block; margin-left:12px; color:#C62828; font-weight:700;">⚠️ Triggers: [${escapeHtml(triggers.join(', '))}]</span>` : ''}
           </td>
         </tr>
       `;

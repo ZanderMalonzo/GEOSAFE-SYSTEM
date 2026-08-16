@@ -314,8 +314,9 @@
       </div>
 
       <div class="triage-tab-bar">
-        <button class="triage-tab active" id="tab-my-missions" onclick="filterIncidentsTab('my')">My Assigned Missions (<span id="my-count">0</span>)</button>
-        <button class="triage-tab" id="tab-all-incidents" onclick="filterIncidentsTab('all')">All Barangay Emergencies (<span id="all-count">0</span>)</button>
+        <button class="triage-tab active" id="tab-triage" onclick="filterIncidentsTab('triage')">⚡ Priority Triage Queue (<span id="triage-count">0</span>)</button>
+        <button class="triage-tab" id="tab-my-missions" onclick="filterIncidentsTab('my')">My Assigned Missions (<span id="my-count">0</span>)</button>
+        <button class="triage-tab" id="tab-all-incidents" onclick="filterIncidentsTab('all')">All Incidents (<span id="all-count">0</span>)</button>
       </div>
 
       <div id="incidents-list" style="display:flex; flex-direction:column; gap:12px;">
@@ -466,20 +467,28 @@
       setTimeout(() => activeMap?.invalidateSize(), 150);
     }
 
+    let currentFilter = 'triage';
+
     // Filter Tabs
     function filterIncidentsTab(tab) {
       currentFilter = tab;
-      document.getElementById('tab-my-missions').classList.toggle('active', tab === 'my');
-      document.getElementById('tab-all-incidents').classList.toggle('active', tab === 'all');
+      document.getElementById('tab-triage')?.classList.toggle('active', tab === 'triage');
+      document.getElementById('tab-my-missions')?.classList.toggle('active', tab === 'my');
+      document.getElementById('tab-all-incidents')?.classList.toggle('active', tab === 'all');
       renderIncidentsList();
     }
 
     // Render Queue
     function renderIncidentsList() {
       const el = document.getElementById('incidents-list');
-      const filtered = currentFilter === 'my'
-        ? allReports.filter(r => r.assigned_to === user.id || r.status === 'responding' || r.status === 'on_site')
-        : allReports;
+      let filtered = [];
+      if (currentFilter === 'triage') {
+        filtered = sortReportsByPriority(allReports.filter(r => r.status !== 'resolved'), userPos ? { latitude: userPos.lat, longitude: userPos.lng } : null);
+      } else if (currentFilter === 'my') {
+        filtered = allReports.filter(r => r.assigned_to === user.id || r.status === 'responding' || r.status === 'on_site');
+      } else {
+        filtered = allReports;
+      }
 
       if (!filtered.length) {
         el.innerHTML = '<p class="text-muted" style="font-size:13px; text-align:center; padding:16px;">No incidents matching this view.</p>';
@@ -487,45 +496,67 @@
       }
 
       el.innerHTML = filtered.map(r => {
-        const isMy = r.assigned_to === user.id;
+        const rep = calculateReportPriority ? calculateReportPriority(r, userPos ? { latitude: userPos.lat, longitude: userPos.lng } : null) : r;
+        const isMy = rep.assigned_to === user.id;
+        const triggers = rep.priority_details?.matched_keywords || [];
+        const isP1 = rep.priority_code === 'P1' || rep.severity === 'high';
+
         return `
-          <div class="incident-queue-card" style="border-left:4px solid ${r.severity === 'high' || r.incident_type === 'SOS' ? 'var(--emergency)' : 'var(--primary)'};">
+          <div class="incident-queue-card" style="border-left:5px solid ${isP1 ? '#D32F2F' : rep.severity === 'medium' ? '#F57C00' : '#2E7D32'}; background:var(--bg-card);">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:6px;">
               <div>
-                <strong style="font-size:14px; color:var(--text);">#${r.id} ${escapeHtml(r.incident_type)}</strong>
-                <p style="font-size:12px; color:var(--text-muted); margin:2px 0;">Reporter: ${escapeHtml(r.reporter_name || 'Resident')} · Logged: ${formatDate(r.created_at)}</p>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <strong style="font-size:14px; color:var(--text);">#${rep.id} ${escapeHtml(rep.incident_type)}</strong>
+                  ${priorityBadge(rep)}
+                </div>
+                <p style="font-size:12px; color:var(--text-muted); margin:4px 0 0;">
+                  Reporter: <strong>${escapeHtml(rep.reporter_name || 'Resident')}</strong> · Logged: ${formatDate(rep.created_at)}
+                </p>
               </div>
-              <div style="display:flex; gap:6px;">
-                ${r.severity ? severityBadge(r.severity) : ''}
-                ${statusBadge(r.status)}
+              <div style="display:flex; gap:6px; align-items:center;">
+                ${rep.severity ? severityBadge(rep.severity) : ''}
+                ${statusBadge(rep.status)}
               </div>
             </div>
 
-            <p style="font-size:13px; color:var(--text); margin:8px 0; line-height:1.4;">${escapeHtml(r.description)}</p>
-            <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">📍 Location: ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)}</p>
+            <p style="font-size:13px; color:var(--text); margin:8px 0; line-height:1.4;">${escapeHtml(rep.description)}</p>
+            
+            ${triggers.length > 0 ? `
+              <div style="background:rgba(211, 47, 47, 0.06); padding:6px 10px; border-radius:8px; margin-bottom:8px; font-size:11px; color:#C62828;">
+                ⚠️ <strong>Urgency Triggers:</strong> ${escapeHtml(triggers.join(', '))}
+                ${rep.priority_details?.recommendation ? `<span style="display:block; color:var(--text-muted); margin-top:2px;">↳ ${escapeHtml(rep.priority_details.recommendation)}</span>` : ''}
+              </div>
+            ` : ''}
+
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; font-size:11px; color:var(--text-muted); margin-bottom:10px;">
+              <span>📍 GPS: ${Number(rep.latitude).toFixed(4)}, ${Number(rep.longitude).toFixed(4)}</span>
+              ${rep.priority_details?.distance_km !== null && rep.priority_details?.distance_km !== undefined ? `
+                <span style="font-weight:700; color:var(--primary);">📏 ~${rep.priority_details.distance_km} km away</span>
+              ` : ''}
+            </div>
 
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              ${!isMy && r.status !== 'resolved' ? `
-                <button type="button" class="ui-btn ui-btn-primary" style="width:auto; padding:6px 14px; font-size:12px;" onclick="claimIncident(${r.id})">
+              ${!isMy && rep.status !== 'resolved' ? `
+                <button type="button" class="ui-btn ui-btn-primary" style="width:auto; padding:7px 14px; font-size:12px;" onclick="claimIncident(${rep.id})">
                   ✋ Claim &amp; Respond
                 </button>
               ` : ''}
-              ${isMy && r.status === 'pending' ? `
-                <button type="button" class="ui-btn ui-btn-primary" style="width:auto; padding:6px 14px; font-size:12px;" onclick="advanceActiveMission('responding')">
+              ${isMy && rep.status === 'pending' ? `
+                <button type="button" class="ui-btn ui-btn-primary" style="width:auto; padding:7px 14px; font-size:12px;" onclick="advanceActiveMission('responding')">
                   🏃 Start Responding
                 </button>
               ` : ''}
-              ${isMy && r.status === 'responding' ? `
-                <button type="button" class="ui-btn" style="width:auto; padding:6px 14px; font-size:12px; background:#1565C0; color:white;" onclick="advanceActiveMission('on_site')">
+              ${isMy && rep.status === 'responding' ? `
+                <button type="button" class="ui-btn" style="width:auto; padding:7px 14px; font-size:12px; background:#1565C0; color:white;" onclick="advanceActiveMission('on_site')">
                   📍 Mark Arrived On-Site
                 </button>
               ` : ''}
-              ${isMy && r.status !== 'resolved' ? `
-                <button type="button" class="ui-btn" style="width:auto; padding:6px 14px; font-size:12px; background:#2E7D32; color:white;" onclick="advanceActiveMission('resolved')">
+              ${isMy && rep.status !== 'resolved' ? `
+                <button type="button" class="ui-btn" style="width:auto; padding:7px 14px; font-size:12px; background:#2E7D32; color:white;" onclick="advanceActiveMission('resolved')">
                   ✅ Mark Resolved
                 </button>
               ` : ''}
-              <a href="https://www.google.com/maps/dir/?api=1&destination=${r.latitude},${r.longitude}" target="_blank" class="ui-btn ui-btn-secondary" style="width:auto; padding:6px 12px; font-size:12px; text-decoration:none;">
+              <a href="https://www.google.com/maps/dir/?api=1&destination=${rep.latitude},${rep.longitude}" target="_blank" class="ui-btn ui-btn-secondary" style="width:auto; padding:7px 12px; font-size:12px; text-decoration:none;">
                 🧭 Google Maps
               </a>
             </div>
@@ -555,8 +586,12 @@
 
         // Count assigned to me
         const myReports = allReports.filter(r => (r.assigned_to === user.id || r.status === 'responding' || r.status === 'on_site') && r.status !== 'resolved');
+        const triageReports = allReports.filter(r => r.status !== 'resolved');
         document.getElementById('stat-assigned-count').textContent = myReports.length;
         document.getElementById('my-count').textContent = myReports.length;
+        if (document.getElementById('triage-count')) {
+          document.getElementById('triage-count').textContent = triageReports.length;
+        }
         document.getElementById('all-count').textContent = allReports.filter(r => r.status !== 'resolved').length;
 
         // Set primary active mission

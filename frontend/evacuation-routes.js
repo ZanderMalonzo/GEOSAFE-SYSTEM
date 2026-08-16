@@ -3,20 +3,42 @@ const EVACUATION_HAVENS = [
   {
     id: 1,
     name: 'Bayanan Baywalk Covered Court',
-    tag: 'Primary Safe Haven',
+    tag: 'Primary Safe Haven (Lakeshore)',
     lat: 14.4094644,
     lng: 121.0486196,
+    capacity: '350 Persons',
     mapsUrl:
       'https://www.google.com/maps/place/Bayanan+baywalk+covered+court/@14.4094644,121.0486196,17z',
   },
   {
     id: 2,
     name: 'Bayanan Elementary School - Unit 1',
-    tag: 'Secondary Safe Haven',
+    tag: 'Secondary Safe Haven (Inland)',
     lat: 14.4117681,
     lng: 121.0517064,
+    capacity: '500 Persons',
     mapsUrl:
       'https://www.google.com/maps/place/Bayanan+Elementary+School+-+Unit+1/@14.4117681,121.0517064,17z',
+  },
+  {
+    id: 3,
+    name: 'Pedro E. Diaz High School',
+    tag: 'High Ground Evacuation Haven',
+    lat: 14.4145200,
+    lng: 121.0468000,
+    capacity: '600 Persons',
+    mapsUrl:
+      'https://www.google.com/maps/search/?api=1&query=Pedro+E+Diaz+High+School+Muntinlupa',
+  },
+  {
+    id: 4,
+    name: 'Barangay Bayanan Multi-Purpose Hall',
+    tag: 'Command & Medical Relief Post',
+    lat: 14.4082000,
+    lng: 121.0498000,
+    capacity: '200 Persons',
+    mapsUrl:
+      'https://www.google.com/maps/search/?api=1&query=Barangay+Bayanan+Hall+Muntinlupa',
   },
 ];
 

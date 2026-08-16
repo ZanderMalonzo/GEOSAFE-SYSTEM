@@ -350,20 +350,26 @@ async function api(path, options = {}) {
   if (path === '/api/reports' && method === 'POST') {
     const reports = getLocalStore('reports', DEFAULT_REPORTS);
     const user = getUser() || { id: 3, name: 'Resident' };
-    const newReport = {
+    const incType = body.incident_type || 'Flood';
+    const desc = body.description || 'Emergency Incident';
+    const detection = detectSeverity(incType, desc);
+    const determinedSeverity = body.severity || detection.severity;
+
+    const rawReport = {
       id: Date.now(),
       user_id: user.id,
-      reporter_name: user.name,
-      incident_type: body.incident_type || 'Flood',
-      description: body.description || 'Emergency Incident',
+      reporter_name: user.name || 'Resident',
+      incident_type: incType,
+      description: desc,
       latitude: parseFloat(body.latitude) || 14.4106,
       longitude: parseFloat(body.longitude) || 121.0502,
-      severity: body.incident_type === 'SOS' ? 'high' : (body.severity || 'medium'),
+      severity: determinedSeverity,
       status: 'pending',
       assigned_to: null,
       responder_name: null,
       created_at: new Date().toISOString()
     };
+    const newReport = calculateReportPriority(rawReport);
     reports.unshift(newReport);
     setLocalStore('reports', reports);
 
@@ -377,7 +383,7 @@ async function api(path, options = {}) {
       fetch('https://ntfy.sh/geosafe_bayanan_reports_2026', {
         method: 'POST',
         body: JSON.stringify(newReport),
-        headers: { 'Title': `🚨 ${newReport.incident_type} Reported`, 'Priority': 'high' }
+        headers: { 'Title': `🚨 [${newReport.priority_code}] ${newReport.incident_type} Reported`, 'Priority': 'high' }
       }).catch(() => {});
     } catch (e) {}
 
@@ -951,6 +957,213 @@ function initSocket(onEvents = {}) {
 function severityBadge(severity) {
   const s = (severity || 'medium').toLowerCase();
   return `<span class="ui-badge ui-badge--${['high', 'medium', 'low'].includes(s) ? s : 'medium'}">${escapeHtml(s)}</span>`;
+}
+
+// ==========================================================================
+// Severity Detection & Prioritization Engine (Client Mirror)
+// ==========================================================================
+const HIGH_KEYWORDS = [
+  'trapped', 'roof', 'rooftop', 'chest-deep', 'chest deep', 'neck-deep', 'neck deep',
+  'drowning', 'infant', 'baby', 'pregnant', 'elderly', 'senior', 'pwd', 'disabled',
+  'bleeding', 'unconscious', 'casualty', 'casualties', 'collapsed', 'collapse',
+  'structural failure', 'explosion', 'live wire', 'electrocution', 'fire spreading',
+  'suffocating', 'heart attack', 'critical', 'oxygen', 'urgent boat', 'immediate rescue',
+  'landslide', 'buried', 'submerged'
+];
+
+const MEDIUM_KEYWORDS = [
+  'waist-deep', 'waist deep', 'knee-deep', 'knee deep', 'rising water', 'rapid rise',
+  'heavy smoke', 'impassable', 'blocked road', 'fracture', 'broken bone', 'wound',
+  'power outage', 'blackout', 'blocked passage', 'sparks', 'overflowing', 'creek rising',
+  'rising rapidly', 'minor fire', 'flood entered house', 'stranded vehicle', 'injured'
+];
+
+const LOW_KEYWORDS = [
+  'gutter-deep', 'gutter deep', 'ankle-deep', 'ankle deep', 'light rain', 'drizzle',
+  'minor damage', 'standing water', 'trash', 'debris', 'fallen branch', 'puddle',
+  'street light', 'clogged drainage', 'slow traffic', 'advisory query', 'inquiry'
+];
+
+const BASE_SCORES_BY_TYPE = {
+  'SOS': 60,
+  'Fire': 40,
+  'Medical': 45,
+  'Earthquake': 35,
+  'Flood': 30,
+  'Storm': 25,
+  'Other': 15
+};
+
+function isKeywordPresentAndAffirmative(text, keyword) {
+  const kwPattern = keyword.replace('-', '[\\-\\s]');
+  const kwRegex = new RegExp(`(^|\\W)${kwPattern}(\\W|$)`, 'i');
+  if (!kwRegex.test(text)) return false;
+
+  const negatedRegex = new RegExp(`\\b(no|not|none|without|zero|0)\\s+(immediate\\s+|active\\s+|other\\s+)?${kwPattern}`, 'i');
+  return !negatedRegex.test(text);
+}
+
+function detectSeverity(incidentType, description = '') {
+  const normType = (incidentType || 'Other').trim();
+  const text = (description || '').toLowerCase();
+
+  let baseScore = BASE_SCORES_BY_TYPE[normType] || 20;
+  let keywordScore = 0;
+  const matchedHigh = [];
+  const matchedMedium = [];
+  const matchedLow = [];
+
+  for (const kw of HIGH_KEYWORDS) {
+    if (isKeywordPresentAndAffirmative(text, kw)) {
+      matchedHigh.push(kw);
+      keywordScore += 15;
+    }
+  }
+
+  for (const kw of MEDIUM_KEYWORDS) {
+    if (isKeywordPresentAndAffirmative(text, kw)) {
+      matchedMedium.push(kw);
+      keywordScore += 8;
+    }
+  }
+
+  for (const kw of LOW_KEYWORDS) {
+    if (isKeywordPresentAndAffirmative(text, kw)) {
+      matchedLow.push(kw);
+    }
+  }
+
+  if (matchedLow.length > 0 && matchedHigh.length === 0) {
+    keywordScore = Math.max(0, keywordScore - (matchedLow.length * 5));
+  }
+
+  const totalScore = Math.min(100, Math.max(5, baseScore + keywordScore));
+
+  let severity = 'medium';
+  if (normType.toUpperCase() === 'SOS' || matchedHigh.length >= 1 || totalScore >= 65) {
+    severity = 'high';
+  } else if (totalScore < 35 && matchedHigh.length === 0 && matchedMedium.length === 0) {
+    severity = 'low';
+  } else {
+    severity = 'medium';
+  }
+
+  let recommendation = 'Standard verification and routine queue assignment.';
+  if (severity === 'high') {
+    recommendation = 'IMMEDIATE DISPATCH REQUIRED: Life-safety risk or critical vulnerability detected.';
+  } else if (severity === 'medium') {
+    recommendation = 'PRIORITY ACTION: Deploy field team for verification and situational monitoring.';
+  }
+
+  return {
+    severity,
+    score: totalScore,
+    matchedKeywords: [...matchedHigh, ...matchedMedium, ...matchedLow],
+    breakdown: {
+      baseScore,
+      keywordScore,
+      highTriggers: matchedHigh,
+      mediumTriggers: matchedMedium,
+      lowTriggers: matchedLow
+    },
+    recommendation
+  };
+}
+
+function calculateReportPriority(report, responderLoc = null) {
+  const detection = detectSeverity(report.incident_type, report.description);
+  const severityScore = detection.score;
+
+  const desc = (report.description || '').toLowerCase();
+  const vulnWords = ['infant', 'baby', 'child', 'children', 'pregnant', 'elderly', 'senior', 'pwd', 'disabled', 'wheelchair', 'bedridden', 'oxygen', 'heart condition', 'unconscious', 'bleeding', 'trapped'];
+  let vulnMatches = [];
+  for (const vkw of vulnWords) {
+    if (desc.includes(vkw)) vulnMatches.push(vkw);
+  }
+  let vulnScore = Math.min(100, vulnMatches.length * 35);
+  if (report.incident_type === 'SOS') vulnScore = Math.max(vulnScore, 60);
+
+  let timeScore = 30;
+  if (report.created_at) {
+    const ageMinutes = (Date.now() - new Date(report.created_at).getTime()) / 60000;
+    if (ageMinutes > 0) {
+      timeScore = Math.min(100, Math.round(30 + Math.min(60, ageMinutes) * 0.8));
+    }
+  }
+
+  let proxScore = 50;
+  let distanceKm = null;
+  if (responderLoc && responderLoc.latitude && responderLoc.longitude && report.latitude && report.longitude && typeof haversineKm === 'function') {
+    distanceKm = haversineKm(
+      parseFloat(responderLoc.latitude),
+      parseFloat(responderLoc.longitude),
+      parseFloat(report.latitude),
+      parseFloat(report.longitude)
+    );
+    proxScore = Math.max(10, Math.round(100 - (distanceKm * 15)));
+  }
+
+  const compositeScore = Math.round(
+    (severityScore * 0.40) +
+    (vulnScore * 0.25) +
+    (timeScore * 0.20) +
+    (proxScore * 0.15)
+  );
+
+  let priorityTier = 'Priority 3 (Standard)';
+  let priorityCode = 'P3';
+  let priorityColor = '#2E7D32';
+
+  if (compositeScore >= 70 || detection.severity === 'high' || report.incident_type === 'SOS') {
+    priorityTier = 'Priority 1 (Critical)';
+    priorityCode = 'P1';
+    priorityColor = '#D32F2F';
+  } else if (compositeScore >= 40 || detection.severity === 'medium') {
+    priorityTier = 'Priority 2 (Urgent)';
+    priorityCode = 'P2';
+    priorityColor = '#F57C00';
+  }
+
+  return {
+    ...report,
+    severity: report.severity || detection.severity,
+    priority_score: compositeScore,
+    priority_code: priorityCode,
+    priority_tier: priorityTier,
+    priority_color: priorityColor,
+    priority_details: {
+      severity_score: severityScore,
+      detected_severity: detection.severity,
+      vulnerability_score: vulnScore,
+      vulnerable_triggers: vulnMatches,
+      time_urgency_score: timeScore,
+      proximity_score: proxScore,
+      distance_km: distanceKm ? Number(distanceKm.toFixed(2)) : null,
+      matched_keywords: detection.matchedKeywords,
+      recommendation: detection.recommendation
+    }
+  };
+}
+
+function sortReportsByPriority(reports, responderLoc = null) {
+  return (reports || [])
+    .map(r => calculateReportPriority(r, responderLoc))
+    .sort((a, b) => {
+      const statusWeight = { pending: 4, verified: 3, responding: 2, on_site: 1, resolved: 0 };
+      const statusDiff = (statusWeight[b.status] || 0) - (statusWeight[a.status] || 0);
+      if (statusDiff !== 0) return statusDiff;
+      return b.priority_score - a.priority_score;
+    });
+}
+
+function priorityBadge(report) {
+  const code = report.priority_code || (report.severity === 'high' ? 'P1' : report.severity === 'medium' ? 'P2' : 'P3');
+  const label = report.priority_tier || (code === 'P1' ? 'Priority 1 (Critical)' : code === 'P2' ? 'Priority 2 (Urgent)' : 'Priority 3 (Standard)');
+  const bg = code === 'P1' ? '#D32F2F' : code === 'P2' ? '#F57C00' : '#2E7D32';
+  const score = report.priority_score !== undefined ? report.priority_score : (code === 'P1' ? 85 : code === 'P2' ? 55 : 25);
+  return `<span style="background:${bg}; color:white; font-size:11px; font-weight:800; padding:3px 8px; border-radius:6px; letter-spacing:0.3px; display:inline-flex; align-items:center; gap:4px;">
+    ⚡ ${escapeHtml(label)} (${score} pts)
+  </span>`;
 }
 
 function safetyStatusBadge(status) {
