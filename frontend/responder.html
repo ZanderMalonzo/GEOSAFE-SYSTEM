@@ -199,9 +199,12 @@
     </div>
 
     <div style="display:flex; align-items:center; gap:10px;">
-      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Dark Mode" title="Toggle Dark/Light Mode">🌙</button>
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Dark Mode" title="Toggle Dark/Light Mode">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+      </button>
       <button type="button" class="duty-toggle-btn" id="btn-toggle-duty" onclick="toggleDutyStatus()">
-        <span>🔄</span> <span id="duty-toggle-text">Set Standby</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        <span id="duty-toggle-text">Set Standby</span>
       </button>
       <button type="button" class="ui-btn-ghost" onclick="logout()" style="color:var(--emergency); font-size:13px; font-weight:700;">
         Logout

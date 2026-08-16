@@ -74,7 +74,9 @@
         <span>GeoSafe</span>
       </div>
       <div class="resident-topbar__actions" style="display:flex; align-items:center; gap:8px;">
-        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Dark Mode">🌙</button>
+        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Dark Mode" title="Toggle Dark/Light Mode">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
         <button type="button" class="resident-avatar" id="header-avatar" onclick="openProfileModal()" aria-label="Open Profile Settings">JD</button>
       </div>
     </header>
@@ -88,7 +90,7 @@
     <!-- Active SOS Mode Banner (If in SOS mode) -->
     <div id="sos-active-banner" style="display:none; background:linear-gradient(135deg, #D32F2F, #B71C1C); color:white; padding:12px 14px; border-radius:12px; margin-bottom:14px; box-shadow:var(--shadow-md);">
       <div style="display:flex; align-items:center; gap:10px;">
-        <span style="font-size:26px; animation:pulse 1.2s infinite;">🚨</span>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:pulse 1.2s infinite;"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <div>
           <strong style="font-size:14px; display:block;">EMERGENCY SOS MODE ACTIVE</strong>
           <span style="font-size:11px; color:#FFCDD2;">Your live GPS coordinates will be sent to BDRRMC responders.</span>
@@ -105,27 +107,27 @@
         </label>
         <div class="hazard-chips-grid">
           <div class="hazard-chip active" data-type="Flood" onclick="selectHazardChip('Flood', this)">
-            <span style="font-size:20px;">🌊</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12c1.5-2 3.5-2 5 0s3.5 2 5 0 3.5-2 5 0 3.5 2 5 0M2 17c1.5-2 3.5-2 5 0s3.5 2 5 0 3.5-2 5 0 3.5 2 5 0"/></svg>
             <span>Flood Level</span>
           </div>
           <div class="hazard-chip" data-type="Fire" onclick="selectHazardChip('Fire', this)">
-            <span style="font-size:20px;">🔥</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
             <span>Fire Hazard</span>
           </div>
           <div class="hazard-chip" data-type="Medical" onclick="selectHazardChip('Medical', this)">
-            <span style="font-size:20px;">🚑</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
             <span>Medical SOS</span>
           </div>
           <div class="hazard-chip" data-type="Earthquake" onclick="selectHazardChip('Earthquake', this)">
-            <span style="font-size:20px;">⚡</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><line x1="8" y1="6" x2="8.01" y2="6"/><line x1="16" y1="6" x2="16.01" y2="6"/><line x1="8" y1="10" x2="8.01" y2="10"/><line x1="16" y1="10" x2="16.01" y2="10"/></svg>
             <span>Structural</span>
           </div>
           <div class="hazard-chip" data-type="Storm" onclick="selectHazardChip('Storm', this)">
-            <span style="font-size:20px;">🌀</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 17a5 5 0 0 0 2.3-9.5A7 7 0 0 0 6.6 9 5 5 0 0 0 8 19h9a4 4 0 0 0 0-8M8 19v2M12 19v2M16 19v2"/></svg>
             <span>Typhoon Gale</span>
           </div>
           <div class="hazard-chip hazard-chip--sos" data-type="SOS" onclick="selectHazardChip('SOS', this)">
-            <span style="font-size:20px;">🚨</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span>SOS Rescue</span>
           </div>
         </div>
@@ -142,7 +144,7 @@
         <div id="severity-preview-box" style="margin-bottom:12px; padding:10px 12px; border-radius:10px; background:rgba(21, 101, 192, 0.05); border:1.5px solid var(--border); display:none;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
             <div style="display:flex; align-items:center; gap:6px;">
-              <span style="font-size:14px;">🧠</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6v6l4 2"/></svg>
               <strong style="font-size:12px; color:var(--text);">Severity Detection Analysis (Rule-Based)</strong>
             </div>
             <span id="detected-severity-badge"></span>
@@ -158,8 +160,9 @@
               <strong style="font-size:13px; color:var(--text);">Incident GPS Location</strong>
               <p id="location-status" style="font-size:11px; color:var(--primary); margin:2px 0 0; font-weight:600;">📍 Acquiring GPS coordinates…</p>
             </div>
-            <button type="button" id="get-location" onclick="fetchGPS()" class="ui-btn ui-btn-secondary" style="width:auto; padding:8px 12px; font-size:12px;">
-              🔄 Recapture
+            <button type="button" id="get-location" onclick="fetchGPS()" class="ui-btn ui-btn-secondary" style="width:auto; padding:8px 12px; font-size:12px; display:inline-flex; align-items:center; gap:5px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              Recapture
             </button>
           </div>
         </div>
