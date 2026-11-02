@@ -8,7 +8,7 @@ const EVACUATION_HAVENS = [
     lng: 121.0486196,
     capacity: '350 Persons',
     mapsUrl:
-      'https://www.google.com/maps/place/Bayanan+baywalk+covered+court/@14.4094644,121.0486196,17z',
+      'https://www.openstreetmap.org/?mlat=14.4094644&mlon=121.0486196#map=18/14.4094644/121.0486196',
   },
   {
     id: 2,
@@ -18,7 +18,7 @@ const EVACUATION_HAVENS = [
     lng: 121.0517064,
     capacity: '500 Persons',
     mapsUrl:
-      'https://www.google.com/maps/place/Bayanan+Elementary+School+-+Unit+1/@14.4117681,121.0517064,17z',
+      'https://www.openstreetmap.org/?mlat=14.4117681&mlon=121.0517064#map=18/14.4117681/121.0517064',
   },
   {
     id: 3,
@@ -28,7 +28,7 @@ const EVACUATION_HAVENS = [
     lng: 121.0468000,
     capacity: '600 Persons',
     mapsUrl:
-      'https://www.google.com/maps/search/?api=1&query=Pedro+E+Diaz+High+School+Muntinlupa',
+      'https://www.openstreetmap.org/?mlat=14.4145200&mlon=121.0468000#map=18/14.4145200/121.0468000',
   },
   {
     id: 4,
@@ -38,32 +38,24 @@ const EVACUATION_HAVENS = [
     lng: 121.0498000,
     capacity: '200 Persons',
     mapsUrl:
-      'https://www.google.com/maps/search/?api=1&query=Barangay+Bayanan+Hall+Muntinlupa',
+      'https://www.openstreetmap.org/?mlat=14.4082000&mlon=121.0498000#map=18/14.4082000/121.0498000',
   },
 ];
 
 const BAYANAN_CENTER = { lat: 14.4106, lng: 121.0502 };
 
-// Dynamic Tile Helper for Crisp Light & Dark Mode Maps
+// Standard OpenStreetMap Tile Layer (100% Free, Zero API Keys Required)
 function getMapTileUrl() {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  return isDark
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 }
 
 function setupMapTileLayer(map) {
   if (!map) return null;
-  const tileLayer = L.tileLayer(getMapTileUrl(), {
+  const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
-    subdomains: 'abcd',
+    subdomains: ['a', 'b', 'c'],
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
   }).addTo(map);
-
-  // Auto-switch on theme change
-  const observer = new MutationObserver(() => {
-    tileLayer.setUrl(getMapTileUrl());
-  });
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   return tileLayer;
 }
 
@@ -252,3 +244,50 @@ function fitMapToPath(map, latlngs) {
 function remainingToDestination(userLat, userLng, haven) {
   return haversineKm(userLat, userLng, haven.lat, haven.lng) * 1000;
 }
+
+/**
+ * Open-source Reverse Geocoder using OpenStreetMap Nominatim API (Zero API Keys required)
+ */
+async function reverseGeocodeOSM(lat, lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, {
+      headers: { 'Accept-Language': 'en' }
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const addr = data.address || {};
+    const parts = [
+      addr.road || addr.pedestrian || addr.footway || addr.suburb || addr.neighbourhood,
+      addr.village || addr.quarter || addr.city_district || 'Barangay Bayanan',
+      addr.city || 'Muntinlupa'
+    ].filter(Boolean);
+    return parts.join(', ') || data.display_name;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Open-source Walking Directions using OpenStreetMap Web Engine (Zero API Keys required)
+ */
+function openOpenStreetMapDirections(haven, userLat, userLng) {
+  if (!haven) return;
+  const destLat = haven.lat || 14.4094644;
+  const destLng = haven.lng || 121.0486196;
+  let url = `https://www.openstreetmap.org/?mlat=${destLat}&mlon=${destLng}#map=18/${destLat}/${destLng}`;
+  if (userLat && userLng) {
+    url = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=${userLat}%2C${userLng}%3B${destLat}%2C${destLng}`;
+  }
+  window.open(url, '_blank');
+}
+
+// Open-source Map Directions
+function openExternalMapDirections(haven, userLat, userLng) {
+  openOpenStreetMapDirections(haven, userLat, userLng);
+}
+
+// Compatibility Alias
+function openGoogleMapsDirections(haven, userLat, userLng) {
+  openOpenStreetMapDirections(haven, userLat, userLng);
+}
+

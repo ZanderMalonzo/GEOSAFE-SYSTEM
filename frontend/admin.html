@@ -737,8 +737,10 @@
     function initGisMap() {
       if (gisMap) return;
       gisMap = L.map('admin-gis-map', { zoomControl: true }).setView([14.3972, 121.0200], 15);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap'
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        subdomains: ['a', 'b', 'c'],
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
       }).addTo(gisMap);
 
       // Add Evacuation Centers
@@ -823,7 +825,7 @@
             <div style="display:flex; gap:6px;">
               ${rep.status === 'pending' ? `<button class="table-btn table-btn--verify" data-id="${rep.id}">Verify</button>` : ''}
               ${rep.status === 'verified' ? `<button class="table-btn table-btn--dispatch" data-id="${rep.id}">Dispatch</button>` : ''}
-              ${rep.status === 'responding' ? `<button class="table-btn" style="background:#2E7D32; color:white;" onclick="updateReport(${rep.id}, {status:'resolved'})">Resolve</button>` : ''}
+              ${(rep.status === 'responding' || rep.status === 'on_site') ? `<button class="table-btn" style="background:#2E7D32; color:white;" onclick="updateReport(${rep.id}, {status:'resolved'})">Resolve</button>` : ''}
             </div>
           </td>
         </tr>
@@ -865,8 +867,39 @@
         document.getElementById('kpi-sos-count').textContent = criticalCount;
         document.getElementById('tab-queue-count').textContent = allReports.length;
 
+        // Dynamic Disaster Analytics Calculation
+        if (allReports.length > 0) {
+          const total = allReports.length;
+          const floodCnt = allReports.filter(r => (r.incident_type || '').toLowerCase().includes('flood') || (r.incident_type || '').toLowerCase().includes('sos')).length;
+          const fireCnt = allReports.filter(r => (r.incident_type || '').toLowerCase().includes('fire')).length;
+          const medCnt = allReports.filter(r => (r.incident_type || '').toLowerCase().includes('med')).length;
+          const eqCnt = allReports.filter(r => (r.incident_type || '').toLowerCase().includes('earthquake') || (r.incident_type || '').toLowerCase().includes('storm')).length;
+          const resolvedCnt = allReports.filter(r => r.status === 'resolved').length;
+
+          const floodEl = document.getElementById('stat-flood-cnt');
+          if (floodEl) {
+            floodEl.textContent = `${Math.round((floodCnt / total) * 100)}% (${floodCnt} reports)`;
+            floodEl.parentElement.nextElementSibling.firstElementChild.style.width = `${Math.round((floodCnt / total) * 100)}%`;
+          }
+          const fireEl = document.getElementById('stat-fire-cnt');
+          if (fireEl) {
+            fireEl.textContent = `${Math.round((fireCnt / total) * 100)}% (${fireCnt} reports)`;
+            fireEl.parentElement.nextElementSibling.firstElementChild.style.width = `${Math.round((fireCnt / total) * 100)}%`;
+          }
+          const medEl = document.getElementById('stat-med-cnt');
+          if (medEl) {
+            medEl.textContent = `${Math.round((medCnt / total) * 100)}% (${medCnt} reports)`;
+            medEl.parentElement.nextElementSibling.firstElementChild.style.width = `${Math.round((medCnt / total) * 100)}%`;
+          }
+          const eqEl = document.getElementById('stat-eq-cnt');
+          if (eqEl) {
+            eqEl.textContent = `${Math.round((eqCnt / total) * 100)}% (${eqCnt} reports)`;
+            eqEl.parentElement.nextElementSibling.firstElementChild.style.width = `${Math.round((eqCnt / total) * 100)}%`;
+          }
+        }
+
         // Render Table
-        tbody.innerHTML = allReports.length ? allReports.map(renderRow).join('') : '<tr><td colspan="7" style="text-align:center; padding:24px;" class="text-muted">No disaster reports logged yet.</td></tr>';
+        tbody.innerHTML = allReports.length ? allReports.map(renderRow).join('') : '<tr><td colspan="8" style="text-align:center; padding:24px;" class="text-muted">No disaster reports logged yet.</td></tr>';
 
         // Bind Table Selectors & Buttons
         tbody.querySelectorAll('.severity-select').forEach(sel => {
@@ -1029,7 +1062,7 @@
           try {
             const parsed = JSON.parse(event.data);
             if (parsed.message) {
-              playAlertSound();
+              playAlertChime();
               showToast('🚨 New live citizen disaster report received!', 'danger');
               loadReports();
             }
@@ -1049,7 +1082,7 @@
       const bc = new BroadcastChannel('geosafe_channel');
       bc.onmessage = (e) => {
         if (e.data?.type === 'new-report') {
-          playAlertSound();
+          playAlertChime();
           loadReports();
         } else if (e.data?.type === 'new-alert') {
           loadAlertHistory();

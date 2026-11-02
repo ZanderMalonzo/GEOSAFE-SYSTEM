@@ -915,6 +915,32 @@ async function api(path, options = {}) {
     return { message: 'Member removed', family: circle, members: circle?.members || [] };
   }
 
+  // Family: Transfer Head Ownership
+  if (path === '/api/family/transfer-head' && method === 'PUT') {
+    const user = getUser();
+    if (!user || !user.family_id) throw new Error('Unauthorized');
+    const newHeadId = Number(body.new_head_user_id);
+    const families = getFamiliesStore();
+    const circle = families[user.family_id];
+    if (circle && circle.members) {
+      circle.head_user_id = newHeadId;
+      circle.members.forEach(m => {
+        m.is_family_head = (m.id === newHeadId);
+        if (m.id === newHeadId) m.relationship = 'Head';
+      });
+      families[user.family_id] = circle;
+      setFamiliesStore(families);
+      if (window.GeoSafeDB) {
+        window.GeoSafeDB.saveFamily(user.family_id, circle);
+      }
+      user.is_family_head = false;
+      user.family_relationship = 'Member';
+      setAuth(getToken() || 'demo-token', user);
+      return { message: 'Family head transferred', family: circle, members: circle.members, is_head: false };
+    }
+    return { status: 'ok' };
+  }
+
   // Family: Update My Live Status / Location / Battery
   if (path === '/api/family/me' && method === 'PUT') {
     const user = getUser();

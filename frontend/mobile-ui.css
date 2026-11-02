@@ -121,6 +121,11 @@
   border-color: var(--border) !important;
 }
 
+/* Open-source OpenStreetMap Tile Dark Mode (Zero API Keys) */
+[data-theme="dark"] .leaflet-tile-pane {
+  filter: brightness(0.65) invert(1) contrast(2.8) hue-rotate(200deg) saturate(0.3);
+}
+
 /* Theme Toggle Button Component */
 .theme-toggle-btn {
   width: 38px;

@@ -354,13 +354,21 @@
             <span class="action-card__icon" style="background:var(--primary-light); color:var(--primary);">🏫</span>
             <span class="action-card__label">Elementary School Unit 1<br><small style="font-size:11px; font-weight:500; color:var(--text-muted);">National Rd · 12 min</small></span>
           </button>
+          <button type="button" class="action-card route-pick" data-route="3" id="btn-haven-3" style="border:1px solid var(--border); cursor:pointer; width:100%; text-align:left;">
+            <span class="action-card__icon" style="background:var(--warning-light); color:var(--warning);">🏢</span>
+            <span class="action-card__label">Pedro E. Diaz High School<br><small style="font-size:11px; font-weight:500; color:var(--text-muted);">High Ground · 15 min</small></span>
+          </button>
+          <button type="button" class="action-card route-pick" data-route="4" id="btn-haven-4" style="border:1px solid var(--border); cursor:pointer; width:100%; text-align:left;">
+            <span class="action-card__icon" style="background:var(--purple-light); color:var(--purple);">🏛️</span>
+            <span class="action-card__label">Bayanan Multi-Purpose Hall<br><small style="font-size:11px; font-weight:500; color:var(--text-muted);">Medical Post · 6 min</small></span>
+          </button>
         </div>
 
         <button type="button" id="start-nav-btn" class="ui-btn ui-btn-primary" style="background:var(--gmap-green); font-size:15px; padding:14px; margin-bottom:8px; box-shadow:0 4px 14px rgba(27, 135, 63, 0.3);">
           🧭 Start Turn-by-Turn Navigation
         </button>
         <button type="button" id="open-maps-btn" class="ui-btn ui-btn-secondary">
-          ↗ Open in External Google Maps
+          ↗ Open in OpenStreetMap Navigation
         </button>
       </section>
 
@@ -488,8 +496,10 @@
       initMap();
       selectedHaven = getHavenById(havenId || selectedHaven.id);
 
-      document.getElementById('btn-haven-1').style.border = selectedHaven.id === 1 ? '2px solid var(--primary)' : '1px solid var(--border)';
-      document.getElementById('btn-haven-2').style.border = selectedHaven.id === 2 ? '2px solid var(--primary)' : '1px solid var(--border)';
+      document.querySelectorAll('.route-pick').forEach(btn => {
+        const rId = parseInt(btn.dataset.route, 10);
+        btn.style.border = selectedHaven.id === rId ? '2px solid var(--primary)' : '1px solid var(--border)';
+      });
 
       if (routeLayers) routeLayers.clearLayers();
 
@@ -660,7 +670,7 @@
     });
 
     document.getElementById('open-maps-btn').addEventListener('click', () => {
-      openGoogleMapsDirections(selectedHaven, userPos.lat, userPos.lng);
+      openOpenStreetMapDirections(selectedHaven, userPos.lat, userPos.lng);
     });
 
     // Auto Init

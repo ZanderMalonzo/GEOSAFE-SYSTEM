@@ -269,7 +269,7 @@
         <!-- 1-Tap Navigation & Citizen Call Actions -->
         <div class="responder-quick-nav">
           <a id="btn-gmaps-nav" target="_blank" href="#" class="quick-nav-btn">
-            <span>🧭</span> <span>Open in Google Maps</span>
+            <span>🧭</span> <span>OpenStreetMap Navigation</span>
           </a>
           <a id="btn-call-resident" href="tel:+639171234567" class="quick-nav-btn" style="background:rgba(46, 125, 50, 0.4);">
             <span>📞</span> <span>Call Citizen / Family</span>
@@ -413,14 +413,15 @@
     }
 
     // Advance Mission Lifecycle
-    async function advanceActiveMission(newStatus) {
-      if (!currentActiveReport) return;
+    async function advanceActiveMission(newStatus, targetId = null) {
+      const id = targetId || currentActiveReport?.id;
+      if (!id) return;
       try {
-        await api(`/api/reports/${currentActiveReport.id}/status`, {
+        await api(`/api/reports/${id}/status`, {
           method: 'PUT',
           body: JSON.stringify({ status: newStatus })
         });
-        showToast(`Mission #${currentActiveReport.id} updated to: ${newStatus.replace('_', ' ').toUpperCase()}`, 'success');
+        showToast(`Mission #${id} updated to: ${newStatus.replace('_', ' ').toUpperCase()}`, 'success');
         loadIncidents();
       } catch (err) {
         showToast(err.message, 'danger');
@@ -446,20 +447,30 @@
       document.getElementById('mission-title').textContent = `#${report.id} — ${report.incident_type} Emergency`;
       document.getElementById('mission-reporter').innerHTML = `Resident: <strong>${escapeHtml(report.reporter_name || 'Citizen')}</strong> · Phone: Available`;
       document.getElementById('mission-description').textContent = `"${report.description}"`;
-      document.getElementById('btn-gmaps-nav').href = `https://www.google.com/maps/dir/?api=1&destination=${report.latitude},${report.longitude}`;
+      document.getElementById('btn-gmaps-nav').href = userPos 
+        ? `https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=${userPos.lat}%2C${userPos.lng}%3B${report.latitude}%2C${report.longitude}`
+        : `https://www.openstreetmap.org/?mlat=${report.latitude}&mlon=${report.longitude}#map=18/${report.latitude}/${report.longitude}`;
 
       // Update Lifecycle Step Active States
       document.getElementById('step-responding').className = `mission-step-btn ${report.status === 'responding' ? 'active' : ''}`;
       document.getElementById('step-onsite').className = `mission-step-btn ${report.status === 'on_site' ? 'active' : ''}`;
       document.getElementById('step-resolved').className = `mission-step-btn ${report.status === 'resolved' ? 'active' : ''}`;
 
-      // Initialize or Update Leaflet Mission Map
+      // Initialize or Update Leaflet Mission Map (100% Open-Source Tiles)
       const lat = parseFloat(report.latitude) || 14.3972;
       const lng = parseFloat(report.longitude) || 121.0200;
 
       if (!activeMap) {
         activeMap = L.map('active-mission-map', { zoomControl: false }).setView([lat, lng], 15);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(activeMap);
+        if (typeof setupMapTileLayer === 'function') {
+          setupMapTileLayer(activeMap);
+        } else {
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            subdomains: ['a', 'b', 'c'],
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
+          }).addTo(activeMap);
+        }
       } else {
         activeMap.setView([lat, lng], 15);
       }
@@ -469,8 +480,6 @@
 
       setTimeout(() => activeMap?.invalidateSize(), 150);
     }
-
-    let currentFilter = 'triage';
 
     // Filter Tabs
     function filterIncidentsTab(tab) {
@@ -545,22 +554,22 @@
                 </button>
               ` : ''}
               ${isMy && rep.status === 'pending' ? `
-                <button type="button" class="ui-btn ui-btn-primary" style="width:auto; padding:7px 14px; font-size:12px;" onclick="advanceActiveMission('responding')">
+                <button type="button" class="ui-btn ui-btn-primary" style="width:auto; padding:7px 14px; font-size:12px;" onclick="advanceActiveMission('responding', ${rep.id})">
                   🏃 Start Responding
                 </button>
               ` : ''}
               ${isMy && rep.status === 'responding' ? `
-                <button type="button" class="ui-btn" style="width:auto; padding:7px 14px; font-size:12px; background:#1565C0; color:white;" onclick="advanceActiveMission('on_site')">
+                <button type="button" class="ui-btn" style="width:auto; padding:7px 14px; font-size:12px; background:#1565C0; color:white;" onclick="advanceActiveMission('on_site', ${rep.id})">
                   📍 Mark Arrived On-Site
                 </button>
               ` : ''}
               ${isMy && rep.status !== 'resolved' ? `
-                <button type="button" class="ui-btn" style="width:auto; padding:7px 14px; font-size:12px; background:#2E7D32; color:white;" onclick="advanceActiveMission('resolved')">
+                <button type="button" class="ui-btn" style="width:auto; padding:7px 14px; font-size:12px; background:#2E7D32; color:white;" onclick="advanceActiveMission('resolved', ${rep.id})">
                   ✅ Mark Resolved
                 </button>
               ` : ''}
-              <a href="https://www.google.com/maps/dir/?api=1&destination=${rep.latitude},${rep.longitude}" target="_blank" class="ui-btn ui-btn-secondary" style="width:auto; padding:7px 12px; font-size:12px; text-decoration:none;">
-                🧭 Google Maps
+              <a href="https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=${userPos ? userPos.lat + '%2C' + userPos.lng : '14.4106%2C121.0502'}%3B${rep.latitude}%2C${rep.longitude}" target="_blank" class="ui-btn ui-btn-secondary" style="width:auto; padding:7px 12px; font-size:12px; text-decoration:none;">
+                🧭 OpenStreetMap
               </a>
             </div>
           </div>

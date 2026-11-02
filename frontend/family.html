@@ -672,7 +672,10 @@
                 📞 Call
               </button>
               ${isFamilyHead && !isMe ? `
-                <button type="button" class="l360-btn-action" style="color:var(--emergency);" onclick="handleRemoveMember(${m.id}, '${escapeHtml(m.name)}')">
+                <button type="button" class="l360-btn-action" style="color:var(--warning);" onclick="handleTransferHead(${m.id})">
+                  👑 Make Head
+                </button>
+                <button type="button" class="l360-btn-action" style="color:var(--emergency);" onclick="handleRemoveMember(${m.id})">
                   🗑️ Remove
                 </button>
               ` : ''}
@@ -809,7 +812,9 @@
     }
 
     function navigateToMember(lat, lng) {
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`, '_blank');
+      const myLat = myLastLat || (currentFamilyData?.members?.find(m => m.id === user.id)?.last_latitude) || 14.4106;
+      const myLng = myLastLng || (currentFamilyData?.members?.find(m => m.id === user.id)?.last_longitude) || 121.0502;
+      window.open(`https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=${myLat}%2C${myLng}%3B${lat}%2C${lng}`, '_blank');
     }
 
     function callMember(phone) {
@@ -927,12 +932,31 @@
       }
     }
 
-    // 13. Remove Member Action (Head only)
-    async function handleRemoveMember(memberId, name) {
-      if (!confirm(`Are you sure you want to remove ${name} from the family circle?`)) return;
+    // 13. Transfer Head Action (Head only)
+    async function handleTransferHead(memberId) {
+      const target = currentFamilyData?.members?.find(m => m.id === memberId);
+      const targetName = target ? target.name : 'this member';
+      if (!confirm(`Are you sure you want to transfer Family Head ownership to ${targetName}?`)) return;
+      try {
+        await api('/api/family/transfer-head', {
+          method: 'PUT',
+          body: JSON.stringify({ new_head_user_id: memberId })
+        });
+        showToast(`👑 Family Head ownership transferred to ${targetName}!`, 'success');
+        await loadFamilyState();
+      } catch (err) {
+        showToast(err.message || 'Failed to transfer family head', 'danger');
+      }
+    }
+
+    // 14. Remove Member Action (Head only)
+    async function handleRemoveMember(memberId) {
+      const target = currentFamilyData?.members?.find(m => m.id === memberId);
+      const targetName = target ? target.name : 'this member';
+      if (!confirm(`Are you sure you want to remove ${targetName} from the family circle?`)) return;
       try {
         await api(`/api/family/members/${memberId}`, { method: 'DELETE' });
-        showToast(`Removed ${name} from family circle`, 'info');
+        showToast(`Removed ${targetName} from family circle`, 'info');
         await loadFamilyState();
       } catch (err) {
         showToast(err.message || 'Failed to remove member', 'danger');

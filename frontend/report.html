@@ -243,7 +243,7 @@
     // Hazard Chip Selector
     function selectHazardChip(type, chipEl) {
       document.querySelectorAll('.hazard-chip').forEach(c => c.classList.remove('hazard-chip--active', 'active'));
-      if (chipEl) chipEl.classList.add('hazard-chip--active');
+      if (chipEl) chipEl.classList.add('hazard-chip--active', 'active');
       document.getElementById('incident_type_input').value = type;
       
       const sBtn = document.getElementById('submit-btn');
@@ -295,11 +295,18 @@
         reportMarker = L.marker([lat, lng], { draggable: true }).addTo(reportMap);
         reportMarker.bindPopup('<b>Incident Location</b><br>Drag marker to adjust exact street').openPopup();
 
-        reportMarker.on('dragend', (e) => {
+        reportMarker.on('dragend', async (e) => {
           const pos = e.target.getLatLng();
           document.getElementById('latitude').value = pos.lat.toFixed(5);
           document.getElementById('longitude').value = pos.lng.toFixed(5);
-          document.getElementById('location-status').textContent = `📍 Selected Pin: ${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`;
+          document.getElementById('location-status').textContent = `📍 Selected: ${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`;
+          if (typeof reverseGeocodeOSM === 'function') {
+            const place = await reverseGeocodeOSM(pos.lat, pos.lng);
+            if (place) {
+              document.getElementById('location-status').textContent = `📍 ${place} (${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)})`;
+              reportMarker.bindPopup(`<b>Incident Location</b><br>${escapeHtml(place)}`).openPopup();
+            }
+          }
         });
       } else {
         reportMap.setView([lat, lng], 16);
@@ -308,7 +315,7 @@
       setTimeout(() => reportMap?.invalidateSize(), 150);
     }
 
-    // GPS Fetching
+    // GPS Fetching with OpenStreetMap Reverse Geocoding (Zero API Keys)
     async function fetchGPS() {
       const statusEl = document.getElementById('location-status');
       statusEl.textContent = 'Acquiring GPS location…';
@@ -316,6 +323,12 @@
         const { latitude, longitude } = await getGeolocation();
         initReportMap(latitude, longitude);
         statusEl.textContent = `📍 GPS Acquired: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+        if (typeof reverseGeocodeOSM === 'function') {
+          const place = await reverseGeocodeOSM(latitude, longitude);
+          if (place) {
+            statusEl.textContent = `📍 ${place} (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
+          }
+        }
       } catch (err) {
         initReportMap(14.4106, 121.0502);
         statusEl.textContent = '📍 Bayanan Standard Coordinates (14.4106, 121.0502)';
