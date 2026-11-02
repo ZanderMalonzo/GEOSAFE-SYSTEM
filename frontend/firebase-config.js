@@ -43,10 +43,10 @@
       }
       db = firebase.firestore();
       isInitialized = true;
-      console.log('✅ GeoSafe Firebase Cloud Firestore connected (geosafe-9bcdb)');
+      console.log('[Firebase] GeoSafe Cloud Firestore connected (geosafe-9bcdb)');
       return db;
     } catch (err) {
-      console.warn('⚠️ Firebase init warning (running resilient mode):', err);
+      console.warn('[Firebase] Init warning (running resilient mode):', err);
       return null;
     }
   }

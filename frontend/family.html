@@ -6,16 +6,16 @@
   <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css?v=3.6" />
+  <link rel="stylesheet" href="/mobile-ui.css?v=3.0" />
   <title>GeoSafe — Life360 Family Safety Tracker</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     /* Life360-Style Theme & Component Tokens */
     .family-circle-header {
-      background: white;
+      background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius);
       padding: 14px 16px;
       margin-bottom: 14px;
       box-shadow: var(--shadow-sm);
@@ -26,12 +26,12 @@
     }
 
     .circle-name-title {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 800;
       color: var(--text);
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
 
     .circle-status-chip {
@@ -39,23 +39,24 @@
       font-weight: 700;
       color: var(--green);
       background: var(--success-light);
-      padding: 3px 8px;
-      border-radius: 12px;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
+      border: 1px solid var(--success-border);
     }
 
     /* Life360 Map Box */
     .l360-map-container {
       width: 100%;
-      height: 320px;
-      min-height: 320px;
-      border-radius: var(--radius-lg);
+      height: clamp(260px, 46vh, 420px);
+      min-height: 240px;
+      border-radius: var(--radius);
       overflow: hidden;
-      border: 1.5px solid var(--border);
+      border: 1px solid var(--border);
       position: relative;
-      background: #E5E7EB;
+      background: #E2E8F0;
       box-shadow: var(--shadow-sm);
       margin-bottom: 14px;
     }
@@ -63,7 +64,7 @@
     #family-map {
       width: 100%;
       height: 100%;
-      min-height: 320px;
+      min-height: 240px;
       z-index: 1;
     }
 
@@ -89,34 +90,26 @@
       align-items: center;
       justify-content: center;
       border: 3px solid white;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
       z-index: 3;
     }
 
     .l360-pin-avatar--sos {
-      background: #D32F2F !important;
+      background: var(--emergency) !important;
       animation: sosPulse 1s infinite alternate;
-    }
-
-    .l360-pin-avatar--warning {
-      background: #F57C00 !important;
     }
 
     .l360-pin-battery {
       position: absolute;
-      bottom: -4px;
-      right: 0px;
-      background: #202124;
-      color: #A7F3D0;
-      font-size: 9px;
+      bottom: 0px;
+      background: rgba(15, 23, 42, 0.85);
+      color: white;
+      font-size: 9.5px;
       font-weight: 800;
-      padding: 1px 4px;
+      padding: 1px 5px;
       border-radius: 8px;
-      border: 1.5px solid white;
       z-index: 4;
-      display: flex;
-      align-items: center;
-      gap: 2px;
+      white-space: nowrap;
     }
 
     .l360-pin-pulse {
@@ -125,32 +118,42 @@
       height: 48px;
       border-radius: 50%;
       background: rgba(21, 101, 192, 0.25);
-      animation: gpsPulse 2s infinite ease-out;
+      animation: memberPulse 2s infinite ease-out;
       z-index: 1;
     }
 
-    /* Member Card in Tray */
+    @keyframes sosPulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.15); box-shadow: 0 0 16px rgba(220, 38, 38, 0.6); }
+    }
+
+    @keyframes memberPulse {
+      0% { transform: scale(0.6); opacity: 1; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+
+    /* Member Tray Cards */
     .l360-member-card {
-      background: white;
+      background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px;
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
       margin-bottom: 10px;
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-xs);
       display: flex;
       flex-direction: column;
       gap: 10px;
-      transition: transform 0.15s, border-color 0.15s;
+      transition: all 0.15s ease;
     }
 
     .l360-member-card:hover {
-      border-color: var(--primary);
+      border-color: var(--primary-border);
     }
 
     .l360-card-top {
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
     }
 
     .l360-card-left {
@@ -160,120 +163,105 @@
     }
 
     .l360-card-avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
       background: var(--primary-light);
       color: var(--primary);
-      font-weight: 800;
-      font-size: 15px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 2px solid var(--primary);
+      font-weight: 800;
+      font-size: 14px;
+      border: 1px solid var(--primary-border);
       flex-shrink: 0;
-      position: relative;
     }
 
     .l360-batt-pill {
       display: inline-flex;
       align-items: center;
-      gap: 3px;
+      gap: 4px;
       font-size: 11px;
       font-weight: 700;
       color: var(--text-muted);
-      background: var(--bg-app);
+      background: var(--bg-subtle);
       padding: 2px 7px;
-      border-radius: 10px;
+      border-radius: var(--radius-full);
       border: 1px solid var(--border);
     }
 
     .l360-batt-pill--low {
-      color: var(--emergency);
       background: var(--emergency-light);
-      border-color: #FFCDD2;
+      color: var(--emergency);
+      border-color: var(--emergency-border);
     }
 
     .l360-actions-row {
       display: flex;
       gap: 6px;
-      border-top: 1px solid var(--border-light);
-      padding-top: 10px;
-      flex-wrap: wrap;
+      overflow-x: auto;
+      padding-top: 4px;
     }
 
     .l360-btn-action {
-      flex: 1;
-      min-width: 80px;
-      padding: 8px 10px;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: 700;
+      background: var(--bg-subtle);
       border: 1px solid var(--border);
-      background: var(--bg-app);
+      border-radius: var(--radius-xs);
+      padding: 6px 10px;
+      font-size: 11.5px;
+      font-weight: 700;
       color: var(--text);
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: 5px;
-      transition: background 0.15s;
+      gap: 4px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
     }
 
     .l360-btn-action:hover {
-      background: var(--primary-light);
-      color: var(--primary);
+      background: var(--bg-card);
       border-color: var(--primary);
+      color: var(--primary);
     }
 
-    /* Onboarding / No-Family Cards */
+    /* Onboarding State */
     .onboarding-hero {
       background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
       color: white;
-      border-radius: var(--radius-lg);
-      padding: 20px 16px;
+      border-radius: var(--radius);
+      padding: 24px 20px;
+      text-align: center;
       margin-bottom: 16px;
       box-shadow: var(--shadow-md);
-      text-align: center;
     }
 
     .onboarding-card {
-      background: white;
+      background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 16px;
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 12px;
       box-shadow: var(--shadow-sm);
-      margin-bottom: 14px;
     }
 
     .onboarding-card__header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 12px;
+      gap: 12px;
+      margin-bottom: 14px;
     }
 
     .onboarding-card__icon {
-      font-size: 24px;
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: var(--primary-light);
+      color: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--primary-light);
-      color: var(--primary);
       flex-shrink: 0;
-    }
-
-    @keyframes sosPulse {
-      from { transform: scale(1); box-shadow: 0 0 0 rgba(211, 47, 47, 0.4); }
-      to { transform: scale(1.15); box-shadow: 0 0 16px rgba(211, 47, 47, 0.8); }
-    }
-
-    @keyframes gpsPulse {
-      0% { transform: scale(0.6); opacity: 1; }
-      100% { transform: scale(1.6); opacity: 0; }
     }
   </style>
 </head>
@@ -282,7 +270,9 @@
     <!-- Resident Topbar -->
     <header class="resident-topbar">
       <div class="resident-brand">
-        <span class="resident-brand__mark">⌖</span>
+        <span class="resident-brand__mark">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </span>
         <span>GeoSafe</span>
       </div>
       <div class="resident-topbar__actions" style="display:flex; align-items:center; gap:8px;">
@@ -293,9 +283,9 @@
       </div>
     </header>
 
-    <div style="margin-bottom:12px;">
-      <h1 style="font-size:22px; font-weight:800; margin:0;">Family Safety Circle</h1>
-      <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Live Life360-style GPS tracking, battery levels, and safety status.</p>
+    <div style="margin-bottom:14px;">
+      <h1 style="font-size:22px; font-weight:900; margin:0;">Family Safety Circle</h1>
+      <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;">Live GPS tracking, battery levels, and safety status.</p>
     </div>
 
     <!-- =======================================================
@@ -303,9 +293,11 @@
          ======================================================= -->
     <div id="no-family-view" style="display:none; flex-direction:column; gap:12px;">
       <div class="onboarding-hero">
-        <div style="font-size:36px; margin-bottom:6px;">👨‍👩‍👧‍👦</div>
+        <div style="width:48px; height:48px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; margin:0 auto 10px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        </div>
         <h2 style="font-size:19px; font-weight:800; margin:0 0 6px; color:white;">Connect Your Family on GeoSafe</h2>
-        <p style="font-size:12px; color:#E3F2FD; margin:0; line-height:1.4;">
+        <p style="font-size:12.5px; color:#E3F2FD; margin:0; line-height:1.5;">
           Stay protected during floods and emergencies in Barangay Bayanan. Track real-time GPS locations, battery percentages, and safety check-ins.
         </p>
       </div>
@@ -313,10 +305,12 @@
       <!-- Option 1: Create New Circle -->
       <section class="onboarding-card">
         <div class="onboarding-card__header">
-          <div class="onboarding-card__icon">🛡️</div>
+          <div class="onboarding-card__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
           <div>
             <h3 style="margin:0; font-size:15px; font-weight:800;">Create a Family Circle</h3>
-            <p style="margin:2px 0 0; font-size:11px; color:var(--text-muted);">Start a new circle for your household &amp; invite your members.</p>
+            <p style="margin:2px 0 0; font-size:11.5px; color:var(--text-muted);">Start a new circle for your household &amp; invite your members.</p>
           </div>
         </div>
 
@@ -331,8 +325,9 @@
             <input type="text" id="new-family-desc" placeholder="e.g. Purok 2, Barangay Bayanan" class="ui-input" />
           </div>
 
-          <button type="submit" id="btn-create-fam" class="ui-btn ui-btn-primary" style="padding:11px; font-size:13px;">
-            🚀 Create Family Circle &amp; Get Invite Code
+          <button type="submit" id="btn-create-fam" class="ui-btn ui-btn-primary" style="padding:11px; font-size:13.5px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Create Family Circle &amp; Get Invite Code
           </button>
         </form>
       </section>
@@ -340,10 +335,12 @@
       <!-- Option 2: Join Existing Circle -->
       <section class="onboarding-card">
         <div class="onboarding-card__header">
-          <div class="onboarding-card__icon" style="background:var(--success-light); color:var(--success);">🔗</div>
+          <div class="onboarding-card__icon" style="background:var(--success-light); color:var(--success);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </div>
           <div>
             <h3 style="margin:0; font-size:15px; font-weight:800;">Join an Existing Circle</h3>
-            <p style="margin:2px 0 0; font-size:11px; color:var(--text-muted);">Have an 8-character invite code from your family head?</p>
+            <p style="margin:2px 0 0; font-size:11.5px; color:var(--text-muted);">Have an 8-character invite code from your family head?</p>
           </div>
         </div>
 
@@ -365,15 +362,16 @@
             </select>
           </div>
 
-          <button type="submit" id="btn-join-fam" class="ui-btn ui-btn-secondary" style="padding:11px; font-size:13px; font-weight:700;">
-            🤝 Join Family Circle
+          <button type="submit" id="btn-join-fam" class="ui-btn ui-btn-secondary" style="padding:11px; font-size:13.5px; font-weight:700;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
+            Join Family Circle
           </button>
         </form>
       </section>
 
       <!-- Tip Callout -->
-      <div style="background:var(--bg-surface); border:1px dashed var(--border); border-radius:var(--radius); padding:12px; text-align:center; font-size:11px; color:var(--text-muted);">
-        💡 <strong>Demo Tip:</strong> To explore the pre-configured Dela Cruz demo family, join with invite code <strong>BAYANAN8</strong>, or create your own fresh circle above!
+      <div style="background:var(--bg-card); border:1px dashed var(--border); border-radius:var(--radius-sm); padding:12px 14px; text-align:center; font-size:11.5px; color:var(--text-muted);">
+        <strong>Demo Tip:</strong> To explore the pre-configured Dela Cruz demo family, join with invite code <strong>BAYANAN8</strong>, or create your own fresh circle above!
       </div>
     </div>
 
@@ -386,16 +384,19 @@
       <section class="family-circle-header">
         <div>
           <div class="circle-name-title">
-            <span style="font-size:20px;">🛡️</span>
+            <div style="width:28px; height:28px; border-radius:var(--radius-xs); background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
             <span id="family-name">Family Circle</span>
           </div>
           <p id="family-desc" style="font-size:12px; color:var(--text-muted); margin:2px 0 0;">Barangay Bayanan</p>
         </div>
         <div style="text-align:right;">
-          <span id="circle-summary-badge" class="circle-status-chip">● All Safe</span>
+          <span id="circle-summary-badge" class="circle-status-chip">All Safe</span>
           <div style="margin-top:4px;">
-            <button type="button" onclick="copyInviteCode()" style="background:var(--primary-light); color:var(--primary); border:none; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700; cursor:pointer;">
-              Code: <span id="invite-code-chip">--------</span> 📋
+            <button type="button" onclick="copyInviteCode()" style="background:var(--primary-light); color:var(--primary); border:1px solid var(--primary-border); border-radius:var(--radius-xs); padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+              <span>Code: <span id="invite-code-chip">--------</span></span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             </button>
           </div>
         </div>
@@ -411,28 +412,31 @@
       </section>
 
       <!-- Quick Check-in & Share Live GPS -->
-      <section class="ui-card" style="padding:14px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <section class="ui-card" style="padding:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h2 style="margin:0; font-size:15px;">My Live Status &amp; Check-In</h2>
-          <span id="my-batt-display" class="l360-batt-pill">🔋 85% Battery</span>
+          <span id="my-batt-display" class="l360-batt-pill">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="11" x2="23" y2="13"/></svg>
+            85% Battery
+          </span>
         </div>
         
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:10px;">
-          <button type="button" onclick="quickSetSafety('safe')" id="btn-status-safe" class="ui-btn" style="background:var(--success-light); color:var(--success); font-size:12px; padding:8px 4px; border:2px solid var(--success); display:inline-flex; align-items:center; justify-content:center; gap:4px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
+          <button type="button" onclick="quickSetSafety('safe')" id="btn-status-safe" class="ui-btn" style="background:var(--success-light); color:var(--success); font-size:12px; padding:9px 6px; border:2px solid var(--success); display:inline-flex; align-items:center; justify-content:center; gap:5px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             <span>Safe</span>
           </button>
-          <button type="button" onclick="quickSetSafety('need_help')" id="btn-status-help" class="ui-btn" style="background:var(--warning-light); color:var(--warning); font-size:12px; padding:8px 4px; border:1px solid var(--border); display:inline-flex; align-items:center; justify-content:center; gap:4px;">
+          <button type="button" onclick="quickSetSafety('need_help')" id="btn-status-help" class="ui-btn" style="background:var(--warning-light); color:var(--warning); font-size:12px; padding:9px 6px; border:1px solid var(--border); display:inline-flex; align-items:center; justify-content:center; gap:5px;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span>Need Help</span>
           </button>
-          <button type="button" onclick="quickSetSafety('injured')" id="btn-status-sos" class="ui-btn" style="background:var(--emergency-light); color:var(--emergency); font-size:12px; padding:8px 4px; border:1px solid var(--border); display:inline-flex; align-items:center; justify-content:center; gap:4px;">
+          <button type="button" onclick="quickSetSafety('injured')" id="btn-status-sos" class="ui-btn" style="background:var(--emergency-light); color:var(--emergency); font-size:12px; padding:9px 6px; border:1px solid var(--border); display:inline-flex; align-items:center; justify-content:center; gap:5px;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span>SOS Rescue</span>
           </button>
         </div>
 
-        <button type="button" id="share-gps-btn" onclick="syncMyLiveGPS()" class="ui-btn ui-btn-primary" style="font-size:13px; padding:10px; display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+        <button type="button" id="share-gps-btn" onclick="syncMyLiveGPS()" class="ui-btn ui-btn-primary" style="font-size:13px; padding:11px; display:inline-flex; align-items:center; justify-content:center; gap:6px;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
           <span>Check-In &amp; Sync My Live Location</span>
         </button>
@@ -440,14 +444,16 @@
 
       <!-- Family Members List (Life360 Tray) -->
       <section class="ui-card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
           <h2 style="margin:0; font-size:16px;">Family Members (<span id="member-count">0</span>)</h2>
           <div style="display:flex; gap:6px;">
-            <button type="button" onclick="openAddMemberModal()" class="ui-btn ui-btn-secondary" style="width:auto; padding:6px 12px; font-size:11px; font-weight:700;">
-              ➕ Add Member
+            <button type="button" onclick="openAddMemberModal()" class="ui-btn ui-btn-secondary" style="width:auto; padding:6px 12px; font-size:11.5px; font-weight:700;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              Add Member
             </button>
-            <button type="button" onclick="copyInviteCode()" class="ui-btn ui-btn-secondary" style="width:auto; padding:6px 10px; font-size:11px;">
-              🔗 Invite
+            <button type="button" onclick="copyInviteCode()" class="ui-btn ui-btn-secondary" style="width:auto; padding:6px 10px; font-size:11.5px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              Invite
             </button>
           </div>
         </div>
@@ -455,9 +461,10 @@
 
         <!-- Circle Actions (Leave Circle) -->
         <div style="margin-top:14px; border-top:1px solid var(--border-light); padding-top:12px; display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:11px; color:var(--text-muted);">Family Circle Management</span>
-          <button type="button" onclick="confirmLeaveFamily()" style="background:none; border:none; color:var(--emergency); font-size:12px; font-weight:700; cursor:pointer; padding:4px 8px;">
-            🚪 Leave Family Circle
+          <span style="font-size:11.5px; color:var(--text-muted);">Family Circle Management</span>
+          <button type="button" onclick="confirmLeaveFamily()" style="background:none; border:none; color:var(--emergency); font-size:12px; font-weight:700; cursor:pointer; padding:4px 8px; display:inline-flex; align-items:center; gap:4px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            Leave Family Circle
           </button>
         </div>
       </section>
@@ -469,7 +476,7 @@
     <div class="profile-modal-card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
         <h2 style="margin:0; font-size:17px; font-weight:800;">Add Family Member</h2>
-        <button type="button" class="profile-modal-close" onclick="closeAddMemberModal()">&times;</button>
+        <button type="button" class="profile-modal-close" onclick="closeAddMemberModal()" aria-label="Close add member modal">&times;</button>
       </div>
 
       <form id="add-member-form" onsubmit="handleAddMember(event)">
@@ -508,29 +515,26 @@
     }
 
     let familyMap = null;
-    let memberMarkers = {};
     let markerLayerGroup = null;
+    let memberMarkers = {};
     let currentFamilyData = null;
     let isFamilyHead = false;
-    let unsubscribeFirestoreListener = null;
+    let myLastLat = null;
+    let myLastLng = null;
 
-    // 1. Initialize Life360 Leaflet Map
+    // 1. Initialize Leaflet Map
     function initFamilyMap() {
       if (familyMap) return;
-      const mapContainer = document.getElementById('family-map');
-      if (!mapContainer) return;
-
       familyMap = L.map('family-map', {
-        zoomControl: true,
+        zoomControl: false,
         attributionControl: false
-      }).setView([14.4106, 121.0502], 16);
+      }).setView([14.4106, 121.0502], 15);
 
       setupMapTileLayer(familyMap);
       markerLayerGroup = L.layerGroup().addTo(familyMap);
-      setTimeout(() => familyMap?.invalidateSize(), 250);
     }
 
-    // 2. Render Life360 Custom Pin Marker
+    // 2. Custom Life360 Marker HTML
     function createMemberIcon(member) {
       const initials = (member.name || 'Member')
         .split(' ')
@@ -542,7 +546,6 @@
       const isSOS = member.safety_status === 'injured' || member.safety_status === 'need_help';
       const avatarClass = isSOS ? 'l360-pin-avatar l360-pin-avatar--sos' : 'l360-pin-avatar';
       const batt = member.battery_level !== undefined ? member.battery_level : 75;
-      const battIcon = batt < 20 ? '🪫' : '🔋';
 
       return L.divIcon({
         className: 'l360-custom-icon',
@@ -550,7 +553,7 @@
           <div class="l360-member-pin">
             <div class="l360-pin-pulse"></div>
             <div class="${avatarClass}">${initials}</div>
-            <div class="l360-pin-battery">${battIcon} ${batt}%</div>
+            <div class="l360-pin-battery">${batt}%</div>
           </div>
         `,
         iconSize: [52, 52],
@@ -575,13 +578,13 @@
 
           const marker = L.marker([lat, lng], { icon: createMemberIcon(m) })
             .bindPopup(`
-              <div style="font-family:sans-serif;">
-                <strong style="font-size:14px;">${escapeHtml(m.name)}</strong><br>
-                <span style="font-size:12px; color:var(--text-muted);">${escapeHtml(m.relationship || 'Family Member')}</span><br>
+              <div style="font-family:sans-serif; padding:4px;">
+                <strong style="font-size:13.5px;">${escapeHtml(m.name)}</strong><br>
+                <span style="font-size:11.5px; color:var(--text-muted);">${escapeHtml(m.relationship || 'Family Member')}</span><br>
                 <span style="display:inline-block; margin:4px 0; font-size:11px; font-weight:700; color:${m.safety_status === 'safe' ? 'var(--success)' : 'var(--emergency)'}">
                   ● ${m.safety_status === 'safe' ? 'Safe' : 'Needs Help'}
                 </span><br>
-                <small style="color:#666;">📍 ${escapeHtml(m.last_location_name || 'Barangay Bayanan')}</small>
+                <small style="color:#64748B;">GPS: ${escapeHtml(m.last_location_name || 'Barangay Bayanan')}</small>
               </div>
             `);
 
@@ -617,13 +620,15 @@
       const badge = document.getElementById('circle-summary-badge');
       if (badge) {
         if (anyInDanger) {
-          badge.textContent = '🚨 Action Needed';
+          badge.textContent = 'Action Needed';
           badge.style.background = 'var(--emergency-light)';
           badge.style.color = 'var(--emergency)';
+          badge.style.borderColor = 'var(--emergency-border)';
         } else {
-          badge.textContent = '● All Safe';
+          badge.textContent = 'All Safe';
           badge.style.background = 'var(--success-light)';
           badge.style.color = 'var(--green)';
+          badge.style.borderColor = 'var(--success-border)';
         }
       }
 
@@ -645,10 +650,10 @@
                   <div style="font-weight:800; font-size:14px; color:var(--text);">
                     ${escapeHtml(m.name)} 
                     ${isMe ? '<small style="color:var(--primary); font-weight:700;">(You)</small>' : ''}
-                    ${isHead ? '<small style="color:var(--warning); font-weight:700;">👑 Head</small>' : ''}
+                    ${isHead ? '<small style="color:var(--warning); font-weight:700;">[Head]</small>' : ''}
                   </div>
                   <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
-                    ${escapeHtml(m.relationship || 'Household Member')} · <span class="${isLow ? 'l360-batt-pill l360-batt-pill--low' : 'l360-batt-pill'}">${isLow ? '🪫' : '🔋'} ${batt}%</span>
+                    ${escapeHtml(m.relationship || 'Household Member')} · <span class="${isLow ? 'l360-batt-pill l360-batt-pill--low' : 'l360-batt-pill'}">${batt}% Battery</span>
                   </div>
                 </div>
               </div>
@@ -657,26 +662,32 @@
               </div>
             </div>
 
-            <div style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:5px;">
-              <span>📍</span> <span>${escapeHtml(m.last_location_name || 'Barangay Bayanan')}</span>
+            <div style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              <span>${escapeHtml(m.last_location_name || 'Barangay Bayanan')}</span>
             </div>
 
             <div class="l360-actions-row">
               <button type="button" class="l360-btn-action" onclick="focusMember(${m.id})">
-                🎯 Focus
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+                Focus
               </button>
               <button type="button" class="l360-btn-action" onclick="navigateToMember(${m.last_latitude || 14.4106}, ${m.last_longitude || 121.0502})">
-                🧭 Directions
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                Directions
               </button>
               <button type="button" class="l360-btn-action" onclick="callMember('${m.phone || '09170000000'}')">
-                📞 Call
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                Call
               </button>
               ${isFamilyHead && !isMe ? `
                 <button type="button" class="l360-btn-action" style="color:var(--warning);" onclick="handleTransferHead(${m.id})">
-                  👑 Make Head
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                  Make Head
                 </button>
                 <button type="button" class="l360-btn-action" style="color:var(--emergency);" onclick="handleRemoveMember(${m.id})">
-                  🗑️ Remove
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  Remove
                 </button>
               ` : ''}
             </div>
@@ -698,10 +709,9 @@
 
           // Connect Firestore Real-Time Listener for this specific family circle
           if (window.GeoSafeDB && currentFamilyData.id) {
-            if (unsubscribeFirestoreListener) unsubscribeFirestoreListener();
-            unsubscribeFirestoreListener = window.GeoSafeDB.listenFamily(currentFamilyData.id, (cloudData) => {
-              if (cloudData && cloudData.members) {
-                currentFamilyData = cloudData;
+            window.GeoSafeDB.listenFamilyMembers(currentFamilyData.id, (freshMembers) => {
+              if (freshMembers && freshMembers.length && currentFamilyData) {
+                currentFamilyData.members = freshMembers;
                 renderMapPins();
                 renderMembersList();
               }
@@ -711,7 +721,6 @@
           showNoFamilyView();
         }
       } catch (err) {
-        console.warn('Load family state error:', err);
         showNoFamilyView();
       }
     }
@@ -719,10 +728,6 @@
     function showNoFamilyView() {
       document.getElementById('no-family-view').style.display = 'flex';
       document.getElementById('has-family-view').style.display = 'none';
-      if (unsubscribeFirestoreListener) {
-        unsubscribeFirestoreListener();
-        unsubscribeFirestoreListener = null;
-      }
     }
 
     function showHasFamilyView() {
@@ -749,14 +754,14 @@
           method: 'POST',
           body: JSON.stringify({ name, description: desc })
         });
-        showToast('🎉 Family Circle created successfully!', 'success');
+        showToast('Family Circle created successfully!', 'success');
         document.getElementById('create-family-form').reset();
         await loadFamilyState();
       } catch (err) {
         showToast(err.message || 'Failed to create family circle', 'danger');
       } finally {
         btn.disabled = false;
-        btn.textContent = '🚀 Create Family Circle & Get Invite Code';
+        btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Create Family Circle & Get Invite Code`;
       }
     }
 
@@ -775,14 +780,14 @@
           method: 'POST',
           body: JSON.stringify({ invite_code, relationship })
         });
-        showToast(`🎉 Joined "${res.family?.name || 'Family Circle'}"!`, 'success');
+        showToast(`Joined "${res.family?.name || 'Family Circle'}"!`, 'success');
         document.getElementById('join-family-form').reset();
         await loadFamilyState();
       } catch (err) {
         showToast(err.message || 'Invalid invite code', 'danger');
       } finally {
         btn.disabled = false;
-        btn.textContent = '🤝 Join Family Circle';
+        btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg> Join Family Circle`;
       }
     }
 
@@ -824,7 +829,7 @@
     function copyInviteCode() {
       const code = currentFamilyData?.invite_code || 'BAYANAN8';
       navigator.clipboard.writeText(code).then(() => {
-        showToast(`📋 Family Invite Code copied: ${code}`, 'success');
+        showToast(`Family Invite Code copied: ${code}`, 'success');
       }).catch(() => {
         showToast(`Family Invite Code: ${code}`);
       });
@@ -864,7 +869,9 @@
         try {
           const b = await navigator.getBattery();
           battLevel = Math.round(b.level * 100);
-          document.getElementById('my-batt-display').textContent = `🔋 ${battLevel}% Battery`;
+          document.getElementById('my-batt-display').innerHTML = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="11" x2="23" y2="13"/></svg>
+            ${battLevel}% Battery`;
         } catch (e) {}
       }
 
@@ -892,12 +899,12 @@
             renderMembersList();
           }
         }
-        showToast('✅ Live GPS & battery synced with family circle!', 'success');
+        showToast('Live GPS & battery synced with family circle!', 'success');
       } catch (err) {
-        showToast('📍 Could not acquire high accuracy GPS.', 'warning');
+        showToast('Could not acquire high accuracy GPS.', 'warning');
       } finally {
         btn.disabled = false;
-        btn.textContent = '📍 Check-In & Sync My Live Location';
+        btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg> Check-In & Sync My Live Location`;
       }
     }
 
@@ -942,7 +949,7 @@
           method: 'PUT',
           body: JSON.stringify({ new_head_user_id: memberId })
         });
-        showToast(`👑 Family Head ownership transferred to ${targetName}!`, 'success');
+        showToast(`Family Head ownership transferred to ${targetName}!`, 'success');
         await loadFamilyState();
       } catch (err) {
         showToast(err.message || 'Failed to transfer family head', 'danger');
@@ -971,7 +978,9 @@
       navigator.getBattery().then(b => {
         const battLevel = Math.round(b.level * 100);
         const el = document.getElementById('my-batt-display');
-        if (el) el.textContent = `🔋 ${battLevel}% Battery`;
+        if (el) el.innerHTML = `
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="11" x2="23" y2="13"/></svg>
+          ${battLevel}% Battery`;
       }).catch(() => {});
     }
 

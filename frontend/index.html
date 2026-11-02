@@ -6,17 +6,17 @@
   <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css?v=2.2" />
+  <link rel="stylesheet" href="/mobile-ui.css?v=3.0" />
   <title>GeoSafe — Sign In & Register</title>
 </head>
 <body class="auth-page">
   <div class="auth-bg" aria-hidden="true"></div>
 
   <div class="auth-layout">
-    <header class="auth-header" style="display:flex; justify-content:space-between; align-items:center;">
-      <a href="/" class="auth-logo">
+    <header class="auth-header">
+      <a href="/" class="auth-logo" aria-label="GeoSafe Home">
         <div class="auth-logo__icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </div>
         <div>
           <span class="auth-logo__text">GeoSafe</span>
@@ -36,15 +36,21 @@
         </p>
         <div class="auth-features">
           <div class="auth-feature">
-            <span>📍</span>
+            <div class="auth-feature__icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            </div>
             <span>GPS Incident &amp; SOS Disaster Reporting</span>
           </div>
           <div class="auth-feature">
-            <span>📡</span>
+            <div class="auth-feature__icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></svg>
+            </div>
             <span>Real-time BDRRMC Emergency Broadcasts</span>
           </div>
           <div class="auth-feature">
-            <span>👨‍👩‍👧</span>
+            <div class="auth-feature__icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
             <span>Family Safety Status &amp; Location Tracker</span>
           </div>
         </div>
@@ -77,22 +83,34 @@
               </div>
             </div>
             <p id="login-error" class="auth-error hidden" role="alert"></p>
-            <button type="submit" class="auth-submit" id="login-btn">Sign In to Dashboard</button>
+            <button type="submit" class="auth-submit" id="login-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+              Sign In to Dashboard
+            </button>
           </form>
 
           <details class="auth-demo" open>
             <summary>Quick Demo 1-Tap Login</summary>
             <div class="auth-demo-grid">
               <button type="button" class="auth-demo-btn" data-email="admin@geosafe.local" data-pass="admin123">
-                <span>🛡️ Admin Command</span>
+                <span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  Admin Command
+                </span>
                 <span>admin@geosafe.local</span>
               </button>
               <button type="button" class="auth-demo-btn" data-email="responder@geosafe.local" data-pass="responder123">
-                <span>🚑 Responder Unit</span>
+                <span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                  Responder Unit
+                </span>
                 <span>responder@geosafe.local</span>
               </button>
               <button type="button" class="auth-demo-btn" data-email="resident@geosafe.local" data-pass="resident123">
-                <span>🏠 Resident User</span>
+                <span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                  Resident User
+                </span>
                 <span>resident@geosafe.local</span>
               </button>
             </div>
@@ -124,7 +142,10 @@
               </div>
             </div>
             <p id="register-error" class="auth-error hidden" role="alert"></p>
-            <button type="submit" class="auth-submit" id="register-btn">Register Resident Account</button>
+            <button type="submit" class="auth-submit" id="register-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+              Register Resident Account
+            </button>
           </form>
         </div>
       </section>
@@ -199,7 +220,7 @@
         e.preventDefault();
         errEl.classList.add('hidden');
         btn.disabled = true;
-        const prevText = btn.textContent;
+        const prevText = btn.innerHTML;
         btn.textContent = 'Authenticating…';
 
         const fd = new FormData(form);
@@ -217,7 +238,7 @@
           errEl.textContent = err.message;
           errEl.classList.remove('hidden');
           btn.disabled = false;
-          btn.textContent = prevText;
+          btn.innerHTML = prevText;
         }
       });
     }

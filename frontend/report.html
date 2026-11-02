@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css?v=3.6" />
+  <link rel="stylesheet" href="/mobile-ui.css?v=3.0" />
   <title>GeoSafe — Disaster Incident &amp; SOS Report</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -15,51 +15,71 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 359px) {
+      .hazard-chips-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+      }
+    }
+    @media (min-width: 640px) {
+      .hazard-chips-grid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 10px;
+      }
     }
     .hazard-chip {
-      background: var(--bg-app);
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
       padding: 10px 6px;
       text-align: center;
       cursor: pointer;
       font-size: 11px;
       font-weight: 700;
       color: var(--text);
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
     }
-    .hazard-chip.active {
+    .hazard-chip:hover {
       border-color: var(--primary);
-      background: rgba(21, 101, 192, 0.08);
-      color: var(--primary);
+      background: var(--bg-subtle);
     }
-    .hazard-chip--sos.active {
+    .hazard-chip.active, .hazard-chip.hazard-chip--active {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+    .hazard-chip--sos.active, .hazard-chip--sos.hazard-chip--active {
       border-color: var(--emergency);
-      background: rgba(211, 47, 47, 0.08);
+      background: var(--emergency-light);
       color: var(--emergency);
+      box-shadow: 0 0 0 1px var(--emergency);
     }
     .photo-upload-zone {
-      border: 2px dashed var(--border);
-      border-radius: 12px;
-      padding: 14px;
+      border: 1.5px dashed var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
       text-align: center;
       cursor: pointer;
       background: var(--bg-app);
       margin-bottom: 14px;
-      transition: all 0.2s;
+      transition: all 0.15s ease;
     }
     .photo-upload-zone:hover {
       border-color: var(--primary);
+      background: var(--primary-light);
     }
     #map-preview {
       width: 100%;
-      height: 180px;
-      border-radius: 12px;
+      height: clamp(160px, 32vh, 240px);
+      min-height: 150px;
+      border-radius: var(--radius-sm);
       margin-bottom: 12px;
       border: 1px solid var(--border);
     }
@@ -70,7 +90,9 @@
     <!-- Topbar -->
     <header class="resident-topbar">
       <div class="resident-brand">
-        <span class="resident-brand__mark">⌖</span>
+        <span class="resident-brand__mark">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </span>
         <span>GeoSafe</span>
       </div>
       <div class="resident-topbar__actions" style="display:flex; align-items:center; gap:8px;">
@@ -83,17 +105,19 @@
 
     <!-- Header Title -->
     <div style="margin-bottom:14px;">
-      <h1 style="font-size:22px; font-weight:800; margin:0;" id="page-title">Report Disaster Incident</h1>
-      <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Barangay Bayanan Incident &amp; Rescue Dispatch</p>
+      <h1 style="font-size:22px; font-weight:900; margin:0;" id="page-title">Report Disaster Incident</h1>
+      <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;">Barangay Bayanan Incident &amp; Rescue Dispatch</p>
     </div>
 
     <!-- Active SOS Mode Banner (If in SOS mode) -->
-    <div id="sos-active-banner" style="display:none; background:linear-gradient(135deg, #D32F2F, #B71C1C); color:white; padding:12px 14px; border-radius:12px; margin-bottom:14px; box-shadow:var(--shadow-md);">
+    <div id="sos-active-banner" style="display:none; background:var(--emergency-light); border:1px solid var(--emergency-border); color:var(--emergency); padding:12px 14px; border-radius:var(--radius-sm); margin-bottom:14px; box-shadow:var(--shadow-sm);">
       <div style="display:flex; align-items:center; gap:10px;">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:pulse 1.2s infinite;"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div style="width:30px; height:30px; border-radius:50%; background:var(--emergency); color:white; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        </div>
         <div>
-          <strong style="font-size:14px; display:block;">EMERGENCY SOS MODE ACTIVE</strong>
-          <span style="font-size:11px; color:#FFCDD2;">Your live GPS coordinates will be sent to BDRRMC responders.</span>
+          <strong style="font-size:13.5px; display:block;">EMERGENCY SOS MODE ACTIVE</strong>
+          <span style="font-size:11.5px; color:var(--emergency);">Your live GPS coordinates will be sent directly to BDRRMC responders.</span>
         </div>
       </div>
     </div>
@@ -102,32 +126,32 @@
     <section class="ui-card">
       <form id="report-form">
         <!-- 1-Tap Quick Hazard Selector Chips -->
-        <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:8px;">
+        <label style="font-size:11.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; display:block; margin-bottom:8px;">
           Select Incident Category
         </label>
         <div class="hazard-chips-grid">
           <div class="hazard-chip active" data-type="Flood" onclick="selectHazardChip('Flood', this)">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12c1.5-2 3.5-2 5 0s3.5 2 5 0 3.5-2 5 0 3.5 2 5 0M2 17c1.5-2 3.5-2 5 0s3.5 2 5 0 3.5-2 5 0 3.5 2 5 0"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12c1.5-2 3.5-2 5 0s3.5 2 5 0 3.5-2 5 0 3.5-2 5 0M2 17c1.5-2 3.5-2 5 0s3.5 2 5 0 3.5-2 5 0 3.5-2 5 0"/></svg>
             <span>Flood Level</span>
           </div>
           <div class="hazard-chip" data-type="Fire" onclick="selectHazardChip('Fire', this)">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
             <span>Fire Hazard</span>
           </div>
           <div class="hazard-chip" data-type="Medical" onclick="selectHazardChip('Medical', this)">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
             <span>Medical SOS</span>
           </div>
           <div class="hazard-chip" data-type="Earthquake" onclick="selectHazardChip('Earthquake', this)">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><line x1="8" y1="6" x2="8.01" y2="6"/><line x1="16" y1="6" x2="16.01" y2="6"/><line x1="8" y1="10" x2="8.01" y2="10"/><line x1="16" y1="10" x2="16.01" y2="10"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><line x1="8" y1="6" x2="8.01" y2="6"/><line x1="16" y1="6" x2="16.01" y2="6"/><line x1="8" y1="10" x2="8.01" y2="10"/><line x1="16" y1="10" x2="16.01" y2="10"/></svg>
             <span>Structural</span>
           </div>
           <div class="hazard-chip" data-type="Storm" onclick="selectHazardChip('Storm', this)">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 17a5 5 0 0 0 2.3-9.5A7 7 0 0 0 6.6 9 5 5 0 0 0 8 19h9a4 4 0 0 0 0-8M8 19v2M12 19v2M16 19v2"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 17a5 5 0 0 0 2.3-9.5A7 7 0 0 0 6.6 9 5 5 0 0 0 8 19h9a4 4 0 0 0 0-8M8 19v2M12 19v2M16 19v2"/></svg>
             <span>Typhoon Gale</span>
           </div>
           <div class="hazard-chip hazard-chip--sos" data-type="SOS" onclick="selectHazardChip('SOS', this)">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span>SOS Rescue</span>
           </div>
         </div>
@@ -141,10 +165,10 @@
         <textarea name="description" id="report_desc" required minlength="6" rows="3" class="ui-textarea" oninput="updateSeverityPreview()" placeholder="Describe situation (e.g. Waist-high flood water, 4 family members trapped on 2nd floor, near Bayanan Creek)..."></textarea>
 
         <!-- Live Severity Detection Preview -->
-        <div id="severity-preview-box" style="margin-bottom:12px; padding:10px 12px; border-radius:10px; background:rgba(21, 101, 192, 0.05); border:1.5px solid var(--border); display:none;">
+        <div id="severity-preview-box" style="margin-bottom:12px; padding:10px 12px; border-radius:var(--radius-sm); background:var(--bg-subtle); border:1px solid var(--border); display:none;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
             <div style="display:flex; align-items:center; gap:6px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6v6l4 2"/></svg>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
               <strong style="font-size:12px; color:var(--text);">Severity Detection Analysis (Rule-Based)</strong>
             </div>
             <span id="detected-severity-badge"></span>
@@ -154,14 +178,14 @@
         </div>
 
         <!-- GPS Coordinates Capture Status -->
-        <div style="background:var(--bg-app); border:1.5px solid var(--border); border-radius:12px; padding:12px; margin-bottom:12px;">
+        <div style="background:var(--bg-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <div>
-              <strong style="font-size:13px; color:var(--text);">Incident GPS Location</strong>
-              <p id="location-status" style="font-size:11px; color:var(--primary); margin:2px 0 0; font-weight:600;">📍 Acquiring GPS coordinates…</p>
+              <strong style="font-size:12.5px; color:var(--text);">Incident GPS Location</strong>
+              <p id="location-status" style="font-size:11.5px; color:var(--primary); margin:2px 0 0; font-weight:600;">Acquiring GPS coordinates…</p>
             </div>
-            <button type="button" id="get-location" onclick="fetchGPS()" class="ui-btn ui-btn-secondary" style="width:auto; padding:8px 12px; font-size:12px; display:inline-flex; align-items:center; gap:5px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <button type="button" id="get-location" onclick="fetchGPS()" class="ui-btn ui-btn-secondary" style="width:auto; padding:6px 12px; font-size:12px; display:inline-flex; align-items:center; gap:5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
               Recapture
             </button>
           </div>
@@ -176,36 +200,40 @@
         <div class="photo-upload-zone" onclick="document.getElementById('photo-input').click()">
           <input type="file" id="photo-input" accept="image/*" style="display:none;" onchange="previewPhoto(this)" />
           <div id="photo-preview-placeholder">
-            <span style="font-size:24px;">📸</span>
-            <p style="margin:4px 0 0; font-size:12px; font-weight:600; color:var(--text);">Attach Incident Photo (Optional)</p>
-            <span style="font-size:10px; color:var(--text-muted);">Tap to take photo or upload from gallery</span>
+            <div style="width:36px; height:36px; border-radius:50%; background:var(--bg-card); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; margin:0 auto 6px; color:var(--text-muted);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </div>
+            <p style="margin:0; font-size:12.5px; font-weight:700; color:var(--text);">Attach Incident Photo (Optional)</p>
+            <span style="font-size:11px; color:var(--text-muted);">Tap to take photo or upload from gallery</span>
           </div>
           <img id="photo-preview-img" style="display:none; max-height:140px; border-radius:8px; margin:0 auto;" alt="Incident snapshot preview" />
         </div>
 
-        <p id="report-error" class="text-error hidden" style="color:var(--emergency); font-size:12px; margin-bottom:8px;"></p>
-        <button type="submit" class="ui-btn ui-btn-primary" id="submit-btn" style="padding:14px; font-size:15px; font-weight:800;">
-          📢 Transmit Incident Report
+        <p id="report-error" class="auth-error hidden"></p>
+        <button type="submit" class="ui-btn ui-btn-primary" id="submit-btn" style="padding:13px; font-size:14.5px; font-weight:800;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          Transmit Incident Report
         </button>
       </form>
     </section>
 
     <!-- Citizen Emergency Hotline Quick Card -->
-    <div style="background:var(--bg-app); border:1.5px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; box-shadow:var(--shadow-xs);">
       <div>
-        <strong style="font-size:12px; color:var(--text);">BDRRMC Emergency Hotline</strong>
+        <strong style="font-size:12.5px; color:var(--text);">BDRRMC Emergency Hotline</strong>
         <p style="font-size:11px; color:var(--text-muted); margin:2px 0 0;">24/7 Barangay Bayanan Rescue Command</p>
       </div>
-      <a href="tel:0288622525" class="ui-btn ui-btn-secondary" style="width:auto; padding:8px 12px; font-size:12px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
-        📞 Call (02) 8862-2525
+      <a href="tel:0288622525" class="ui-btn ui-btn-secondary" style="width:auto; padding:7px 12px; font-size:12px; text-decoration:none; display:inline-flex; align-items:center; gap:5px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+        Call (02) 8862-2525
       </a>
     </div>
 
     <!-- My Incident Reports History Feed -->
     <section class="ui-card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <h2 style="margin:0; font-size:16px;">My Disaster Reports History</h2>
-        <button type="button" class="ui-btn-ghost" onclick="loadReports()" style="font-size:12px;">↻ Refresh</button>
+        <button type="button" class="ui-btn-ghost" onclick="loadReports()" style="font-size:12px;">Refresh</button>
       </div>
       <div id="reports-list">
         <p class="text-muted" style="font-size:13px;">Loading reports…</p>
@@ -234,9 +262,9 @@
       document.getElementById('page-title').textContent = 'Emergency SOS Rescue';
       document.getElementById('sos-active-banner').style.display = 'block';
       selectHazardChip('SOS', document.querySelector('[data-type="SOS"]'));
-      document.getElementById('report_desc').value = '🚨 EMERGENCY SOS: Immediate rescue assistance requested at my current GPS location in Barangay Bayanan.';
+      document.getElementById('report_desc').value = 'EMERGENCY SOS: Immediate rescue assistance requested at my current GPS location in Barangay Bayanan.';
       const sBtn = document.getElementById('submit-btn');
-      sBtn.textContent = '🚨 Dispatch Immediate SOS Rescue';
+      sBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Dispatch Immediate SOS Rescue`;
       sBtn.style.background = 'var(--emergency)';
     }
 
@@ -249,10 +277,10 @@
       const sBtn = document.getElementById('submit-btn');
       if (type === 'SOS') {
         sBtn.style.background = 'var(--emergency)';
-        sBtn.textContent = '🚨 Dispatch Immediate SOS Rescue';
+        sBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Dispatch Immediate SOS Rescue`;
       } else {
         sBtn.style.background = 'var(--primary)';
-        sBtn.textContent = `📢 Transmit ${type} Incident Report`;
+        sBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg> Transmit ${type} Incident Report`;
       }
       updateSeverityPreview();
     }
@@ -277,7 +305,7 @@
 
       const triggersEl = document.getElementById('severity-triggers-list');
       if (detection.matchedKeywords.length > 0) {
-        triggersEl.innerHTML = `⚠️ Urgency Triggers: <strong>${escapeHtml(detection.matchedKeywords.join(', '))}</strong>`;
+        triggersEl.innerHTML = `Urgency Triggers: <strong>${escapeHtml(detection.matchedKeywords.join(', '))}</strong>`;
       } else {
         triggersEl.innerHTML = `Standard situation baseline`;
       }
@@ -299,11 +327,11 @@
           const pos = e.target.getLatLng();
           document.getElementById('latitude').value = pos.lat.toFixed(5);
           document.getElementById('longitude').value = pos.lng.toFixed(5);
-          document.getElementById('location-status').textContent = `📍 Selected: ${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`;
+          document.getElementById('location-status').textContent = `Selected: ${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`;
           if (typeof reverseGeocodeOSM === 'function') {
             const place = await reverseGeocodeOSM(pos.lat, pos.lng);
             if (place) {
-              document.getElementById('location-status').textContent = `📍 ${place} (${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)})`;
+              document.getElementById('location-status').textContent = `${place} (${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)})`;
               reportMarker.bindPopup(`<b>Incident Location</b><br>${escapeHtml(place)}`).openPopup();
             }
           }
@@ -322,16 +350,16 @@
       try {
         const { latitude, longitude } = await getGeolocation();
         initReportMap(latitude, longitude);
-        statusEl.textContent = `📍 GPS Acquired: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+        statusEl.textContent = `GPS Acquired: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
         if (typeof reverseGeocodeOSM === 'function') {
           const place = await reverseGeocodeOSM(latitude, longitude);
           if (place) {
-            statusEl.textContent = `📍 ${place} (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
+            statusEl.textContent = `${place} (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
           }
         }
       } catch (err) {
         initReportMap(14.4106, 121.0502);
-        statusEl.textContent = '📍 Bayanan Standard Coordinates (14.4106, 121.0502)';
+        statusEl.textContent = 'Bayanan Standard Coordinates (14.4106, 121.0502)';
       }
     }
 
@@ -381,7 +409,7 @@
       const detection = detectSeverity(incType, desc);
 
       const submitBtn = document.getElementById('submit-btn');
-      const origText = submitBtn.textContent;
+      const origHtml = submitBtn.innerHTML;
       submitBtn.textContent = 'Transmitting to Command Center…';
       submitBtn.disabled = true;
 
@@ -398,7 +426,7 @@
         });
 
         playDispatchChime();
-        showToast(isSos || incType === 'SOS' ? '🚨 SOS EMERGENCY RESCUE DISPATCHED!' : '✓ Incident Report Submitted to BDRRMC', 'success');
+        showToast(isSos || incType === 'SOS' ? 'SOS EMERGENCY RESCUE DISPATCHED' : 'Incident Report Submitted to BDRRMC', 'success');
         
         // Reset description but keep location
         document.getElementById('report_desc').value = '';
@@ -411,7 +439,7 @@
         errEl.textContent = err.message;
         errEl.classList.remove('hidden');
       } finally {
-        submitBtn.textContent = origText;
+        submitBtn.innerHTML = origHtml;
         submitBtn.disabled = false;
       }
     });
@@ -420,10 +448,10 @@
     function renderReport(r) {
       const rep = calculateReportPriority ? calculateReportPriority(r) : r;
       return `
-        <div class="report-item" style="margin-bottom:10px; padding:12px; background:var(--bg-app); border-radius:10px; border:1.5px solid var(--border);">
+        <div class="report-item" style="margin-bottom:10px; padding:12px 14px; background:var(--bg-card); border-radius:var(--radius-sm); border:1px solid var(--border);">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
             <strong style="font-size:13px; color:var(--text);">
-              ${rep.incident_type === 'SOS' ? '🚨' : rep.incident_type === 'Flood' ? '🌊' : rep.incident_type === 'Fire' ? '🔥' : '⚠️'} ${escapeHtml(rep.incident_type)} Incident
+              ${escapeHtml(rep.incident_type)} Incident
             </strong>
             <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
               ${priorityBadge(rep)}
@@ -431,12 +459,12 @@
               ${statusBadge(rep.status)}
             </div>
           </div>
-          <p style="margin:0 0 6px; font-size:12px; color:var(--text); line-height:1.4;">${escapeHtml(rep.description)}</p>
+          <p style="margin:0 0 6px; font-size:12.5px; color:var(--text); line-height:1.45;">${escapeHtml(rep.description)}</p>
           <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted); flex-wrap:wrap; gap:4px;">
-            <span>📍 ${Number(rep.latitude).toFixed(4)}, ${Number(rep.longitude).toFixed(4)}</span>
+            <span>GPS: ${Number(rep.latitude).toFixed(4)}, ${Number(rep.longitude).toFixed(4)}</span>
             <span>${formatDate(rep.created_at)}</span>
           </div>
-          ${rep.responder_name ? `<div style="margin-top:6px; font-size:11px; color:var(--primary); font-weight:700;">🚑 Dispatched: ${escapeHtml(rep.responder_name)}</div>` : ''}
+          ${rep.responder_name ? `<div style="margin-top:6px; font-size:11px; color:var(--primary); font-weight:700;">Dispatched: ${escapeHtml(rep.responder_name)}</div>` : ''}
         </div>
       `;
     }

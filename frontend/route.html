@@ -6,16 +6,16 @@
   <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css?v=3.4" />
+  <link rel="stylesheet" href="/mobile-ui.css?v=3.0" />
   <title>GeoSafe — Evacuation Navigation</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     /* Google Maps Navigation Mode Styling */
     :root {
-      --gmap-green: #1B873F;
-      --gmap-blue: #1A73E8;
-      --gmap-dark: #202124;
+      --gmap-green: #15803D;
+      --gmap-blue: #1D4ED8;
+      --gmap-dark: #0F172A;
     }
 
     body.nav-active-mode {
@@ -33,13 +33,13 @@
     /* Map Box Container */
     .map-frame-box {
       width: 100%;
-      height: 380px;
-      min-height: 380px;
-      border-radius: var(--radius-lg);
+      height: clamp(280px, 48vh, 460px);
+      min-height: 260px;
+      border-radius: var(--radius);
       overflow: hidden;
-      border: 1.5px solid var(--border);
+      border: 1px solid var(--border);
       position: relative;
-      background: #E5E7EB;
+      background: #E2E8F0;
       box-shadow: var(--shadow-sm);
       margin-bottom: 16px;
     }
@@ -47,7 +47,7 @@
     #route-map {
       width: 100%;
       height: 100%;
-      min-height: 380px;
+      min-height: 260px;
       z-index: 1;
     }
 
@@ -71,22 +71,22 @@
       height: 100dvh;
     }
 
-    /* Top Google Maps Turn Guidance Banner */
+    /* Top Navigation Guidance Banner */
     .gmap-top-hud {
       position: absolute;
-      top: 14px;
-      left: 14px;
-      right: 14px;
+      top: max(12px, env(safe-area-inset-top, 12px));
+      left: clamp(10px, 3vw, 20px);
+      right: clamp(10px, 3vw, 20px);
       z-index: 10000;
       background: var(--gmap-green);
       color: white;
-      border-radius: 16px;
-      padding: 14px 16px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      border-radius: var(--radius-md);
+      padding: clamp(10px, 2.5vw, 16px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
       display: none;
       align-items: center;
-      gap: 14px;
-      animation: slideDown 0.3s ease;
+      gap: 12px;
+      animation: slideDown 0.25s ease;
     }
 
     .nav-active-mode .gmap-top-hud {
@@ -94,78 +94,103 @@
     }
 
     .gmap-turn-icon {
-      width: 46px;
-      height: 46px;
+      width: 44px;
+      height: 44px;
       background: rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
+      border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
       flex-shrink: 0;
     }
 
     .gmap-turn-dist {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
-      color: #A7F3D0;
+      color: #BBF7D0;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.05em;
       margin-bottom: 2px;
     }
 
     .gmap-turn-instruction {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       line-height: 1.25;
       margin: 0;
     }
 
-    /* Floating Map Controls */
+    /* Floating Map Controls — Positioned in Corner of Map Container */
     .gmap-floating-controls {
       position: absolute;
-      right: 16px;
-      bottom: 110px;
-      z-index: 10000;
+      right: 14px;
+      bottom: 14px;
+      z-index: 500;
       display: flex;
       flex-direction: column;
       gap: 10px;
     }
 
+    .nav-active-mode .gmap-floating-controls {
+      right: clamp(14px, 3.5vw, 20px);
+      bottom: calc(96px + env(safe-area-inset-bottom, 14px));
+      z-index: 10001;
+    }
+
     .gmap-float-btn {
-      width: 48px;
-      height: 48px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
-      background: white;
+      background: var(--bg-card);
       color: var(--text);
       border: 1px solid var(--border);
-      box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+      box-shadow: var(--shadow-md);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.15s ease;
+    }
+
+    .gmap-float-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--primary);
+      color: var(--primary);
     }
 
     .gmap-float-btn:active {
       transform: scale(0.92);
     }
 
-    /* Bottom Google Maps Navigation Dock */
+    .gmap-float-btn--active {
+      background: var(--primary) !important;
+      color: #FFFFFF !important;
+      border-color: var(--primary-hover) !important;
+      box-shadow: 0 4px 14px rgba(21, 101, 192, 0.4);
+    }
+
+    .gmap-float-btn--muted {
+      color: var(--text-muted) !important;
+      opacity: 0.85;
+    }
+
+    /* Bottom Navigation Dock */
     .gmap-bottom-dock {
       position: absolute;
       bottom: 0;
       left: 0;
       right: 0;
       z-index: 10000;
-      background: white;
-      padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px));
-      border-radius: 24px 24px 0 0;
-      box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25);
+      background: var(--bg-card);
+      color: var(--text);
+      border-top: 1px solid var(--border);
+      padding: 14px clamp(14px, 3.5vw, 24px) max(16px, env(safe-area-inset-bottom, 16px));
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+      border-radius: 20px 20px 0 0;
       display: none;
       justify-content: space-between;
       align-items: center;
+      animation: slideUp 0.25s ease;
     }
 
     .nav-active-mode .gmap-bottom-dock {
@@ -177,10 +202,11 @@
       font-weight: 900;
       color: var(--gmap-green);
       line-height: 1;
+      letter-spacing: -0.02em;
     }
 
     .gmap-eta-sub {
-      font-size: 13px;
+      font-size: 12.5px;
       color: var(--text-muted);
       font-weight: 600;
       margin-top: 4px;
@@ -193,20 +219,70 @@
       background: #FEE2E2;
       color: #DC2626;
       border: none;
-      width: 48px;
-      height: 48px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
-      font-weight: 900;
       cursor: pointer;
+      transition: background 0.15s;
     }
 
-    /* ============================================================
-       GOOGLE MAPS BLUE USER PIN + EYE OF SIGHT BEAM CONE
-       ============================================================ */
+    .gmap-exit-btn:hover {
+      background: #FECACA;
+    }
+
+    /* Dark Mode Overrides for Float Controls & Dock */
+    [data-theme="dark"] .gmap-float-btn {
+      background: var(--bg-card);
+      color: var(--text);
+      border-color: var(--border);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    }
+
+    [data-theme="dark"] .gmap-float-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-focus);
+      color: var(--border-focus);
+    }
+
+    [data-theme="dark"] .gmap-float-btn--active {
+      background: var(--primary) !important;
+      color: #FFFFFF !important;
+      border-color: var(--border-focus) !important;
+      box-shadow: 0 4px 16px rgba(96, 165, 250, 0.35);
+    }
+
+    [data-theme="dark"] .gmap-bottom-dock {
+      background: var(--bg-card);
+      border-top-color: var(--border);
+      box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    [data-theme="dark"] .gmap-eta-time {
+      color: #4ADE80;
+    }
+
+    [data-theme="dark"] .gmap-eta-sub {
+      color: var(--text-muted);
+    }
+
+    [data-theme="dark"] .gmap-exit-btn {
+      background: rgba(220, 38, 38, 0.25);
+      color: #F87171;
+      border: 1px solid rgba(248, 113, 113, 0.35);
+    }
+
+    [data-theme="dark"] .gmap-exit-btn:hover {
+      background: rgba(220, 38, 38, 0.35);
+    }
+
+    [data-theme="dark"] .map-frame-box {
+      background: #0B1120;
+    }
+
+    /* User Beacon Pin */
     .user-gps-container {
       position: relative;
       width: 50px;
@@ -217,56 +293,49 @@
       pointer-events: none;
     }
 
-    /* Directional Flashlight / Eye of Sight Cone */
     .user-vision-cone {
       position: absolute;
-      width: 68px;
-      height: 68px;
-      top: -34px;
-      left: -9px;
+      width: 80px;
+      height: 80px;
+      background: radial-gradient(circle at 50% 50%, rgba(21, 101, 192, 0.35) 0%, rgba(21, 101, 192, 0) 70%);
+      clip-path: polygon(50% 50%, 20% 0%, 80% 0%);
+      transform-origin: 50% 50%;
+      top: -15px;
+      left: -15px;
+      transition: transform 0.15s ease-out;
       pointer-events: none;
-      background: linear-gradient(to top, rgba(26, 115, 232, 0.45) 0%, rgba(26, 115, 232, 0.15) 60%, rgba(26, 115, 232, 0) 100%);
-      clip-path: polygon(50% 100%, 12% 0%, 88% 0%);
-      transform-origin: 50% 100%;
-      transform: rotate(0deg);
-      transition: transform 0.1s linear;
-      z-index: 1;
     }
 
-    /* Center Blue Dot */
     .user-center-dot {
-      width: 17px;
-      height: 17px;
-      background: #1A73E8;
-      border: 3px solid white;
+      width: 16px;
+      height: 16px;
+      background: #1D4ED8;
+      border: 3px solid #FFFFFF;
       border-radius: 50%;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-      z-index: 3;
-      position: relative;
-    }
-
-    /* Pulsing GPS beacon */
-    .user-pulse-ring {
-      position: absolute;
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: rgba(26, 115, 232, 0.22);
-      animation: gpsPulse 2s infinite ease-out;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
       z-index: 2;
     }
 
-    /* Route Duration Callout Pill on Map */
+    .user-pulse-ring {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(29, 78, 216, 0.25);
+      animation: gpsPulse 2s infinite ease-out;
+      z-index: 1;
+    }
+
     .route-duration-badge {
-      background: #1A73E8;
+      background: #1E293B;
       color: white;
+      font-size: 11px;
       font-weight: 800;
-      font-size: 13px;
-      padding: 6px 14px;
-      border-radius: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      padding: 4px 8px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       white-space: nowrap;
-      border: 2px solid white;
+      border: 1px solid rgba(255,255,255,0.2);
     }
 
     @keyframes gpsPulse {
@@ -284,24 +353,16 @@
 
   <!-- HUD: Top Turn Instruction -->
   <div class="gmap-top-hud" id="gmap-top-hud">
-    <div class="gmap-turn-icon" id="hud-turn-icon">⬆</div>
+    <div class="gmap-turn-icon" id="hud-turn-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+    </div>
     <div style="flex:1;">
       <div class="gmap-turn-dist" id="hud-turn-dist">In 120 meters</div>
       <p class="gmap-turn-instruction" id="hud-turn-instruction">Head northeast on designated route</p>
     </div>
   </div>
 
-  <!-- HUD: Floating Map Controls -->
-  <div class="gmap-floating-controls">
-    <button type="button" class="gmap-float-btn" id="btn-voice-toggle" onclick="toggleVoiceSpeech()" title="Toggle Voice Guidance" style="display:flex; align-items:center; justify-content:center;">
-      <span id="voice-icon" style="display:flex; align-items:center; justify-content:center;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-      </span>
-    </button>
-    <button type="button" class="gmap-float-btn" onclick="recenterGPS()" title="Recenter GPS" style="display:flex; align-items:center; justify-content:center;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
-    </button>
-  </div>
+
 
   <!-- HUD: Bottom ETA Dock -->
   <div class="gmap-bottom-dock" id="gmap-bottom-dock">
@@ -311,8 +372,8 @@
         <span id="hud-eta-dist">650 m</span> · <span id="hud-eta-clock">11:55 AM</span> arrival
       </div>
     </div>
-    <button type="button" class="gmap-exit-btn" onclick="stopNavigation()" title="Exit Navigation" style="display:flex; align-items:center; justify-content:center;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    <button type="button" class="gmap-exit-btn" onclick="stopNavigation()" title="Exit Navigation" aria-label="Exit Navigation">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
     </button>
   </div>
 
@@ -320,7 +381,9 @@
   <div class="app-container">
     <header class="resident-topbar">
       <div class="resident-brand">
-        <span class="resident-brand__mark">⌖</span>
+        <span class="resident-brand__mark">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </span>
         <span>GeoSafe</span>
       </div>
       <div class="resident-topbar__actions" style="display:flex; align-items:center; gap:8px;">
@@ -332,48 +395,70 @@
     </header>
 
     <div class="page-intro-header" style="margin-bottom:12px;">
-      <h1 style="font-size:22px; font-weight:800; margin:0;">Safe Evacuation Routes</h1>
-      <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Turn-by-turn walking guidance with live eye of sight.</p>
+      <h1 style="font-size:22px; font-weight:900; margin:0;">Safe Evacuation Routes</h1>
+      <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;">Turn-by-turn walking guidance with live directional radar.</p>
     </div>
 
-    <!-- Map Box -->
+    <!-- Map Box with Corner Floating Controls -->
     <section class="map-frame-box" id="map-wrapper">
       <div id="route-map"></div>
+
+      <!-- Floating Map Controls (Corner of Map Container) -->
+      <div class="gmap-floating-controls">
+        <button type="button" class="gmap-float-btn gmap-float-btn--active" id="btn-voice-toggle" onclick="toggleVoiceSpeech()" title="Toggle Voice Guidance" aria-label="Toggle Voice Guidance">
+          <span id="voice-icon" style="display:flex; align-items:center; justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          </span>
+        </button>
+        <button type="button" class="gmap-float-btn" onclick="recenterGPS()" title="Recenter GPS" aria-label="Recenter GPS">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
+        </button>
+      </div>
     </section>
 
     <!-- Preview Controls Section -->
     <div class="preview-cards-section">
       <section class="ui-card">
         <h2 style="margin-top:0; font-size:15px;">Select Evacuation Haven</h2>
-        <div class="action-grid" style="margin-bottom:12px;">
+        <div class="action-grid" style="margin-bottom:14px;">
           <button type="button" class="action-card route-pick" data-route="1" id="btn-haven-1" style="border:2px solid var(--primary); cursor:pointer; width:100%; text-align:left;">
-            <span class="action-card__icon" style="background:var(--success-light); color:var(--success);">🛡️</span>
+            <div class="action-card__icon" style="background:var(--success-light); color:var(--success);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
             <span class="action-card__label">Baywalk Covered Court<br><small style="font-size:11px; font-weight:500; color:var(--text-muted);">Lakeshore · 8 min</small></span>
           </button>
           <button type="button" class="action-card route-pick" data-route="2" id="btn-haven-2" style="border:1px solid var(--border); cursor:pointer; width:100%; text-align:left;">
-            <span class="action-card__icon" style="background:var(--primary-light); color:var(--primary);">🏫</span>
+            <div class="action-card__icon" style="background:var(--primary-light); color:var(--primary);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 22h20"/><path d="M4 22V7l8-5 8 5v15"/><path d="M10 22V12h4v10"/></svg>
+            </div>
             <span class="action-card__label">Elementary School Unit 1<br><small style="font-size:11px; font-weight:500; color:var(--text-muted);">National Rd · 12 min</small></span>
           </button>
           <button type="button" class="action-card route-pick" data-route="3" id="btn-haven-3" style="border:1px solid var(--border); cursor:pointer; width:100%; text-align:left;">
-            <span class="action-card__icon" style="background:var(--warning-light); color:var(--warning);">🏢</span>
+            <div class="action-card__icon" style="background:var(--warning-light); color:var(--warning);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="9" y1="22" x2="9" y2="18"/><line x1="15" y1="22" x2="15" y2="18"/><line x1="8" y1="6" x2="8.01" y2="6"/><line x1="16" y1="6" x2="16.01" y2="6"/><line x1="8" y1="10" x2="8.01" y2="10"/><line x1="16" y1="10" x2="16.01" y2="10"/></svg>
+            </div>
             <span class="action-card__label">Pedro E. Diaz High School<br><small style="font-size:11px; font-weight:500; color:var(--text-muted);">High Ground · 15 min</small></span>
           </button>
           <button type="button" class="action-card route-pick" data-route="4" id="btn-haven-4" style="border:1px solid var(--border); cursor:pointer; width:100%; text-align:left;">
-            <span class="action-card__icon" style="background:var(--purple-light); color:var(--purple);">🏛️</span>
+            <div class="action-card__icon" style="background:var(--purple-light); color:var(--purple);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="21" x2="21" y2="21"/><line x1="4" y1="10" x2="20" y2="10"/><polyline points="12 3 2 10 22 10 12 3"/><line x1="6" y1="10" x2="6" y2="21"/><line x1="10" y1="10" x2="10" y2="21"/><line x1="14" y1="10" x2="14" y2="21"/><line x1="18" y1="10" x2="18" y2="21"/></svg>
+            </div>
             <span class="action-card__label">Bayanan Multi-Purpose Hall<br><small style="font-size:11px; font-weight:500; color:var(--text-muted);">Medical Post · 6 min</small></span>
           </button>
         </div>
 
-        <button type="button" id="start-nav-btn" class="ui-btn ui-btn-primary" style="background:var(--gmap-green); font-size:15px; padding:14px; margin-bottom:8px; box-shadow:0 4px 14px rgba(27, 135, 63, 0.3);">
-          🧭 Start Turn-by-Turn Navigation
+        <button type="button" id="start-nav-btn" class="ui-btn ui-btn-primary" style="background:var(--gmap-green); font-size:14.5px; padding:13px; margin-bottom:8px; box-shadow:0 3px 10px rgba(21, 128, 61, 0.3);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+          Start Turn-by-Turn Navigation
         </button>
         <button type="button" id="open-maps-btn" class="ui-btn ui-btn-secondary">
-          ↗ Open in OpenStreetMap Navigation
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Open in OpenStreetMap Navigation
         </button>
       </section>
 
       <section class="ui-card">
-        <h2 style="margin-top:0; font-size:15px;">Turn-by-turn directions</h2>
+        <h2 style="margin-top:0; font-size:15px;">Turn-by-Turn Directions</h2>
         <ol id="directions-list" class="directions-list" style="margin:0; padding:0; list-style:none;"></ol>
       </section>
     </div>
@@ -398,24 +483,39 @@
     let currentSteps = [];
     let currentHeading = 45; // Default orientation facing toward haven
 
-    // 1. Voice Speech Guidance
+    // SVGs for Navigation Maneuvers
+    const NAV_SVGS = {
+      straight: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>`,
+      right: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18v-7a4 4 0 0 1 4-4h12"/><polyline points="16 3 20 7 16 11"/></svg>`,
+      left: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 18v-7a4 4 0 0 0-4-4H4"/><polyline points="8 3 4 7 8 11"/></svg>`,
+      arrive: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>`
+    };
+
+    // 1. Voice Guidance using HTML5 SpeechSynthesis
     function speakDirection(text) {
       if (!voiceEnabled || !('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 1.0;
-      utterance.lang = 'en-US';
+      utterance.pitch = 1.0;
       window.speechSynthesis.speak(utterance);
     }
 
-    const SVG_VOICE_ON = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
-    const SVG_VOICE_MUTE = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>`;
-
     function toggleVoiceSpeech() {
       voiceEnabled = !voiceEnabled;
+      const btnEl = document.getElementById('btn-voice-toggle');
       const iconEl = document.getElementById('voice-icon');
-      if (iconEl) iconEl.innerHTML = voiceEnabled ? SVG_VOICE_ON : SVG_VOICE_MUTE;
-      showToast(voiceEnabled ? 'Voice guidance ON' : 'Voice guidance MUTED');
+      if (voiceEnabled) {
+        btnEl?.classList.remove('gmap-float-btn--muted');
+        btnEl?.classList.add('gmap-float-btn--active');
+        iconEl.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
+        showToast('Voice navigation guidance enabled', 'info');
+      } else {
+        btnEl?.classList.remove('gmap-float-btn--active');
+        btnEl?.classList.add('gmap-float-btn--muted');
+        iconEl.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>`;
+        showToast('Voice navigation muted', 'info');
+      }
     }
 
     // 2. Initialize Leaflet Map
@@ -427,53 +527,43 @@
       }).setView([userPos.lat, userPos.lng], 16);
 
       setupMapTileLayer(routeMap);
-
       routeLayers = L.layerGroup().addTo(routeMap);
-      userMarkerLayer = L.layerGroup().addTo(routeMap);
-      setTimeout(() => routeMap?.invalidateSize(), 150);
     }
 
-    // 3. User Marker with Eye of Sight Cone
+    // 3. User Marker with Live Directional Flashlight Cone
     function createUserMarker(lat, lng) {
       const icon = L.divIcon({
-        className: 'user-marker-wrapper',
+        className: 'user-gps-marker',
         html: `
           <div class="user-gps-container">
-            <div class="user-vision-cone" style="transform: rotate(${currentHeading}deg);"></div>
             <div class="user-pulse-ring"></div>
+            <div class="user-vision-cone" id="vision-cone" style="transform: rotate(${currentHeading}deg);"></div>
             <div class="user-center-dot"></div>
           </div>
         `,
         iconSize: [50, 50],
         iconAnchor: [25, 25]
       });
-
-      return L.marker([lat, lng], { icon: icon, zIndexOffset: 1000 });
+      return L.marker([lat, lng], { icon });
     }
 
-    function updateVisionCone(headingDeg) {
-      currentHeading = Math.round(headingDeg);
-      if (userMarkerLayer) {
-        const el = userMarkerLayer.getElement();
-        if (el) {
-          const cone = el.querySelector('.user-vision-cone');
-          if (cone) cone.style.transform = `rotate(${currentHeading}deg)`;
-        }
+    function updateVisionCone(heading) {
+      currentHeading = heading;
+      const cone = document.getElementById('vision-cone');
+      if (cone) {
+        cone.style.transform = `rotate(${heading}deg)`;
       }
     }
 
-    // Device Orientation & Motion Listener
     function setupOrientationListener() {
       const onOrientation = (e) => {
         let heading = null;
-        if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
+        if (e.webkitCompassHeading != null) {
           heading = e.webkitCompassHeading;
-        } else if (e.alpha !== null && e.alpha !== undefined) {
+        } else if (e.alpha != null) {
           heading = 360 - e.alpha;
         }
-        if (heading !== null && !isNaN(heading)) {
-          updateVisionCone(heading);
-        }
+        if (heading != null) updateVisionCone(heading);
       };
 
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -517,9 +607,9 @@
         durationSec: durationSec,
         coordinates: routeCoords,
         steps: [
-          { instruction: `Head toward designated evacuation route on Bayanan`, distanceM: distM * 0.4, durationSec: durationSec * 0.4, icon: '⬆' },
-          { instruction: `Follow signs along route toward ${selectedHaven.name}`, distanceM: distM * 0.4, durationSec: durationSec * 0.4, icon: '↱' },
-          { instruction: `Arrive at ${selectedHaven.name} safe haven`, distanceM: distM * 0.2, durationSec: durationSec * 0.2, icon: '🏁' }
+          { instruction: `Head toward designated evacuation route on Bayanan`, distanceM: distM * 0.4, durationSec: durationSec * 0.4, type: 'straight' },
+          { instruction: `Follow signs along route toward ${selectedHaven.name}`, distanceM: distM * 0.4, durationSec: durationSec * 0.4, type: 'straight' },
+          { instruction: `Arrive at ${selectedHaven.name} safe haven`, distanceM: distM * 0.2, durationSec: durationSec * 0.2, type: 'arrive' }
         ]
       };
 
@@ -540,19 +630,19 @@
         className: 'gmap-red-pin',
         html: `
           <svg width="32" height="40" viewBox="0 0 24 30" fill="none">
-            <path d="M12 0C5.37 0 0 5.37 0 12c0 9 12 18 12 18s12-9 12-18c0-6.63-5.37-12-12-12z" fill="#EA4335"/>
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 9 12 18 12 18s12-9 12-18c0-6.63-5.37-12-12-12z" fill="#DC2626"/>
             <circle cx="12" cy="11" r="5" fill="white"/>
-            <circle cx="12" cy="11" r="3" fill="#B31412"/>
+            <circle cx="12" cy="11" r="3" fill="#991B1B"/>
           </svg>
         `,
         iconSize: [32, 40],
         iconAnchor: [16, 40]
       });
-      L.marker([selectedHaven.lat, selectedHaven.lng], { icon: redPinIcon }).bindPopup(`<b>${selectedHaven.name}</b><br>Safe Evacuation Haven`).addTo(routeLayers);
+      L.marker([selectedHaven.lat, selectedHaven.lng], { icon: redPinIcon }).bindPopup(`<b>${selectedHaven.name}</b><br>Designated Safe Evacuation Haven`).addTo(routeLayers);
 
       // Clean Solid Blue Route Polyline
       L.polyline(routeData.coordinates, {
-        color: '#1A73E8',
+        color: '#1D4ED8',
         weight: 6,
         opacity: 0.95,
         lineCap: 'round',
@@ -597,8 +687,8 @@
 
       setupOrientationListener();
 
-      const firstStep = currentSteps[0] || { instruction: `Walk to ${selectedHaven.name}`, distanceM: 200, icon: '⬆' };
-      document.getElementById('hud-turn-icon').textContent = firstStep.icon || '⬆';
+      const firstStep = currentSteps[0] || { instruction: `Walk to ${selectedHaven.name}`, distanceM: 200 };
+      document.getElementById('hud-turn-icon').innerHTML = NAV_SVGS.straight;
       document.getElementById('hud-turn-dist').textContent = `In ${formatDistance(firstStep.distanceM)}`;
       document.getElementById('hud-turn-instruction').textContent = firstStep.instruction;
 
@@ -658,38 +748,32 @@
       );
     }
 
-    // Button Bindings
-    document.getElementById('start-nav-btn').addEventListener('click', () => {
-      startNavigation();
-    });
-
+    // Attach Haven Pickers
     document.querySelectorAll('.route-pick').forEach(btn => {
       btn.addEventListener('click', () => {
-        drawRoute(parseInt(btn.dataset.route, 10));
+        const havenId = parseInt(btn.dataset.route, 10);
+        drawRoute(havenId);
       });
     });
 
+    document.getElementById('start-nav-btn').addEventListener('click', startNavigation);
+
     document.getElementById('open-maps-btn').addEventListener('click', () => {
-      openOpenStreetMapDirections(selectedHaven, userPos.lat, userPos.lng);
+      const url = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=${userPos.lat}%2C${userPos.lng}%3B${selectedHaven.lat}%2C${selectedHaven.lng}`;
+      window.open(url, '_blank');
     });
 
-    // Auto Init
-    async function setupInitial() {
-      initMap();
-      setupOrientationListener();
-      drawRoute(1);
-      try {
-        const pos = await getGeolocation();
+    // Startup with GPS
+    getGeolocation()
+      .then(pos => {
         userPos = { lat: pos.latitude, lng: pos.longitude };
         drawRoute(1);
-      } catch (e) {}
-    }
+      })
+      .catch(() => {
+        drawRoute(1);
+      });
 
-    setupInitial();
-
-    window.addEventListener('resize', () => {
-      if (routeMap) routeMap.invalidateSize();
-    });
+    window.addEventListener('resize', () => routeMap?.invalidateSize());
   </script>
 </body>
 </html>

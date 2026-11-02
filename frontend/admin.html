@@ -6,20 +6,20 @@
   <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css?v=2.3" />
+  <link rel="stylesheet" href="/mobile-ui.css?v=3.0" />
   <title>GeoSafe — BDRRMC Incident Command Center</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     /* Command Center Specific Styling */
     .command-header {
-      background: #FFFFFF;
-      border-bottom: 1.5px solid var(--border);
-      padding: 14px 24px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-xs);
       position: sticky;
       top: 0;
       z-index: 100;
@@ -30,27 +30,70 @@
       gap: 12px;
     }
     .command-brand__badge {
-      background: #1565C0;
+      background: var(--primary);
       color: white;
-      padding: 4px 10px;
-      border-radius: 8px;
+      padding: 3px 8px;
+      border-radius: var(--radius-xs);
       font-size: 11px;
       font-weight: 800;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
     }
     .command-kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 14px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
       margin-bottom: 20px;
     }
+    @media (max-width: 359px) {
+      .command-kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+    }
+    @media (min-width: 640px) {
+      .command-kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+    }
+    @media (min-width: 1024px) {
+      .command-kpi-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 14px;
+      }
+    }
+    @media (max-width: 520px) {
+      .command-brand > div > span {
+        display: none;
+      }
+      .command-brand h1 {
+        font-size: 14.5px !important;
+      }
+      .command-brand__badge {
+        font-size: 9.5px;
+        padding: 2px 6px;
+      }
+      .btn-text-responsive {
+        display: none;
+      }
+      .gis-overlay-badge {
+        top: auto !important;
+        bottom: 10px !important;
+        right: 8px !important;
+        left: 8px !important;
+        justify-content: space-around !important;
+        padding: 6px 8px !important;
+        font-size: 10px !important;
+        gap: 6px !important;
+      }
+    }
     .kpi-card {
-      background: #FFFFFF;
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
       padding: 16px 18px;
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-xs);
       display: flex;
       flex-direction: column;
       gap: 6px;
@@ -58,21 +101,24 @@
       overflow: hidden;
     }
     .kpi-card--critical {
-      border-color: rgba(211, 47, 47, 0.3);
-      background: linear-gradient(180deg, #FFFFFF 0%, #FFF5F5 100%);
+      border-color: var(--emergency-border);
+      background: var(--bg-card);
     }
     .kpi-card__label {
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
       color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
     .kpi-card__val {
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 900;
       color: var(--text);
-      line-height: 1;
+      line-height: 1.1;
     }
     .kpi-card__sub {
       font-size: 11px;
@@ -91,32 +137,36 @@
     }
     .admin-nav-tabs {
       display: flex;
-      gap: 8px;
-      border-bottom: 1.5px solid var(--border);
+      gap: 6px;
+      border-bottom: 1px solid var(--border);
       margin-bottom: 20px;
       overflow-x: auto;
       padding-bottom: 2px;
     }
     .admin-tab {
-      padding: 10px 18px;
+      padding: 10px 16px;
       border: none;
       background: transparent;
       font-size: 13px;
       font-weight: 700;
       color: var(--text-muted);
       cursor: pointer;
-      border-radius: 10px 10px 0 0;
+      border-radius: var(--radius-xs) var(--radius-xs) 0 0;
       display: flex;
       align-items: center;
-      gap: 6px;
-      transition: all 0.2s;
+      gap: 8px;
+      transition: all 0.15s ease;
       white-space: nowrap;
       border-bottom: 3px solid transparent;
+    }
+    .admin-tab:hover {
+      color: var(--primary);
+      background: var(--bg-subtle);
     }
     .admin-tab.active {
       color: var(--primary);
       border-bottom-color: var(--primary);
-      background: rgba(21, 101, 192, 0.06);
+      background: var(--primary-light);
     }
     .admin-tab-content {
       display: none;
@@ -136,8 +186,8 @@
     }
     .gis-map-box {
       height: 520px;
-      border-radius: var(--radius);
-      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
       overflow: hidden;
       box-shadow: var(--shadow-sm);
       position: relative;
@@ -154,23 +204,31 @@
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(6px);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: var(--radius-sm);
       padding: 8px 12px;
       font-size: 11px;
       font-weight: 700;
-      box-shadow: var(--shadow-md);
+      box-shadow: var(--shadow-sm);
       display: flex;
-      gap: 8px;
+      gap: 12px;
+    }
+    [data-theme="dark"] .gis-overlay-badge {
+      background: rgba(30, 41, 59, 0.95);
+      color: #F8FAFC;
     }
     .template-chip {
       padding: 6px 12px;
-      border-radius: 20px;
+      border-radius: var(--radius-full);
       border: 1px solid var(--border);
-      background: var(--bg-app);
-      font-size: 11px;
+      background: var(--bg-subtle);
+      font-size: 11.5px;
       font-weight: 600;
+      color: var(--text);
       cursor: pointer;
-      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
     }
     .template-chip:hover {
       border-color: var(--primary);
@@ -180,10 +238,11 @@
     .progress-bar-bg {
       width: 100%;
       height: 8px;
-      background: #E0E0E0;
+      background: var(--bg-subtle);
       border-radius: 4px;
       overflow: hidden;
       margin: 6px 0;
+      border: 1px solid var(--border-light);
     }
     .progress-bar-fill {
       height: 100%;
@@ -193,53 +252,125 @@
     }
   </style>
 </head>
-<body class="staff-shell" style="background:#F7F9FC;">
+<body class="staff-shell">
 
   <!-- Command Center Header -->
   <header class="command-header">
     <div class="command-brand">
-      <div class="resident-brand__mark" style="background:#1565C0;">🛡️</div>
+      <div class="resident-brand__mark" style="background:var(--primary);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
       <div>
         <div style="display:flex; align-items:center; gap:8px;">
-          <h1 style="font-size:18px; font-weight:900; margin:0; color:#1565C0; letter-spacing:-0.3px;">GeoSafe Command</h1>
-          <span class="command-brand__badge">BDRRMC BAYANAN</span>
+          <h1 style="font-size:17px; font-weight:900; margin:0; color:var(--primary); letter-spacing:-0.02em;">GeoSafe Command</h1>
+          <span class="command-brand__badge">BDRRMC Bayanan</span>
         </div>
         <span style="font-size:11px; color:var(--text-muted); font-weight:500;">Disaster Risk Reduction &amp; Incident Dispatch Center</span>
       </div>
     </div>
 
-    <div style="display:flex; align-items:center; gap:12px;">
-      <!-- Theme Mode Toggle -->
-      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Dark Mode" title="Toggle Dark/Light Mode">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <!-- Quick Broadcast Trigger (Always Accessible) -->
+      <button type="button" class="ui-btn ui-btn-primary" onclick="switchTab('tab-broadcast')" style="width:auto; padding:8px 12px; font-size:12px; background:var(--emergency); white-space:nowrap;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><circle cx="12" cy="12" r="2"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></svg>
+        <span class="btn-text-responsive">Broadcast Alert</span>
       </button>
 
-      <!-- Audio Alarm Toggle -->
-      <button type="button" class="btn-secondary" id="btn-sound-toggle" style="width:auto; padding:7px 12px; font-size:12px; border-radius:20px; display:inline-flex; align-items:center; gap:6px;">
-        <span id="sound-status-icon" style="display:flex; align-items:center;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-        </span>
-        <span id="sound-status-text">Audio Alerts: ON</span>
-      </button>
+      <!-- Desktop-only controls -->
+      <div class="desktop-only-controls" style="display:flex; align-items:center; gap:12px;">
+        <!-- Theme Mode Toggle -->
+        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Dark Mode" title="Toggle Dark/Light Mode">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
 
-      <!-- Quick Broadcast Trigger -->
-      <button type="button" class="ui-btn ui-btn-primary" onclick="switchTab('tab-broadcast')" style="width:auto; padding:8px 16px; font-size:12px; background:var(--emergency); box-shadow:0 2px 8px rgba(211,47,47,0.3);">
-        📡 Broadcast Alert
-      </button>
+        <!-- Audio Alarm Toggle -->
+        <button type="button" class="ui-btn-secondary" id="btn-sound-toggle" style="width:auto; padding:7px 12px; font-size:12px; border-radius:var(--radius-sm); display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+          <span id="sound-status-icon" style="display:flex; align-items:center;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          </span>
+          <span id="sound-status-text">Audio Alerts: ON</span>
+        </button>
 
-      <!-- Admin Identity & Logout -->
-      <div style="display:flex; align-items:center; gap:10px; border-left:1px solid var(--border); padding-left:14px;">
-        <div style="text-align:right;">
-          <strong style="font-size:13px; display:block; color:var(--text);" id="user-name">Admin Officer</strong>
-          <span style="font-size:10px; color:var(--success); font-weight:700;">● BDRRMC Lead</span>
+        <!-- Admin Identity & Logout -->
+        <div style="display:flex; align-items:center; gap:10px; border-left:1px solid var(--border); padding-left:14px;">
+          <div style="text-align:right;">
+            <strong style="font-size:13px; display:block; color:var(--text);" id="user-name">Admin Officer</strong>
+            <span style="font-size:10.5px; color:var(--success); font-weight:700;">● BDRRMC Lead</span>
+          </div>
+          <button type="button" class="ui-btn-ghost" onclick="logout()" style="color:var(--emergency); font-size:12.5px; font-weight:700;">Logout</button>
         </div>
-        <button type="button" class="ui-btn-ghost" onclick="logout()" style="color:var(--emergency); font-size:13px;">Logout</button>
       </div>
+
+      <!-- Mobile Menu Toggle Button -->
+      <button type="button" class="mobile-menu-btn" onclick="toggleAdminDrawer()" aria-label="Open Navigation Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
     </div>
   </header>
+  <!-- Mobile Navigation Drawer -->
+  <div id="admin-mobile-drawer" class="mobile-drawer-backdrop" onclick="if(event.target===this) toggleAdminDrawer()">
+    <div class="mobile-drawer">
+      <div class="mobile-drawer-header">
+        <div class="mobile-drawer-title">
+          <div class="resident-brand__mark" style="background:var(--primary); width:30px; height:30px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div>
+            <strong style="font-size:13.5px; display:block;" id="drawer-user-name">Admin Officer</strong>
+            <span style="font-size:10.5px; color:var(--success); font-weight:700;">● BDRRMC Command</span>
+          </div>
+        </div>
+        <button type="button" class="mobile-drawer-close" onclick="toggleAdminDrawer()" aria-label="Close Menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <nav class="mobile-drawer-nav">
+        <button type="button" class="mobile-drawer-link active" onclick="switchTab('tab-gis'); toggleAdminDrawer();">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+          GIS Live Incident Map
+        </button>
+        <button type="button" class="mobile-drawer-link" onclick="switchTab('tab-queue'); toggleAdminDrawer();">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Incident Triage Queue
+        </button>
+        <button type="button" class="mobile-drawer-link" onclick="switchTab('tab-broadcast'); toggleAdminDrawer();">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><circle cx="12" cy="12" r="2"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></svg>
+          Emergency Broadcasts
+        </button>
+        <button type="button" class="mobile-drawer-link" onclick="switchTab('tab-evac'); toggleAdminDrawer();">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22h20"/><path d="M4 22V7l8-5 8 5v15"/><path d="M10 22V12h4v10"/></svg>
+          Evacuation Centers &amp; Relief
+        </button>
+        <button type="button" class="mobile-drawer-link" onclick="switchTab('tab-vulnerable'); toggleAdminDrawer();">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Vulnerable Citizens
+        </button>
+        <button type="button" class="mobile-drawer-link" onclick="switchTab('tab-analytics'); toggleAdminDrawer();">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Analytics &amp; Compliance Logs
+        </button>
+      </nav>
+
+      <div class="mobile-drawer-footer">
+        <button type="button" class="ui-btn-secondary" onclick="document.getElementById('btn-sound-toggle').click();" style="width:100%; justify-content:center; padding:10px; font-size:12.5px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          <span>Toggle Audio Alerts</span>
+        </button>
+        <button type="button" class="ui-btn-secondary" onclick="toggleTheme()" style="width:100%; justify-content:center; padding:10px; font-size:12.5px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          <span>Toggle Theme Mode</span>
+        </button>
+        <button type="button" class="ui-btn ui-btn-danger" onclick="logout()" style="width:100%; justify-content:center; padding:10px; font-size:12.5px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Global Command Center Container -->
-  <div style="max-width:1400px; margin:0 auto; padding:20px 24px;">
+  <div class="staff-container">
 
     <!-- ==========================================
          Row 1: Real-Time Incident Command KPIs
@@ -248,41 +379,39 @@
       <!-- KPI 1: Critical / SOS -->
       <div class="kpi-card kpi-card--critical">
         <span class="kpi-card__label" style="color:var(--emergency);">
-          <span class="pulse-dot"></span>SOS &amp; Critical Calls
+          <span class="pulse-dot"></span>
+          Critical / SOS Calls
         </span>
         <div class="kpi-card__val" id="kpi-sos-count" style="color:var(--emergency);">0</div>
-        <span class="kpi-card__sub" id="kpi-sos-sub">Requires immediate rescue</span>
+        <span class="kpi-card__sub">Immediate rescue action required</span>
       </div>
 
-      <!-- KPI 2: Total Active Incidents -->
+      <!-- KPI 2: Active Incidents -->
       <div class="kpi-card">
         <span class="kpi-card__label">Active Incidents</span>
-        <div class="kpi-card__val" id="kpi-active-count" style="color:#1565C0;">0</div>
-        <span class="kpi-card__sub" id="kpi-active-sub">In verification or response</span>
+        <div class="kpi-card__val" id="kpi-active-count" style="color:#D97706;">0</div>
+        <span class="kpi-card__sub">Pending and responding incidents</span>
       </div>
 
-      <!-- KPI 3: Responder Fleet -->
+      <!-- KPI 3: Responders On Duty -->
       <div class="kpi-card">
-        <span class="kpi-card__label">Responder Fleet</span>
-        <div class="kpi-card__val" id="kpi-responders-count">0 / 0</div>
-        <span class="kpi-card__sub" id="kpi-responders-sub">Available for dispatch</span>
+        <span class="kpi-card__label">Responders Deployed</span>
+        <div class="kpi-card__val" id="kpi-responders-count" style="color:var(--primary);">Loading…</div>
+        <span class="kpi-card__sub">Emergency field teams active</span>
       </div>
 
-      <!-- KPI 4: Evacuation Occupancy -->
+      <!-- KPI 4: Evacuation Center Capacity -->
       <div class="kpi-card">
         <span class="kpi-card__label">Evacuation Capacity</span>
-        <div class="kpi-card__val" id="kpi-evac-pct" style="color:#2E7D32;">68%</div>
-        <div class="progress-bar-bg">
-          <div class="progress-bar-fill" id="kpi-evac-bar" style="width:68%; background:#2E7D32;"></div>
-        </div>
-        <span class="kpi-card__sub">410 / 600 total evacuee slots</span>
+        <div class="kpi-card__val" id="kpi-evac-count" style="color:#0891B2;">410 / 600</div>
+        <span class="kpi-card__sub">68% overall safe havens capacity</span>
       </div>
 
       <!-- KPI 5: Resident Safety Ratio -->
       <div class="kpi-card">
         <span class="kpi-card__label">Resident Safety</span>
-        <div class="kpi-card__val" id="kpi-safety-ratio" style="color:#1565C0;">94% Safe</div>
-        <span class="kpi-card__sub" id="kpi-safety-sub">Barangay Bayanan Population</span>
+        <div class="kpi-card__val" id="kpi-safety-ratio" style="color:var(--success);">94% Safe</div>
+        <span class="kpi-card__sub">Barangay Bayanan Population</span>
       </div>
     </section>
 
@@ -291,22 +420,28 @@
          ========================================== -->
     <nav class="admin-nav-tabs" aria-label="Command Center Views">
       <button class="admin-tab active" data-tab="tab-gis" onclick="switchTab('tab-gis')">
-        🗺️ GIS Live Incident Map
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+        GIS Live Incident Map
       </button>
       <button class="admin-tab" data-tab="tab-queue" onclick="switchTab('tab-queue')">
-        🚨 Incident Triage &amp; Dispatch Queue (<span id="tab-queue-count">0</span>)
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        Incident Triage &amp; Dispatch Queue (<span id="tab-queue-count">0</span>)
       </button>
       <button class="admin-tab" data-tab="tab-broadcast" onclick="switchTab('tab-broadcast')">
-        📡 Emergency Broadcasts
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><circle cx="12" cy="12" r="2"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></svg>
+        Emergency Broadcasts
       </button>
       <button class="admin-tab" data-tab="tab-evac" onclick="switchTab('tab-evac')">
-        🏫 Evacuation Centers &amp; Relief
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 22h20"/><path d="M4 22V7l8-5 8 5v15"/><path d="M10 22V12h4v10"/></svg>
+        Evacuation Centers &amp; Relief
       </button>
       <button class="admin-tab" data-tab="tab-vulnerable" onclick="switchTab('tab-vulnerable')">
-        👨‍👩‍👧 Vulnerable Residents &amp; Special Needs
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Vulnerable Residents &amp; Special Needs
       </button>
       <button class="admin-tab" data-tab="tab-analytics" onclick="switchTab('tab-analytics')">
-        📈 Disaster Analytics &amp; Report Export
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        Disaster Analytics &amp; Report Export
       </button>
     </nav>
 
@@ -318,10 +453,10 @@
         <!-- Interactive Leaflet GIS Map -->
         <div class="gis-map-box">
           <div class="gis-overlay-badge">
-            <span style="color:#1565C0;">💧 Flood</span>
-            <span style="color:#D32F2F;">🔥 Fire</span>
-            <span style="color:#2E7D32;">🛡️ Safe Haven</span>
-            <span style="color:#7B1FA2;">🚑 Responder</span>
+            <span style="color:#1565C0; display:flex; align-items:center; gap:4px;">● Flood</span>
+            <span style="color:#DC2626; display:flex; align-items:center; gap:4px;">● Fire</span>
+            <span style="color:#16A34A; display:flex; align-items:center; gap:4px;">● Safe Haven</span>
+            <span style="color:#7C3AED; display:flex; align-items:center; gap:4px;">● Responder</span>
           </div>
           <div id="admin-gis-map"></div>
         </div>
@@ -331,7 +466,7 @@
           <div class="ui-card" style="margin:0;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
               <h2 style="margin:0; font-size:15px;">Urgent Dispatch Queue</h2>
-              <button class="ui-btn-ghost" onclick="loadReports()" style="font-size:12px;">↻ Refresh</button>
+              <button class="ui-btn-ghost" onclick="loadReports()" style="font-size:12px;">Refresh</button>
             </div>
             <div id="gis-urgent-queue" style="max-height:430px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
               <p class="text-muted" style="font-size:12px;">Loading incidents…</p>
@@ -348,8 +483,8 @@
       <div class="ui-card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
           <div>
-            <h2 style="margin:0; font-size:18px;">All Citizen Incident Reports</h2>
-            <p class="text-muted" style="margin:2px 0 0; font-size:12px;">Review photos, verify hazard severity, and dispatch emergency units.</p>
+            <h2 style="margin:0; font-size:17px;">Citizen Incident Reports Log</h2>
+            <p class="text-muted" style="margin:2px 0 0; font-size:12px;">Verify hazard severity, track triage scores, and dispatch responder units.</p>
           </div>
           <div style="display:flex; gap:8px;">
             <input type="text" id="filter-search" placeholder="Search resident or location…" class="ui-input" style="width:220px; margin:0; padding:8px 12px; font-size:13px;" oninput="filterReportsTable()" />
@@ -358,9 +493,9 @@
               <option value="pending">Pending Verification</option>
               <option value="verified">Verified</option>
               <option value="responding">Responding</option>
+              <option value="on_site">Arrived On-Site</option>
               <option value="resolved">Resolved</option>
             </select>
-            <button type="button" onclick="loadReports()" class="ui-btn ui-btn-secondary" style="width:auto; padding:8px 14px; font-size:13px;">Refresh</button>
           </div>
         </div>
 
@@ -368,12 +503,12 @@
           <table class="staff-table">
             <thead>
               <tr>
-                <th>Ticket ID</th>
-                <th>Priority Rank</th>
+                <th>ID</th>
+                <th>Priority</th>
                 <th>Incident Type</th>
-                <th>Reporter / Resident</th>
-                <th>Severity Level</th>
-                <th>Lifecycle Status</th>
+                <th>Reporter &amp; Location</th>
+                <th>Verified Severity</th>
+                <th>Status</th>
                 <th>Assigned Responder</th>
                 <th>Actions</th>
               </tr>
@@ -401,10 +536,10 @@
           <div style="margin-bottom:14px;">
             <span style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">1-Click Emergency Templates:</span>
             <div style="display:flex; flex-wrap:wrap; gap:6px;">
-              <button type="button" class="template-chip" onclick="applyTemplate('flood')">🌊 Flood Preemptive Evacuation</button>
-              <button type="button" class="template-chip" onclick="applyTemplate('typhoon')">🌀 Typhoon Warning (Orange/Red)</button>
-              <button type="button" class="template-chip" onclick="applyTemplate('fire')">🔥 Fire Hazard Clearance</button>
-              <button type="button" class="template-chip" onclick="applyTemplate('safe')">✅ All-Clear / Safe to Return</button>
+              <button type="button" class="template-chip" onclick="applyTemplate('flood')">Flood Preemptive Evacuation</button>
+              <button type="button" class="template-chip" onclick="applyTemplate('typhoon')">Typhoon Warning (Orange/Red)</button>
+              <button type="button" class="template-chip" onclick="applyTemplate('fire')">Fire Hazard Clearance</button>
+              <button type="button" class="template-chip" onclick="applyTemplate('safe')">All-Clear / Safe to Return</button>
             </div>
           </div>
 
@@ -417,14 +552,15 @@
             <div>
               <label for="alert-severity" style="font-size:13px; font-weight:700; display:block; margin-bottom:4px;">Threat Severity Level</label>
               <select id="alert-severity" name="severity" class="ui-select">
-                <option value="high" selected>🔴 High Priority (Emergency Action Required)</option>
-                <option value="medium">🟠 Medium Priority (Advisory / Warning)</option>
-                <option value="low">🟢 Low Priority (General Announcement)</option>
+                <option value="high" selected>High Priority (Emergency Action Required)</option>
+                <option value="medium">Medium Priority (Advisory / Warning)</option>
+                <option value="low">Low Priority (General Announcement)</option>
               </select>
             </div>
 
-            <button type="submit" class="ui-btn ui-btn-primary" style="background:var(--emergency); font-size:15px;">
-              📡 Broadcast Alert to Entire Barangay
+            <button type="submit" class="ui-btn ui-btn-primary" style="background:var(--emergency); font-size:14.5px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><circle cx="12" cy="12" r="2"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></svg>
+              Broadcast Alert to Entire Barangay
             </button>
           </form>
         </div>
@@ -460,12 +596,12 @@
             <span>Occupancy: <strong>180 / 250</strong> evacuees</span>
             <strong style="color:#1565C0;">72% Full</strong>
           </div>
-          <div style="background:var(--bg-app); border-radius:10px; padding:10px; font-size:12px;">
-            <strong>Relief &amp; Medical Supplies:</strong>
-            <div style="display:flex; gap:14px; margin-top:4px;">
-              <span>🍱 Food Packs: <strong>320</strong></span>
-              <span>💊 Med Kits: <strong>45</strong></span>
-              <span>🚰 Water (Gal): <strong>80</strong></span>
+          <div style="background:var(--bg-subtle); border-radius:var(--radius-sm); border:1px solid var(--border); padding:10px 12px; font-size:12px;">
+            <strong style="display:block; margin-bottom:4px;">Relief &amp; Medical Supplies:</strong>
+            <div style="display:flex; gap:14px; flex-wrap:wrap;">
+              <span>Food Packs: <strong>320</strong></span>
+              <span>Med Kits: <strong>45</strong></span>
+              <span>Water (Gal): <strong>80</strong></span>
             </div>
           </div>
         </div>
@@ -480,18 +616,18 @@
             <span class="ui-badge ui-badge--low">OPEN · PRIMARY</span>
           </div>
           <div class="progress-bar-bg">
-            <div class="progress-bar-fill" style="width:65%; background:#2E7D32;"></div>
+            <div class="progress-bar-fill" style="width:65%; background:#16A34A;"></div>
           </div>
           <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-bottom:14px;">
             <span>Occupancy: <strong>230 / 350</strong> evacuees</span>
-            <strong style="color:#2E7D32;">65% Full</strong>
+            <strong style="color:#16A34A;">65% Full</strong>
           </div>
-          <div style="background:var(--bg-app); border-radius:10px; padding:10px; font-size:12px;">
-            <strong>Relief &amp; Medical Supplies:</strong>
-            <div style="display:flex; gap:14px; margin-top:4px;">
-              <span>🍱 Food Packs: <strong>500</strong></span>
-              <span>💊 Med Kits: <strong>90</strong></span>
-              <span>🚰 Water (Gal): <strong>140</strong></span>
+          <div style="background:var(--bg-subtle); border-radius:var(--radius-sm); border:1px solid var(--border); padding:10px 12px; font-size:12px;">
+            <strong style="display:block; margin-bottom:4px;">Relief &amp; Medical Supplies:</strong>
+            <div style="display:flex; gap:14px; flex-wrap:wrap;">
+              <span>Food Packs: <strong>500</strong></span>
+              <span>Med Kits: <strong>90</strong></span>
+              <span>Water (Gal): <strong>140</strong></span>
             </div>
           </div>
         </div>
@@ -506,18 +642,18 @@
             <span class="ui-badge ui-badge--status-pending">STANDBY RESERVE</span>
           </div>
           <div class="progress-bar-bg">
-            <div class="progress-bar-fill" style="width:0%; background:#9E9E9E;"></div>
+            <div class="progress-bar-fill" style="width:0%; background:#94A3B8;"></div>
           </div>
           <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-bottom:14px;">
             <span>Occupancy: <strong>0 / 150</strong> evacuees</span>
             <strong style="color:var(--text-muted);">0% (Standby)</strong>
           </div>
-          <div style="background:var(--bg-app); border-radius:10px; padding:10px; font-size:12px;">
-            <strong>Relief &amp; Medical Supplies:</strong>
-            <div style="display:flex; gap:14px; margin-top:4px;">
-              <span>🍱 Food Packs: <strong>200</strong></span>
-              <span>💊 Med Kits: <strong>30</strong></span>
-              <span>🚰 Water (Gal): <strong>50</strong></span>
+          <div style="background:var(--bg-subtle); border-radius:var(--radius-sm); border:1px solid var(--border); padding:10px 12px; font-size:12px;">
+            <strong style="display:block; margin-bottom:4px;">Relief &amp; Medical Supplies:</strong>
+            <div style="display:flex; gap:14px; flex-wrap:wrap;">
+              <span>Food Packs: <strong>200</strong></span>
+              <span>Med Kits: <strong>30</strong></span>
+              <span>Water (Gal): <strong>50</strong></span>
             </div>
           </div>
         </div>
@@ -536,27 +672,29 @@
 
         <div id="vulnerable-residents-feed" style="display:flex; flex-direction:column; gap:10px;">
           <div class="report-item" style="border-left:4px solid var(--emergency);">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
               <div>
                 <strong style="font-size:14px;">Juan Dela Cruz Family (4 members)</strong>
-                <p style="font-size:12px; color:var(--emergency); font-weight:700; margin:2px 0;">♿ Special Needs: 1 PWD Member · 1 Senior Citizen (Lola Rosa)</p>
-                <p class="text-muted" style="font-size:12px; margin:0;">📍 Block 4, Lot 12, Bayanan East · Phone: +63 917 123 4567</p>
+                <p style="font-size:12px; color:var(--emergency); font-weight:700; margin:2px 0;">Special Needs: 1 PWD Member · 1 Senior Citizen (Lola Rosa)</p>
+                <p class="text-muted" style="font-size:12px; margin:0;">GPS: Block 4, Lot 12, Bayanan East · Phone: +63 917 123 4567</p>
               </div>
               <button class="ui-btn ui-btn-primary" style="width:auto; padding:6px 14px; font-size:12px; background:var(--emergency);" onclick="window.location.href='tel:+639171234567'">
-                📞 Call Family
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                Call Family
               </button>
             </div>
           </div>
 
           <div class="report-item" style="border-left:4px solid var(--warning);">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
               <div>
                 <strong style="font-size:14px;">Santos Residence (3 members)</strong>
-                <p style="font-size:12px; color:var(--warning); font-weight:700; margin:2px 0;">👶 Special Condition: Infant present · Preemptive evacuation advised</p>
-                <p class="text-muted" style="font-size:12px; margin:0;">📍 Purok 3, Bayanan Creek · Phone: +63 918 999 1122</p>
+                <p style="font-size:12px; color:var(--warning); font-weight:700; margin:2px 0;">Special Condition: Infant present · Preemptive evacuation advised</p>
+                <p class="text-muted" style="font-size:12px; margin:0;">GPS: Purok 3, Bayanan Creek · Phone: +63 918 999 1122</p>
               </div>
               <button class="ui-btn ui-btn-primary" style="width:auto; padding:6px 14px; font-size:12px;" onclick="window.location.href='tel:+639189991122'">
-                📞 Call Family
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                Call Family
               </button>
             </div>
           </div>
@@ -578,7 +716,7 @@
           <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
             <div>
               <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700;">
-                <span>💧 Flooding &amp; Creek Overflow</span>
+                <span>Flooding &amp; Creek Overflow</span>
                 <span id="stat-flood-cnt">60% (12 reports)</span>
               </div>
               <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:60%; background:#1565C0;"></div></div>
@@ -586,37 +724,37 @@
 
             <div>
               <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700;">
-                <span>🔥 Fire Incidents</span>
+                <span>Fire Incidents</span>
                 <span id="stat-fire-cnt">20% (4 reports)</span>
               </div>
-              <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:20%; background:#D32F2F;"></div></div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:20%; background:#DC2626;"></div></div>
             </div>
 
             <div>
               <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700;">
-                <span>🚑 Medical &amp; Rescue Calls</span>
+                <span>Medical &amp; Rescue Calls</span>
                 <span id="stat-med-cnt">15% (3 reports)</span>
               </div>
-              <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:15%; background:#7B1FA2;"></div></div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:15%; background:#7C3AED;"></div></div>
             </div>
 
             <div>
               <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700;">
-                <span>⚡ Earthquake / Structural</span>
+                <span>Earthquake / Structural</span>
                 <span id="stat-eq-cnt">5% (1 report)</span>
               </div>
-              <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:5%; background:#F57C00;"></div></div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:5%; background:#D97706;"></div></div>
             </div>
           </div>
 
-          <div style="background:var(--bg-app); border-radius:12px; padding:14px; display:flex; justify-content:space-around; text-align:center;">
+          <div style="background:var(--bg-subtle); border-radius:var(--radius-sm); border:1px solid var(--border); padding:14px; display:flex; justify-content:space-around; text-align:center;">
             <div>
               <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Avg Response Time</span>
               <div style="font-size:22px; font-weight:900; color:#1565C0;">11.4 mins</div>
             </div>
             <div style="border-left:1px solid var(--border); padding-left:14px;">
               <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Resolution Rate</span>
-              <div style="font-size:22px; font-weight:900; color:#2E7D32;">88.5%</div>
+              <div style="font-size:22px; font-weight:900; color:#16A34A;">88.5%</div>
             </div>
           </div>
         </div>
@@ -627,7 +765,7 @@
             <p class="text-muted" style="font-size:13px; line-height:1.5; margin-bottom:16px;">
               Generate an official BDRRMC summary report compliant with Muntinlupa City CDRRMO and Office of Civil Defense (OCD) guidelines.
             </p>
-            <div style="background:var(--bg-app); border:1px solid var(--border); border-radius:12px; padding:12px; font-size:12px; margin-bottom:16px;">
+            <div style="background:var(--bg-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; font-size:12px; margin-bottom:16px;">
               <strong>Included in Report:</strong>
               <ul style="margin:6px 0 0 16px; padding:0; color:var(--text-muted);">
                 <li>Total incidents categorized by type &amp; severity</li>
@@ -640,10 +778,12 @@
 
           <div style="display:flex; gap:10px;">
             <button type="button" class="ui-btn ui-btn-primary" onclick="exportIncidentCSV()" style="flex:1;">
-              📥 Export Incident Log (CSV)
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Export Incident Log (CSV)
             </button>
             <button type="button" class="ui-btn ui-btn-secondary" onclick="window.print()" style="flex:1;">
-              🖨️ Print Summary (PDF)
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+              Print Summary (PDF)
             </button>
           </div>
         </div>
@@ -685,8 +825,8 @@
       } catch {}
     }
 
-    const SVG_BELL_ON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`;
-    const SVG_BELL_OFF = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.73 21a2 2 0 0 1-3.46 0"></path><path d="M18.63 13A17.89 17.89 0 0 1 18 8"></path><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"></path><path d="M18 8a6 6 0 0 0-9.33-5"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+    const SVG_BELL_ON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`;
+    const SVG_BELL_OFF = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.73 21a2 2 0 0 1-3.46 0"></path><path d="M18.63 13A17.89 17.89 0 0 1 18 8"></path><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"></path><path d="M18 8a6 6 0 0 0-9.33-5"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
 
     document.getElementById('btn-sound-toggle')?.addEventListener('click', () => {
       soundEnabled = !soundEnabled;
@@ -697,6 +837,12 @@
     });
 
     // Tab Switcher
+    
+    function toggleAdminDrawer() {
+      const drawer = document.getElementById('admin-mobile-drawer');
+      if (drawer) drawer.classList.toggle('mobile-drawer--open');
+    }
+
     function switchTab(tabId) {
       document.querySelectorAll('.admin-tab').forEach(t => {
         t.classList.toggle('active', t.getAttribute('data-tab') === tabId);
@@ -740,12 +886,12 @@
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         subdomains: ['a', 'b', 'c'],
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
+        attribution: '&copy; OpenStreetMap contributors'
       }).addTo(gisMap);
 
       // Add Evacuation Centers
-      L.marker([14.4005, 121.0250]).addTo(gisMap).bindPopup('<b>🛡️ Bayanan Elementary Gym</b><br>Safe Haven · 65% Full');
-      L.marker([14.3940, 121.0180]).addTo(gisMap).bindPopup('<b>🛡️ Baywalk Covered Court</b><br>Safe Haven · 72% Full');
+      L.marker([14.4005, 121.0250]).addTo(gisMap).bindPopup('<b>Bayanan Elementary Gym</b><br>Designated Safe Haven · 65% Full');
+      L.marker([14.3940, 121.0180]).addTo(gisMap).bindPopup('<b>Baywalk Covered Court</b><br>Designated Safe Haven · 72% Full');
 
       // Flood Risk Zone polygon
       L.polygon([
@@ -764,10 +910,10 @@
 
       const colorMap = {
         Flood: '#1565C0',
-        Fire: '#D32F2F',
-        SOS: '#D32F2F',
-        Earthquake: '#F57C00',
-        Medical: '#7B1FA2',
+        Fire: '#DC2626',
+        SOS: '#DC2626',
+        Earthquake: '#D97706',
+        Medical: '#7C3AED',
         Storm: '#0288D1'
       };
 
@@ -786,7 +932,7 @@
           <div style="font-size:13px; font-family:sans-serif;">
             <strong style="color:${color};">#${r.id} ${escapeHtml(r.incident_type)}</strong>
             <p style="margin:4px 0;">${escapeHtml(r.description)}</p>
-            <span style="font-size:11px; color:#666;">Status: <strong>${r.status}</strong></span>
+            <span style="font-size:11px; color:#64748B;">Status: <strong>${r.status}</strong></span>
           </div>
         `);
         gisMarkers.addLayer(circle);
@@ -799,14 +945,14 @@
       const triggers = rep.priority_details?.matched_keywords || [];
       return `
         <tr data-id="${rep.id}">
-          <td style="font-weight:800; color:#1565C0;">#${rep.id}</td>
+          <td style="font-weight:800; color:var(--primary);">#${rep.id}</td>
           <td>${priorityBadge(rep)}</td>
           <td>
             <strong>${escapeHtml(rep.incident_type)}</strong>
           </td>
           <td>
             <div>${escapeHtml(rep.reporter_name || 'Resident')}</div>
-            <span style="font-size:11px; color:var(--text-muted);">📍 ${Number(rep.latitude).toFixed(4)}, ${Number(rep.longitude).toFixed(4)}</span>
+            <span style="font-size:11px; color:var(--text-muted);">GPS: ${Number(rep.latitude).toFixed(4)}, ${Number(rep.longitude).toFixed(4)}</span>
           </td>
           <td>
             <select aria-label="Severity" class="severity-select ui-select" data-id="${rep.id}" style="padding:4px 8px; font-size:12px; margin:0; width:100px;">
@@ -825,14 +971,14 @@
             <div style="display:flex; gap:6px;">
               ${rep.status === 'pending' ? `<button class="table-btn table-btn--verify" data-id="${rep.id}">Verify</button>` : ''}
               ${rep.status === 'verified' ? `<button class="table-btn table-btn--dispatch" data-id="${rep.id}">Dispatch</button>` : ''}
-              ${(rep.status === 'responding' || rep.status === 'on_site') ? `<button class="table-btn" style="background:#2E7D32; color:white;" onclick="updateReport(${rep.id}, {status:'resolved'})">Resolve</button>` : ''}
+              ${(rep.status === 'responding' || rep.status === 'on_site') ? `<button class="table-btn" style="background:var(--success); color:white;" onclick="updateReport(${rep.id}, {status:'resolved'})">Resolve</button>` : ''}
             </div>
           </td>
         </tr>
-        <tr style="background:var(--bg-app); font-size:12px; color:var(--text-muted);">
-          <td colspan="8" style="padding:8px 16px; border-bottom:1.5px solid var(--border);">
-            💬 "${escapeHtml(rep.description)}" · Logged: ${formatDate(rep.created_at)}
-            ${triggers.length > 0 ? `<span style="display:inline-block; margin-left:12px; color:#C62828; font-weight:700;">⚠️ Triggers: [${escapeHtml(triggers.join(', '))}]</span>` : ''}
+        <tr style="background:var(--bg-subtle); font-size:12px; color:var(--text-muted);">
+          <td colspan="8" style="padding:8px 16px; border-bottom:1px solid var(--border);">
+            "${escapeHtml(rep.description)}" · Logged: ${formatDate(rep.created_at)}
+            ${triggers.length > 0 ? `<span style="display:inline-block; margin-left:12px; color:var(--emergency); font-weight:700;">Triggers: [${escapeHtml(triggers.join(', '))}]</span>` : ''}
           </td>
         </tr>
       `;
@@ -924,7 +1070,7 @@
             </div>
             <p style="margin:4px 0; font-size:12px; color:var(--text-muted);">${escapeHtml(r.description)}</p>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
-              <span style="font-size:11px; color:var(--text-muted);">📍 ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)}</span>
+              <span style="font-size:11px; color:var(--text-muted);">GPS: ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)}</span>
               <button class="ui-btn-ghost" style="font-size:11px;" onclick="centerMapOn(${r.latitude}, ${r.longitude})">View on Map →</button>
             </div>
           </div>
@@ -933,7 +1079,7 @@
         // Update Map Layers
         updateMapMarkers(allReports);
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-error" style="text-align:center; padding:16px;">${escapeHtml(err.message)}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-error" style="text-align:center; padding:16px;">${escapeHtml(err.message)}</td></tr>`;
       }
     }
 
@@ -995,7 +1141,7 @@
             severity: fd.get('severity'),
           }),
         });
-        showToast('🚨 Emergency Alert broadcasted to all residents!', 'success');
+        showToast('Emergency Alert broadcasted to all residents.', 'success');
         e.target.reset();
         loadAlertHistory();
       } catch (err) {
@@ -1047,7 +1193,7 @@
     initSocket({
       'new-report': (report) => {
         playAlertChime();
-        showToast(`🚨 New ${report.incident_type} Report (#${report.id}) received!`, 'danger');
+        showToast(`New ${report.incident_type} Report (#${report.id}) received.`, 'danger');
         loadReports();
       },
       'status-update': () => loadReports(),
@@ -1063,7 +1209,7 @@
             const parsed = JSON.parse(event.data);
             if (parsed.message) {
               playAlertChime();
-              showToast('🚨 New live citizen disaster report received!', 'danger');
+              showToast('New live citizen disaster report received.', 'danger');
               loadReports();
             }
           } catch (e) {}

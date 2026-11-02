@@ -190,8 +190,8 @@ function createHavenIcon(haven) {
     className: 'gmap-haven-pin',
     html: `
       <div style="display:flex; flex-direction:column; align-items:center; transform:translateY(-8px);">
-        <div style="background:#2E7D32; color:white; font-size:18px; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2.5px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.35);">
-          🛡️
+        <div style="background:#15803D; color:white; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2.5px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.35);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </div>
         <div style="background:white; color:#1B5E20; font-size:10px; font-weight:800; padding:2px 6px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.25); white-space:nowrap; margin-top:2px; border:1px solid #C8E6C9;">
           ${escapeHtml ? escapeHtml(haven.name) : haven.name}

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css?v=3.6" />
+  <link rel="stylesheet" href="/mobile-ui.css?v=3.0" />
   <title>GeoSafe — Resident Dashboard</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -14,12 +14,13 @@
     .weather-card {
       background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
       color: white;
-      border-radius: var(--radius-lg);
-      padding: 16px;
+      border-radius: var(--radius);
+      padding: 16px 18px;
       margin-top: 10px;
       box-shadow: var(--shadow-md);
       position: relative;
       overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
     .weather-card__top {
       display: flex;
@@ -30,30 +31,35 @@
       font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.05em;
       color: #BBDEFB;
       display: block;
       margin-bottom: 2px;
     }
     .weather-card strong {
-      font-size: 26px;
+      font-size: 28px;
       font-weight: 900;
       display: block;
       line-height: 1.1;
+      letter-spacing: -0.02em;
     }
     #weather-advisory {
       margin: 10px 0 0;
       font-size: 12px;
+      font-weight: 600;
       background: rgba(0, 0, 0, 0.2);
-      padding: 6px 10px;
-      border-radius: 8px;
-      line-height: 1.3;
+      padding: 7px 12px;
+      border-radius: var(--radius-sm);
+      line-height: 1.4;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
     #home-map {
       width: 100%;
-      height: 220px;
-      min-height: 220px;
-      border-radius: 12px;
+      height: clamp(180px, 32vh, 260px);
+      min-height: 170px;
+      border-radius: var(--radius-md);
     }
   </style>
 </head>
@@ -62,7 +68,9 @@
     <!-- Top App Bar -->
     <header class="resident-topbar">
       <div class="resident-brand">
-        <span class="resident-brand__mark">⌖</span>
+        <span class="resident-brand__mark">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </span>
         <span>GeoSafe</span>
       </div>
       <div class="resident-topbar__actions" style="display:flex; align-items:center; gap:8px;">
@@ -74,15 +82,17 @@
     </header>
 
     <!-- PWA 1-Tap Install Banner (Appears on Mobile/Desktop) -->
-    <div id="pwa-install-banner" style="display:none; background:linear-gradient(135deg, #1565C0, #0D47A1); color:white; padding:10px 14px; border-radius:12px; margin-bottom:14px; align-items:center; justify-content:space-between; box-shadow:var(--shadow-sm);">
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:18px;">📲</span>
+    <div id="pwa-install-banner" style="display:none; background:var(--primary); color:white; padding:10px 14px; border-radius:var(--radius-md); margin-bottom:14px; align-items:center; justify-content:space-between; box-shadow:var(--shadow-sm);">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:30px; height:30px; border-radius:var(--radius-sm); background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        </div>
         <div>
-          <strong style="font-size:12px; display:block;">Install GeoSafe App</strong>
-          <span style="font-size:10px; color:#BBDEFB;">1-Tap Emergency Access from Home Screen</span>
+          <strong style="font-size:12.5px; display:block;">Install GeoSafe App</strong>
+          <span style="font-size:11px; color:#E0E7FF;">One-tap emergency access from your home screen</span>
         </div>
       </div>
-      <button type="button" onclick="triggerPwaInstall()" style="background:white; color:#1565C0; border:none; padding:6px 12px; border-radius:8px; font-weight:700; font-size:11px; cursor:pointer;">
+      <button type="button" onclick="triggerPwaInstall()" style="background:white; color:var(--primary); border:none; padding:6px 14px; border-radius:var(--radius-xs); font-weight:700; font-size:11.5px; cursor:pointer;">
         Install
       </button>
     </div>
@@ -91,7 +101,7 @@
     <section class="resident-welcome" aria-label="Resident overview">
       <div>
         <p style="margin:0; font-size:13px; color:var(--text-muted);">Good day,</p>
-        <h1 id="resident-name" style="margin:2px 0 0; font-size:22px; font-weight:800;">Juan Dela Cruz</h1>
+        <h1 id="resident-name" style="margin:2px 0 0; font-size:22px; font-weight:900;">Juan Dela Cruz</h1>
       </div>
       
       <!-- Weather Widget Card (Real-Time Open-Meteo Stream) -->
@@ -100,17 +110,24 @@
           <div>
             <span class="weather-card__label" id="weather-loc">Live Weather · Bayanan, Muntinlupa</span>
             <strong id="weather-temp">--°C</strong>
-            <span style="font-size:13px; color:#E3F2FD; display:block; margin-top:2px;" id="weather-condition">Connecting to meteorological stream…</span>
+            <span style="font-size:12.5px; color:#E3F2FD; display:block; margin-top:2px;" id="weather-condition">Connecting to meteorological stream…</span>
           </div>
-          <span style="font-size:36px;" id="weather-icon" aria-hidden="true">⛅</span>
+          <div id="weather-icon-box" style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.18); display:flex; align-items:center; justify-content:center;">
+            <svg id="weather-icon-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          </div>
         </div>
-        <p id="weather-advisory">🔄 Fetching real-time weather & flood advisory…</p>
+        <p id="weather-advisory">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          Fetching real-time weather &amp; flood advisory…
+        </p>
       </div>
     </section>
 
     <!-- Broadcast Alert Banner -->
     <div id="broadcast-banner" class="broadcast-banner hidden">
-      <span class="broadcast-banner__icon">🚨</span>
+      <div class="broadcast-banner__icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      </div>
       <div>
         <p class="broadcast-banner__title">BDRRMC Emergency Warning</p>
         <p id="broadcast-text" class="broadcast-banner__text"></p>
@@ -120,29 +137,37 @@
     <!-- Large Emergency Rescue Card -->
     <a href="report.html?sos=1" class="sos-card-banner" aria-label="Trigger SOS Emergency Rescue">
       <div style="flex:1; padding-right:12px;">
-        <span style="font-size:10px; font-weight:800; letter-spacing:1.5px; color:#FFCDD2;">EMERGENCY RESCUE</span>
-        <h2 style="font-size:19px; font-weight:800; margin:2px 0 3px; color:white;">Emergency Rescue</h2>
-        <p style="font-size:12px; color:#FFEBEE; margin:0;">Tap SOS to broadcast your GPS location directly to BDRRMC responders.</p>
+        <span style="font-size:10px; font-weight:800; letter-spacing:1px; color:#FEE2E2; text-transform:uppercase;">Emergency Rescue</span>
+        <h2 style="font-size:18px; font-weight:900; margin:3px 0 4px; color:white;">Emergency Rescue (SOS)</h2>
+        <p style="font-size:12px; color:#FEE2E2; margin:0; line-height:1.4;">Transmit your real-time GPS location immediately to active BDRRMC responders.</p>
       </div>
       <div class="sos-btn-circle">SOS</div>
     </a>
 
-    <!-- Quick Action Grid (2x2 Unique Core Actions) -->
+    <!-- Quick Action Grid (2x2 Grid) -->
     <nav class="action-grid" aria-label="Quick actions">
       <a href="report.html" class="action-card">
-        <span class="action-card__icon">📝</span>
+        <div class="action-card__icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        </div>
         <span class="action-card__label">Report<br>Hazard</span>
       </a>
       <a href="route.html" class="action-card action-card--map">
-        <span class="action-card__icon">🧭</span>
+        <div class="action-card__icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+        </div>
         <span class="action-card__label">Evacuation<br>Centers</span>
       </a>
       <a href="family.html" class="action-card action-card--fam">
-        <span class="action-card__icon">👨‍👩‍👧</span>
+        <div class="action-card__icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        </div>
         <span class="action-card__label">Family Safety<br>Tracker</span>
       </a>
-      <button type="button" class="action-card" onclick="openHotlinesModal()" style="background:var(--bg-surface); border:1.5px solid var(--border); width:100%; text-align:left; cursor:pointer;">
-        <span class="action-card__icon">📞</span>
+      <button type="button" class="action-card" onclick="openHotlinesModal()" style="width:100%; text-align:left; cursor:pointer;">
+        <div class="action-card__icon" style="background:var(--bg-subtle); color:var(--text);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+        </div>
         <span class="action-card__label">Emergency<br>Hotlines</span>
       </button>
     </nav>
@@ -152,89 +177,96 @@
       <div class="profile-modal-card" style="max-height:85vh; overflow-y:auto;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:22px;">📞</span>
+            <div style="width:32px; height:32px; border-radius:var(--radius-sm); background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            </div>
             <h2 style="font-size:17px; margin:0; font-weight:800;">Emergency Hotlines</h2>
           </div>
-          <button type="button" class="profile-modal-close" onclick="closeHotlinesModal()">&times;</button>
+          <button type="button" class="profile-modal-close" onclick="closeHotlinesModal()" aria-label="Close hotlines modal">&times;</button>
         </div>
 
         <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px;">Direct 24/7 emergency dispatch numbers for Barangay Bayanan &amp; Muntinlupa City.</p>
 
         <div style="display:flex; flex-direction:column; gap:10px;">
-          <a href="tel:0288622525" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:rgba(21, 101, 192, 0.08); border:1.5px solid var(--primary); border-radius:12px; text-decoration:none; color:var(--text);">
+          <a href="tel:0288622525" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--primary-light); border:1px solid var(--primary-border); border-radius:var(--radius-sm); text-decoration:none; color:var(--text);">
             <div>
-              <strong style="font-size:13px; color:var(--primary); display:block;">🛡️ BDRRMC Bayanan Command</strong>
+              <strong style="font-size:13px; color:var(--primary); display:block;">BDRRMC Bayanan Command</strong>
               <span style="font-size:11px; color:var(--text-muted);">24/7 Disaster Operations Center</span>
             </div>
-            <span style="font-weight:800; font-size:13px; color:var(--primary);">📞 (02) 8862-2525</span>
+            <span style="font-weight:800; font-size:12.5px; color:var(--primary);">(02) 8862-2525</span>
           </a>
 
-          <a href="tel:911" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:rgba(211, 47, 47, 0.08); border:1.5px solid var(--emergency); border-radius:12px; text-decoration:none; color:var(--text);">
+          <a href="tel:911" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--emergency-light); border:1px solid var(--emergency-border); border-radius:var(--radius-sm); text-decoration:none; color:var(--text);">
             <div>
-              <strong style="font-size:13px; color:var(--emergency); display:block;">🚨 National Emergency Hotline</strong>
+              <strong style="font-size:13px; color:var(--emergency); display:block;">National Emergency Hotline</strong>
               <span style="font-size:11px; color:var(--text-muted);">Police, Ambulance, Rescue</span>
             </div>
-            <span style="font-weight:800; font-size:14px; color:var(--emergency);">📞 911</span>
+            <span style="font-weight:900; font-size:14px; color:var(--emergency);">911</span>
           </a>
 
-          <a href="tel:0288622664" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--bg-app); border:1.5px solid var(--border); border-radius:12px; text-decoration:none; color:var(--text);">
+          <a href="tel:0288622664" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--bg-app); border:1px solid var(--border); border-radius:var(--radius-sm); text-decoration:none; color:var(--text);">
             <div>
-              <strong style="font-size:13px; color:var(--text); display:block;">🚒 BFP Muntinlupa Fire</strong>
+              <strong style="font-size:13px; color:var(--text); display:block;">BFP Muntinlupa Fire</strong>
               <span style="font-size:11px; color:var(--text-muted);">Fire Rescue &amp; Hazmat</span>
             </div>
-            <span style="font-weight:700; font-size:12px; color:var(--primary);">📞 (02) 8862-2664</span>
+            <span style="font-weight:700; font-size:12px; color:var(--primary);">(02) 8862-2664</span>
           </a>
 
-          <a href="tel:0288620138" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--bg-app); border:1.5px solid var(--border); border-radius:12px; text-decoration:none; color:var(--text);">
+          <a href="tel:0288620138" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--bg-app); border:1px solid var(--border); border-radius:var(--radius-sm); text-decoration:none; color:var(--text);">
             <div>
-              <strong style="font-size:13px; color:var(--text); display:block;">👮 PNP Muntinlupa Police</strong>
+              <strong style="font-size:13px; color:var(--text); display:block;">PNP Muntinlupa Police</strong>
               <span style="font-size:11px; color:var(--text-muted);">Law Enforcement &amp; Security</span>
             </div>
-            <span style="font-weight:700; font-size:12px; color:var(--primary);">📞 (02) 8862-0138</span>
+            <span style="font-weight:700; font-size:12px; color:var(--primary);">(02) 8862-0138</span>
           </a>
 
-          <a href="tel:0287710457" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--bg-app); border:1.5px solid var(--border); border-radius:12px; text-decoration:none; color:var(--text);">
+          <a href="tel:0287710457" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--bg-app); border:1px solid var(--border); border-radius:var(--radius-sm); text-decoration:none; color:var(--text);">
             <div>
-              <strong style="font-size:13px; color:var(--text); display:block;">🏥 Ospital ng Muntinlupa (OsMun)</strong>
+              <strong style="font-size:13px; color:var(--text); display:block;">Ospital ng Muntinlupa (OsMun)</strong>
               <span style="font-size:11px; color:var(--text-muted);">Emergency Trauma &amp; Medical</span>
             </div>
-            <span style="font-weight:700; font-size:12px; color:var(--primary);">📞 (02) 8771-0457</span>
+            <span style="font-weight:700; font-size:12px; color:var(--primary);">(02) 8771-0457</span>
           </a>
         </div>
-
-        <button type="button" class="ui-btn ui-btn-secondary" onclick="closeHotlinesModal()" style="margin-top:14px; width:100%;">Close</button>
       </div>
     </div>
 
-    <!-- Map & GPS Coordinates View -->
-    <section class="map-card">
+    <!-- Live Evacuation Safe Route Mini-Map Preview -->
+    <section class="map-card" aria-label="Evacuation route preview">
       <div class="map-card__badge">
-        <span class="map-card__badge-dot" style="background:var(--green);"></span>
-        <span id="coord-status">Nearest Haven: Baywalk Covered Court</span>
+        <span class="map-card__badge-dot"></span>
+        <span id="coord-status">Live Safe Haven Navigation</span>
       </div>
       <div id="home-map"></div>
       <div class="map-card__legend">
         <span class="map-card__legend-dot"></span>
-        <span>Nearest Evacuation Safe Haven (Barangay Bayanan)</span>
+        <span>Route to nearest verified BDRRMC evacuation center</span>
       </div>
     </section>
 
-    <!-- Recent Alerts -->
+    <!-- Recent Alerts Preview List -->
     <section class="ui-card">
-      <h2 style="margin-top:0; font-size:15px;">Recent BDRRMC Alerts</h2>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h2 style="margin:0;">Recent Emergency Broadcasts</h2>
+        <a href="route.html" class="ui-btn-ghost" style="font-size:12px;">View All</a>
+      </div>
       <div id="alerts-preview" class="text-muted" style="font-size:13px;">Loading alerts…</div>
     </section>
 
-    <!-- My Incident Reports -->
+    <!-- My Recent Incident Reports -->
     <section class="ui-card">
-      <h2 style="margin-top:0; font-size:15px;">My Incident Reports</h2>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h2 style="margin:0;">My Incident Submissions</h2>
+        <a href="report.html" class="ui-btn-ghost" style="font-size:12px;">+ File Report</a>
+      </div>
       <div id="my-reports-preview" class="text-muted" style="font-size:13px;">Loading your reports…</div>
     </section>
   </div>
 
   <script src="/firebase-config.js"></script>
-  <script src="/evacuation-routes.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/app.js"></script>
+  <script src="/evacuation-routes.js"></script>
   <script>
     const user = requireAuth(['resident']);
     if (!user) throw new Error('unauthorized');
@@ -259,6 +291,15 @@
     let homeMap = null;
     let homeLayers = null;
     let lastKnownAlertMsg = '';
+
+    // Weather SVGs
+    const WEATHER_ICONS = {
+      sun: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`,
+      cloudSun: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/></svg>`,
+      cloud: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>`,
+      rain: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/></svg>`,
+      storm: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><polygon points="13 11 9 17 15 17 11 23"></polygon></svg>`
+    };
 
     // 1. Initialize Map with Street-Snapped Routing & Dark Mode Support
     async function initHomeMap(lat, lng) {
@@ -308,40 +349,40 @@
         const rainMm = cur.precipitation;
         const code = cur.weather_code;
 
-        let icon = '⛅';
+        let iconSvg = WEATHER_ICONS.cloudSun;
         let desc = 'Partly Cloudy';
-        if (code === 0) { icon = '☀️'; desc = 'Clear & Sunny'; }
-        else if (code === 1 || code === 2) { icon = '🌤️'; desc = 'Mainly Clear'; }
-        else if (code === 3) { icon = '☁️'; desc = 'Overcast'; }
-        else if (code >= 45 && code <= 48) { icon = '🌫️'; desc = 'Hazy / Mist'; }
-        else if (code >= 51 && code <= 55) { icon = '🌦️'; desc = 'Light Drizzle'; }
-        else if (code >= 61 && code <= 65) { icon = '🌧️'; desc = 'Rain Showers'; }
-        else if (code >= 80 && code <= 82) { icon = '🌧️'; desc = 'Heavy Rain'; }
-        else if (code >= 95) { icon = '⛈️'; desc = 'Thunderstorm Warning'; }
+        if (code === 0) { iconSvg = WEATHER_ICONS.sun; desc = 'Clear & Sunny'; }
+        else if (code === 1 || code === 2) { iconSvg = WEATHER_ICONS.cloudSun; desc = 'Mainly Clear'; }
+        else if (code === 3) { iconSvg = WEATHER_ICONS.cloud; desc = 'Overcast'; }
+        else if (code >= 45 && code <= 48) { iconSvg = WEATHER_ICONS.cloud; desc = 'Hazy / Mist'; }
+        else if (code >= 51 && code <= 55) { iconSvg = WEATHER_ICONS.rain; desc = 'Light Drizzle'; }
+        else if (code >= 61 && code <= 65) { iconSvg = WEATHER_ICONS.rain; desc = 'Rain Showers'; }
+        else if (code >= 80 && code <= 82) { iconSvg = WEATHER_ICONS.rain; desc = 'Heavy Rain'; }
+        else if (code >= 95) { iconSvg = WEATHER_ICONS.storm; desc = 'Thunderstorm Warning'; }
 
         document.getElementById('weather-temp').textContent = `${temp}°C`;
-        document.getElementById('weather-condition').textContent = `${desc} · Feels like ${feels}°C · ${humidity}% Hum`;
-        document.getElementById('weather-icon').textContent = icon;
+        document.getElementById('weather-condition').textContent = `${desc} · Feels like ${feels}°C · ${humidity}% Humidity`;
+        document.getElementById('weather-icon-box').innerHTML = iconSvg;
 
         const advEl = document.getElementById('weather-advisory');
         if (code >= 95 || rainMm > 10) {
-          advEl.textContent = `🚨 Thunderstorm Alert — Elevated flood risk along Bayanan Creek.`;
+          advEl.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> Thunderstorm Alert — Elevated flood risk along Bayanan Creek.`;
           advEl.style.color = '#FFCDD2';
         } else if (rainMm > 0.5) {
-          advEl.textContent = `🌧️ Active Rain (${rainMm}mm/h) — Keep drainage ways clear.`;
+          advEl.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/></svg> Active Rain (${rainMm}mm/h) — Keep drainage ways clear.`;
           advEl.style.color = '#FFF9C4';
         } else if (feels >= 38) {
-          advEl.textContent = `☀️ High Heat Index (${feels}°C) — Stay hydrated & limit sun exposure.`;
+          advEl.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle></svg> High Heat Index (${feels}°C) — Stay hydrated &amp; limit sun exposure.`;
           advEl.style.color = '#FFE0B2';
         } else {
-          advEl.textContent = `✅ Normal weather conditions — Monitored 24/7 by BDRRMC Bayanan.`;
+          advEl.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> Normal weather conditions — Monitored 24/7 by BDRRMC Bayanan.`;
           advEl.style.color = '#E8F5E9';
         }
       } catch (err) {
         document.getElementById('weather-temp').textContent = '29°C';
         document.getElementById('weather-condition').textContent = 'Partly Cloudy · 72% Humidity';
-        document.getElementById('weather-icon').textContent = '⛅';
-        document.getElementById('weather-advisory').textContent = 'ℹ️ Real-time weather monitored live for Barangay Bayanan.';
+        document.getElementById('weather-icon-box').innerHTML = WEATHER_ICONS.cloudSun;
+        document.getElementById('weather-advisory').innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> Real-time weather monitored live for Barangay Bayanan.';
       }
     }
 
@@ -376,7 +417,7 @@
 
           if (lastKnownAlertMsg && lastKnownAlertMsg !== latest.message) {
             playAlertChime();
-            showToast('🚨 NEW BDRRMC BROADCAST: ' + latest.message, 'danger');
+            showToast('New BDRRMC Broadcast: ' + latest.message, 'danger');
           }
           lastKnownAlertMsg = latest.message;
 
@@ -406,7 +447,7 @@
             <div class="report-item" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
               <div>
                 <strong style="font-size:13px; color:var(--text);">${escapeHtml(r.incident_type)}</strong>
-                <p class="text-muted" style="margin:2px 0 0; font-size:11px;">📍 ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)} · ${formatDate(r.created_at)}</p>
+                <p class="text-muted" style="margin:2px 0 0; font-size:11px;">GPS: ${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)} · ${formatDate(r.created_at)}</p>
               </div>
               <div>${statusBadge(r.status)}</div>
             </div>

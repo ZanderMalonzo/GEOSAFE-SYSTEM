@@ -11,7 +11,12 @@ const SVG_ICONS = {
   navHome: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`,
   navReport: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`,
   navRoute: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>`,
-  navFamily: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`
+  navFamily: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`,
+  shield: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`,
+  alert: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`,
+  phone: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>`,
+  pin: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`,
+  check: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>`
 };
 
 // ==========================================================================
@@ -396,7 +401,7 @@ async function api(path, options = {}) {
       fetch('https://ntfy.sh/geosafe_bayanan_reports_2026', {
         method: 'POST',
         body: JSON.stringify(newReport),
-        headers: { 'Title': `🚨 [${newReport.priority_code}] ${newReport.incident_type} Reported`, 'Priority': 'high' }
+        headers: { 'Title': `[${newReport.priority_code}] ${newReport.incident_type} Reported`, 'Priority': 'high' }
       }).catch(() => {});
     } catch (e) {}
 
@@ -517,7 +522,7 @@ async function api(path, options = {}) {
         method: 'POST',
         body: JSON.stringify(newAlert),
         headers: {
-          'Title': '🚨 BDRRMC Emergency Broadcast',
+          'Title': 'BDRRMC Emergency Broadcast',
           'Priority': 'urgent',
           'Tags': 'warning,rotating_light'
         }
@@ -1201,7 +1206,7 @@ function priorityBadge(report) {
   const bg = code === 'P1' ? '#D32F2F' : code === 'P2' ? '#F57C00' : '#2E7D32';
   const score = report.priority_score !== undefined ? report.priority_score : (code === 'P1' ? 85 : code === 'P2' ? 55 : 25);
   return `<span style="background:${bg}; color:white; font-size:11px; font-weight:800; padding:3px 8px; border-radius:6px; letter-spacing:0.3px; display:inline-flex; align-items:center; gap:4px;">
-    ⚡ ${escapeHtml(label)} (${score} pts)
+    ${escapeHtml(label)} (${score} pts)
   </span>`;
 }
 
@@ -1288,7 +1293,7 @@ function setLocationOnForm(lat, lng, statusEl, mapContainerId) {
   if (lngEl) lngEl.value = Number(lng).toFixed(6);
 
   if (statusEl) {
-    statusEl.textContent = `📍 ${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)} (Active)`;
+    statusEl.textContent = `GPS: ${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)} (Active)`;
     statusEl.style.color = 'var(--success)';
   }
   if (mapContainerId && typeof L !== 'undefined') {
@@ -1323,14 +1328,14 @@ function triggerPwaInstall() {
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then((choiceResult) => {
       if (choiceResult.outcome === 'accepted') {
-        showToast('🎉 GeoSafe App installed on your device!', 'success');
+        showToast('GeoSafe App installed on your device successfully.', 'success');
       }
       deferredPrompt = null;
       const pwaBtn = document.getElementById('pwa-install-banner');
       if (pwaBtn) pwaBtn.style.display = 'none';
     });
   } else {
-    showToast('To install: Tap browser menu (⋮ or Share) ➔ "Add to Home Screen"');
+    showToast('To install: Tap browser menu (Options or Share) -> "Add to Home Screen"');
   }
 }
 
@@ -1419,10 +1424,10 @@ function openProfileModal() {
         </div>
 
         <button type="submit" class="ui-btn ui-btn-primary" style="margin-bottom:8px;">
-          💾 Save Profile Changes
+          Save Profile Changes
         </button>
         <button type="button" class="ui-btn ui-btn-secondary" onclick="logout()" style="color:var(--emergency);">
-          🚪 Log Out
+          Log Out
         </button>
       </form>
     </div>
@@ -1465,7 +1470,7 @@ function saveProfileChanges(e) {
   });
 
   closeProfileModal();
-  showToast('✅ Profile information updated successfully!', 'success');
+  showToast('Profile information updated successfully.', 'success');
 }
 
 // Auto sync avatar initials on load

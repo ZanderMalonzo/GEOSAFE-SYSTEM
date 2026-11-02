@@ -6,20 +6,20 @@
   <meta name="theme-color" content="#1565C0" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/critical.css" />
-  <link rel="stylesheet" href="/mobile-ui.css?v=2.4" />
+  <link rel="stylesheet" href="/mobile-ui.css?v=3.0" />
   <title>GeoSafe — Responder Field Ops</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     /* Responder Field Ops Specific Styles */
     .responder-header {
-      background: #FFFFFF;
-      border-bottom: 1.5px solid var(--border);
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
       padding: 12px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-xs);
       position: sticky;
       top: 0;
       z-index: 100;
@@ -28,55 +28,57 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 5px 12px;
-      border-radius: 20px;
-      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
       font-weight: 700;
       background: var(--success-light);
       color: var(--success);
-      border: 1px solid rgba(46, 125, 50, 0.2);
+      border: 1px solid var(--success-border);
     }
     .responder-status-pill--standby {
       background: var(--warning-light);
       color: var(--warning);
-      border-color: rgba(245, 124, 0, 0.2);
+      border-color: var(--warning-border);
     }
     .duty-toggle-btn {
-      background: #F0F4F8;
+      background: var(--bg-subtle);
       border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
       font-size: 12px;
       font-weight: 700;
       color: var(--text);
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
-      transition: all 0.2s;
+      transition: all 0.15s ease;
     }
     .duty-toggle-btn:hover {
-      background: #E2E8F0;
+      background: var(--border-light);
+      border-color: var(--primary);
     }
     .active-mission-card {
       background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
       color: white;
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius);
       padding: 20px;
       box-shadow: var(--shadow-lg);
       margin-bottom: 20px;
       position: relative;
       overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
     .active-mission-card__badge {
       background: rgba(255, 255, 255, 0.2);
       backdrop-filter: blur(4px);
       padding: 4px 10px;
-      border-radius: 8px;
+      border-radius: var(--radius-xs);
       font-size: 11px;
       font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.05em;
       display: inline-block;
       margin-bottom: 8px;
     }
@@ -87,8 +89,8 @@
       margin-top: 14px;
     }
     .mission-step-btn {
-      padding: 12px 8px;
-      border-radius: 12px;
+      padding: 10px 8px;
+      border-radius: var(--radius-sm);
       border: none;
       font-size: 12px;
       font-weight: 800;
@@ -96,8 +98,8 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
-      transition: all 0.2s;
+      gap: 5px;
+      transition: all 0.15s ease;
       background: rgba(255, 255, 255, 0.15);
       color: white;
     }
@@ -112,10 +114,10 @@
     }
     .mission-map-frame {
       height: 240px;
-      border-radius: 12px;
+      border-radius: var(--radius-sm);
       overflow: hidden;
       margin: 14px 0;
-      border: 2px solid rgba(255, 255, 255, 0.2);
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
     }
     #active-mission-map {
       width: 100%;
@@ -128,11 +130,11 @@
       margin-top: 12px;
     }
     .quick-nav-btn {
-      background: rgba(255, 255, 255, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.25);
       color: white;
-      padding: 10px;
-      border-radius: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-xs);
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
@@ -141,56 +143,143 @@
       justify-content: center;
       gap: 6px;
       text-decoration: none;
+      transition: background 0.15s;
     }
     .quick-nav-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.28);
     }
     .incident-queue-card {
       background: var(--bg-card);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
       padding: 16px;
-      margin-bottom: 14px;
-      box-shadow: var(--shadow-sm);
-      transition: transform 0.15s ease;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-xs);
+      transition: all 0.15s ease;
     }
     .incident-queue-card:hover {
-      box-shadow: var(--shadow-md);
+      box-shadow: var(--shadow-sm);
+      border-color: var(--primary-border);
     }
     .triage-tab-bar {
       display: flex;
-      gap: 8px;
-      border-bottom: 1.5px solid var(--border);
+      gap: 6px;
+      border-bottom: 1px solid var(--border);
       margin-bottom: 16px;
       padding-bottom: 2px;
+      overflow-x: auto;
     }
     .triage-tab {
-      padding: 8px 16px;
+      padding: 8px 14px;
       border: none;
       background: transparent;
       font-size: 13px;
       font-weight: 700;
       color: var(--text-muted);
       cursor: pointer;
-      border-bottom: 3px solid transparent;
+      border-bottom: 2.5px solid transparent;
+      white-space: nowrap;
+      transition: all 0.15s ease;
     }
     .triage-tab.active {
       color: var(--primary);
       border-bottom-color: var(--primary);
     }
+    .command-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 359px) {
+      .command-kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+    }
+    @media (min-width: 360px) and (max-width: 767px) {
+      .command-kpi-grid > .kpi-card:last-child {
+        grid-column: span 2;
+      }
+    }
+    @media (min-width: 768px) {
+      .command-kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+    }
+    @media (max-width: 480px) {
+      .command-brand > div > span {
+        display: none;
+      }
+      .command-brand h1 {
+        font-size: 14.5px !important;
+      }
+      .responder-status-pill span:last-child {
+        display: none;
+      }
+      .mission-step-btn {
+        padding: 8px 4px;
+        font-size: 11px;
+      }
+    }
+    @media (max-width: 359px) {
+      .mission-lifecycle-bar {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+      .mission-step-btn {
+        flex-direction: row;
+        justify-content: center;
+        padding: 10px 12px;
+      }
+    }
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      box-shadow: var(--shadow-xs);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .kpi-card__label {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .kpi-card__val {
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--text);
+      line-height: 1.1;
+    }
+    .kpi-card__sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
   </style>
 </head>
-<body class="staff-shell" style="background:#F7F9FC;">
+<body class="staff-shell">
 
   <!-- Responder Top App Bar -->
   <header class="responder-header">
     <div style="display:flex; align-items:center; gap:10px;">
-      <div class="resident-brand__mark" style="background:#1565C0;">🚑</div>
+      <div class="resident-brand__mark" style="background:var(--primary);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+      </div>
       <div>
-        <div style="display:flex; align-items:center; gap:6px;">
-          <h1 style="font-size:16px; font-weight:800; margin:0; color:#1565C0;">Responder Field Ops</h1>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <h1 style="font-size:16px; font-weight:800; margin:0; color:var(--primary);">Responder Field Ops</h1>
           <span class="responder-status-pill" id="duty-badge">
-            <span style="width:7px; height:7px; background:#2E7D32; border-radius:50%;"></span>
+            <span style="width:7px; height:7px; background:var(--success); border-radius:50%;"></span>
             <span>ON-DUTY</span>
           </span>
         </div>
@@ -198,26 +287,77 @@
       </div>
     </div>
 
-    <div style="display:flex; align-items:center; gap:10px;">
-      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Dark Mode" title="Toggle Dark/Light Mode">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-      </button>
-      <button type="button" class="duty-toggle-btn" id="btn-toggle-duty" onclick="toggleDutyStatus()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button type="button" class="duty-toggle-btn" id="btn-toggle-duty" onclick="toggleDutyStatus()" style="white-space:nowrap; padding:7px 12px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
         <span id="duty-toggle-text">Set Standby</span>
       </button>
-      <button type="button" class="ui-btn-ghost" onclick="logout()" style="color:var(--emergency); font-size:13px; font-weight:700;">
-        Logout
+
+      <div class="desktop-only-controls" style="display:flex; align-items:center; gap:10px;">
+        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Dark Mode" title="Toggle Dark/Light Mode">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+        <button type="button" class="ui-btn-ghost" onclick="logout()" style="color:var(--emergency); font-size:13px; font-weight:700;">
+          Logout
+        </button>
+      </div>
+
+      <!-- Mobile Hamburger Button -->
+      <button type="button" class="mobile-menu-btn" onclick="toggleResponderDrawer()" aria-label="Open Navigation Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
     </div>
   </header>
+  <!-- Mobile Navigation Drawer -->
+  <div id="responder-mobile-drawer" class="mobile-drawer-backdrop" onclick="if(event.target===this) toggleResponderDrawer()">
+    <div class="mobile-drawer">
+      <div class="mobile-drawer-header">
+        <div class="mobile-drawer-title">
+          <div class="resident-brand__mark" style="background:var(--primary); width:30px; height:30px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+          </div>
+          <div>
+            <strong style="font-size:13.5px; display:block;" id="drawer-resp-name">Response Unit</strong>
+            <span style="font-size:10.5px; color:var(--success); font-weight:700;">● Active Field Shift</span>
+          </div>
+        </div>
+        <button type="button" class="mobile-drawer-close" onclick="toggleResponderDrawer()" aria-label="Close Menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
 
-  <!-- Main Container (Responsive for Phone & Tablet/Desktop) -->
-  <div style="max-width:1080px; margin:0 auto; padding:16px 16px 40px;">
+      <nav class="mobile-drawer-nav">
+        <a href="#active-mission-card" class="mobile-drawer-link" onclick="toggleResponderDrawer()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Active Mission HUD
+        </a>
+        <a href="#incident-queue-container" class="mobile-drawer-link" onclick="toggleResponderDrawer()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Incident Triage Queue
+        </a>
+      </nav>
+
+      <div class="mobile-drawer-footer">
+        <button type="button" class="ui-btn-secondary" onclick="toggleTheme()" style="width:100%; justify-content:center; padding:10px; font-size:12.5px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          <span>Toggle Theme Mode</span>
+        </button>
+        <button type="button" class="ui-btn ui-btn-danger" onclick="logout()" style="width:100%; justify-content:center; padding:10px; font-size:12.5px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="staff-container" style="max-width:1080px; padding-bottom:40px;">
 
     <!-- Live BDRRMC Broadcast Alert Banner (if any) -->
     <div id="broadcast-alert-box" class="broadcast-banner hidden" style="margin-bottom:16px;">
-      <span style="font-size:20px;">🚨</span>
+      <div class="broadcast-banner__icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      </div>
       <div style="flex:1;">
         <p class="broadcast-banner__title">BDRRMC Incident Command Broadcast</p>
         <p id="broadcast-alert-text" class="broadcast-banner__text"></p>
@@ -225,20 +365,29 @@
     </div>
 
     <!-- Quick Stats Grid -->
-    <section class="command-kpi-grid" style="margin-bottom:18px;">
+    <section class="command-kpi-grid">
       <div class="kpi-card">
-        <span class="kpi-card__label" style="color:var(--emergency);">🚨 Assigned Missions</span>
+        <span class="kpi-card__label" style="color:var(--emergency);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Assigned Missions
+        </span>
         <div class="kpi-card__val" id="stat-assigned-count" style="color:var(--emergency);">0</div>
         <span class="kpi-card__sub">Pending active response</span>
       </div>
       <div class="kpi-card">
-        <span class="kpi-card__label">📍 My GPS Coordinates</span>
-        <div class="kpi-card__val" style="font-size:16px; font-weight:800; color:#1565C0;" id="stat-gps-text">Acquiring GPS…</div>
+        <span class="kpi-card__label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          My GPS Coordinates
+        </span>
+        <div class="kpi-card__val" style="font-size:15px; font-weight:800; color:var(--primary);" id="stat-gps-text">Acquiring GPS…</div>
         <span class="kpi-card__sub" style="color:var(--success);">● Broadcasting to Command</span>
       </div>
       <div class="kpi-card">
-        <span class="kpi-card__label">🏥 Nearest Facility</span>
-        <div class="kpi-card__val" style="font-size:16px; font-weight:800; color:#2E7D32;">Ospital ng Muntinlupa</div>
+        <span class="kpi-card__label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          Nearest Facility
+        </span>
+        <div class="kpi-card__val" style="font-size:15px; font-weight:800; color:var(--success);">Ospital ng Muntinlupa</div>
         <span class="kpi-card__sub">1.2 km away · Direct Hotline: 911</span>
       </div>
     </section>
@@ -250,14 +399,14 @@
       <div class="active-mission-card" id="active-mission-card">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
           <div>
-            <span class="active-mission-card__badge" id="mission-badge">🚨 CRITICAL SOS RESCUE MISSION</span>
-            <h2 style="font-size:22px; font-weight:900; margin:0 0 4px;" id="mission-title">Mission #104 — Flood Rescue</h2>
+            <span class="active-mission-card__badge" id="mission-badge">ACTIVE RESCUE MISSION</span>
+            <h2 style="font-size:20px; font-weight:900; margin:0 0 4px;" id="mission-title">Mission #104 — Flood Rescue</h2>
             <p style="font-size:13px; color:#E3F2FD; margin:0;" id="mission-reporter">Resident: <strong>Juan Dela Cruz</strong> · 4 Family Members</p>
           </div>
-          <span class="ui-badge ui-badge--high" id="mission-severity" style="font-size:12px; background:white; color:#D32F2F;">HIGH SEVERITY</span>
+          <span class="ui-badge ui-badge--high" id="mission-severity" style="font-size:11px; background:white; color:var(--emergency);">HIGH SEVERITY</span>
         </div>
 
-        <p style="font-size:14px; background:rgba(0,0,0,0.18); padding:10px 14px; border-radius:10px; margin:12px 0 0; line-height:1.4;" id="mission-description">
+        <p style="font-size:13.5px; background:rgba(0,0,0,0.18); padding:10px 14px; border-radius:var(--radius-sm); margin:12px 0 0; line-height:1.45;" id="mission-description">
           "Water height at chest level. Need immediate evacuation assistance. 1 elderly person present."
         </p>
 
@@ -269,27 +418,29 @@
         <!-- 1-Tap Navigation & Citizen Call Actions -->
         <div class="responder-quick-nav">
           <a id="btn-gmaps-nav" target="_blank" href="#" class="quick-nav-btn">
-            <span>🧭</span> <span>OpenStreetMap Navigation</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+            <span>OpenStreetMap Navigation</span>
           </a>
-          <a id="btn-call-resident" href="tel:+639171234567" class="quick-nav-btn" style="background:rgba(46, 125, 50, 0.4);">
-            <span>📞</span> <span>Call Citizen / Family</span>
+          <a id="btn-call-resident" href="tel:+639171234567" class="quick-nav-btn" style="background:rgba(22, 163, 74, 0.45);">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <span>Call Citizen / Family</span>
           </a>
         </div>
 
         <!-- 3-Stage Mission Lifecycle Trigger Buttons -->
         <div style="margin-top:16px;">
-          <span style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#BBDEFB;">Update Mission Progress to Command:</span>
+          <span style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:#BBDEFB;">Update Mission Progress to Command:</span>
           <div class="mission-lifecycle-bar">
             <button type="button" class="mission-step-btn active" id="step-responding" onclick="advanceActiveMission('responding')">
-              <span style="font-size:18px;">🏃</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
               <span>1. En Route</span>
             </button>
             <button type="button" class="mission-step-btn" id="step-onsite" onclick="advanceActiveMission('on_site')">
-              <span style="font-size:18px;">📍</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
               <span>2. Arrived On-Site</span>
             </button>
-            <button type="button" class="mission-step-btn" id="step-resolved" onclick="advanceActiveMission('resolved')" style="background:rgba(46, 125, 50, 0.4);">
-              <span style="font-size:18px;">✅</span>
+            <button type="button" class="mission-step-btn" id="step-resolved" onclick="advanceActiveMission('resolved')" style="background:rgba(22, 163, 74, 0.4);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
               <span>3. Mark Resolved</span>
             </button>
           </div>
@@ -299,9 +450,11 @@
 
     <!-- Empty State for Active Mission -->
     <div id="no-active-mission-box" class="ui-card" style="display:none; text-align:center; padding:32px 20px;">
-      <span style="font-size:36px; display:block; margin-bottom:8px;">🛡️</span>
-      <h3 style="margin:0 0 6px; font-size:18px;">Unit Ready on Standby</h3>
-      <p class="text-muted" style="margin:0; font-size:13px;">No active emergency assigned to your unit right now. Incident Command will dispatch new calls as they arrive.</p>
+      <div style="width:48px; height:48px; border-radius:50%; background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center; margin:0 auto 10px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <h3 style="margin:0 0 6px; font-size:17px; font-weight:800;">Unit Ready on Standby</h3>
+      <p class="text-muted" style="margin:0; font-size:13px; max-width:440px; margin:0 auto;">No active emergency assigned to your unit right now. Incident Command will dispatch new calls as they arrive.</p>
     </div>
 
     <!-- ====================================================
@@ -313,11 +466,11 @@
           <h2 style="margin:0; font-size:16px;">Field Incidents Queue</h2>
           <p class="text-muted" style="margin:2px 0 0; font-size:12px;">Review details and self-dispatch to nearby citizen distress calls.</p>
         </div>
-        <button type="button" class="ui-btn-ghost" onclick="loadIncidents()" style="font-size:12px;">↻ Refresh Queue</button>
+        <button type="button" class="ui-btn-ghost" onclick="loadIncidents()" style="font-size:12px;">Refresh Queue</button>
       </div>
 
       <div class="triage-tab-bar">
-        <button class="triage-tab active" id="tab-triage" onclick="filterIncidentsTab('triage')">⚡ Priority Triage Queue (<span id="triage-count">0</span>)</button>
+        <button class="triage-tab active" id="tab-triage" onclick="filterIncidentsTab('triage')">Priority Triage Queue (<span id="triage-count">0</span>)</button>
         <button class="triage-tab" id="tab-my-missions" onclick="filterIncidentsTab('my')">My Assigned Missions (<span id="my-count">0</span>)</button>
         <button class="triage-tab" id="tab-all-incidents" onclick="filterIncidentsTab('all')">All Incidents (<span id="all-count">0</span>)</button>
       </div>
@@ -331,16 +484,16 @@
     <section class="ui-card">
       <h2 style="font-size:15px; margin-bottom:10px;">Emergency Hotlines &amp; Backup Units</h2>
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; font-size:12px;">
-        <div style="background:var(--bg-app); padding:10px; border-radius:10px; border:1px solid var(--border);">
-          <strong>🚒 BFP Muntinlupa Fire:</strong><br>
+        <div style="background:var(--bg-subtle); padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--border);">
+          <strong style="color:var(--text); display:block; margin-bottom:2px;">BFP Muntinlupa Fire:</strong>
           <a href="tel:(02)8842-2201" style="color:var(--primary); font-weight:700;">(02) 8842-2201</a>
         </div>
-        <div style="background:var(--bg-app); padding:10px; border-radius:10px; border:1px solid var(--border);">
-          <strong>🚑 CDRRMO Emergency Rescue:</strong><br>
+        <div style="background:var(--bg-subtle); padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--border);">
+          <strong style="color:var(--text); display:block; margin-bottom:2px;">CDRRMO Emergency Rescue:</strong>
           <a href="tel:911" style="color:var(--emergency); font-weight:700;">911 / (02) 8925-2453</a>
         </div>
-        <div style="background:var(--bg-app); padding:10px; border-radius:10px; border:1px solid var(--border);">
-          <strong>🛡️ Barangay Bayanan Hall:</strong><br>
+        <div style="background:var(--bg-subtle); padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--border);">
+          <strong style="color:var(--text); display:block; margin-bottom:2px;">Barangay Bayanan Hall:</strong>
           <a href="tel:(02)8861-1122" style="color:var(--primary); font-weight:700;">(02) 8861-1122</a>
         </div>
       </div>
@@ -358,73 +511,45 @@
 
     let allReports = [];
     let currentActiveReport = null;
+    let currentFilter = 'triage';
+    let isOnDuty = true;
     let activeMap = null;
     let activeMapMarker = null;
-    let userPos = { lat: 14.3972, lng: 121.0200 };
-    let isDuty = true;
-    let currentFilter = 'my';
+    let userPos = null;
 
-    // Audio Alert Synthesizer
-    function playMissionChime() {
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(440, ctx.currentTime);
-        osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.12);
-        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.24);
-        gain.gain.setValueAtTime(0.4, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.6);
-      } catch {}
+    // Toggle Duty
+    
+    function toggleResponderDrawer() {
+      const drawer = document.getElementById('responder-mobile-drawer');
+      if (drawer) drawer.classList.toggle('mobile-drawer--open');
     }
 
-    // Toggle On-Duty / Standby Status
     function toggleDutyStatus() {
-      isDuty = !isDuty;
-      const badge = document.getElementById('duty-badge');
+      isOnDuty = !isOnDuty;
+      const dutyBadge = document.getElementById('duty-badge');
       const toggleText = document.getElementById('duty-toggle-text');
-      if (isDuty) {
-        badge.className = 'responder-status-pill';
-        badge.innerHTML = '<span style="width:7px; height:7px; background:#2E7D32; border-radius:50%;"></span><span>ON-DUTY</span>';
+      if (isOnDuty) {
+        dutyBadge.className = 'responder-status-pill';
+        dutyBadge.innerHTML = '<span style="width:7px; height:7px; background:var(--success); border-radius:50%;"></span><span>ON-DUTY</span>';
         toggleText.textContent = 'Set Standby';
-        showToast('You are now ON-DUTY and ready for dispatch', 'success');
+        showToast('Status: On-Duty (Active Dispatch)', 'success');
       } else {
-        badge.className = 'responder-status-pill responder-status-pill--standby';
-        badge.innerHTML = '<span style="width:7px; height:7px; background:#F57C00; border-radius:50%;"></span><span>STANDBY</span>';
-        toggleText.textContent = 'Set On-Duty';
-        showToast('You are on STANDBY', 'warning');
+        dutyBadge.className = 'responder-status-pill responder-status-pill--standby';
+        dutyBadge.innerHTML = '<span style="width:7px; height:7px; background:var(--warning); border-radius:50%;"></span><span>STANDBY</span>';
+        toggleText.textContent = 'Go On-Duty';
+        showToast('Status: Standby (Missions Paused)', 'warning');
       }
     }
 
-    // GPS Auto-Acquire & Track
-    async function trackGPS() {
+    // Acquire GPS
+    async function initResponderGPS() {
       try {
         const pos = await getGeolocation();
         userPos = { lat: pos.latitude, lng: pos.longitude };
-        document.getElementById('stat-gps-text').textContent = `${Number(userPos.lat).toFixed(4)}, ${Number(userPos.lng).toFixed(4)}`;
-      } catch {
-        document.getElementById('stat-gps-text').textContent = '14.3972, 121.0200 (Bayanan)';
-      }
-    }
-
-    // Advance Mission Lifecycle
-    async function advanceActiveMission(newStatus, targetId = null) {
-      const id = targetId || currentActiveReport?.id;
-      if (!id) return;
-      try {
-        await api(`/api/reports/${id}/status`, {
-          method: 'PUT',
-          body: JSON.stringify({ status: newStatus })
-        });
-        showToast(`Mission #${id} updated to: ${newStatus.replace('_', ' ').toUpperCase()}`, 'success');
-        loadIncidents();
+        document.getElementById('stat-gps-text').textContent = `${pos.latitude.toFixed(4)}, ${pos.longitude.toFixed(4)}`;
       } catch (err) {
-        showToast(err.message, 'danger');
+        userPos = { lat: 14.3972, lng: 121.0200 };
+        document.getElementById('stat-gps-text').textContent = '14.3972, 121.0200 (Bayanan)';
       }
     }
 
@@ -443,7 +568,7 @@
       container.style.display = 'block';
       noMissionBox.style.display = 'none';
 
-      document.getElementById('mission-badge').textContent = `🚨 ACTIVE MISSION #${report.id} · ${report.incident_type.toUpperCase()}`;
+      document.getElementById('mission-badge').textContent = `ACTIVE MISSION #${report.id} · ${report.incident_type.toUpperCase()}`;
       document.getElementById('mission-title').textContent = `#${report.id} — ${report.incident_type} Emergency`;
       document.getElementById('mission-reporter').innerHTML = `Resident: <strong>${escapeHtml(report.reporter_name || 'Citizen')}</strong> · Phone: Available`;
       document.getElementById('mission-description').textContent = `"${report.description}"`;
@@ -456,7 +581,7 @@
       document.getElementById('step-onsite').className = `mission-step-btn ${report.status === 'on_site' ? 'active' : ''}`;
       document.getElementById('step-resolved').className = `mission-step-btn ${report.status === 'resolved' ? 'active' : ''}`;
 
-      // Initialize or Update Leaflet Mission Map (100% Open-Source Tiles)
+      // Initialize or Update Leaflet Mission Map
       const lat = parseFloat(report.latitude) || 14.3972;
       const lng = parseFloat(report.longitude) || 121.0200;
 
@@ -468,7 +593,7 @@
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             subdomains: ['a', 'b', 'c'],
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
+            attribution: '&copy; OpenStreetMap contributors'
           }).addTo(activeMap);
         }
       } else {
@@ -476,7 +601,7 @@
       }
 
       if (activeMapMarker) activeMap.removeLayer(activeMapMarker);
-      activeMapMarker = L.marker([lat, lng]).addTo(activeMap).bindPopup(`<b>Incident #${report.id}</b><br>${report.description}`).openPopup();
+      activeMapMarker = L.marker([lat, lng]).addTo(activeMap).bindPopup(`<b>Incident #${report.id}</b><br>${escapeHtml(report.description)}`).openPopup();
 
       setTimeout(() => activeMap?.invalidateSize(), 150);
     }
@@ -514,7 +639,7 @@
         const isP1 = rep.priority_code === 'P1' || rep.severity === 'high';
 
         return `
-          <div class="incident-queue-card" style="border-left:5px solid ${isP1 ? '#D32F2F' : rep.severity === 'medium' ? '#F57C00' : '#2E7D32'}; background:var(--bg-card);">
+          <div class="incident-queue-card" style="border-left:4px solid ${isP1 ? '#DC2626' : rep.severity === 'medium' ? '#D97706' : '#16A34A'}; background:var(--bg-card);">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:6px;">
               <div>
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -531,45 +656,45 @@
               </div>
             </div>
 
-            <p style="font-size:13px; color:var(--text); margin:8px 0; line-height:1.4;">${escapeHtml(rep.description)}</p>
+            <p style="font-size:13px; color:var(--text); margin:8px 0; line-height:1.45;">${escapeHtml(rep.description)}</p>
             
             ${triggers.length > 0 ? `
-              <div style="background:rgba(211, 47, 47, 0.06); padding:6px 10px; border-radius:8px; margin-bottom:8px; font-size:11px; color:#C62828;">
-                ⚠️ <strong>Urgency Triggers:</strong> ${escapeHtml(triggers.join(', '))}
-                ${rep.priority_details?.recommendation ? `<span style="display:block; color:var(--text-muted); margin-top:2px;">↳ ${escapeHtml(rep.priority_details.recommendation)}</span>` : ''}
+              <div style="background:var(--emergency-light); border:1px solid var(--emergency-border); padding:6px 10px; border-radius:var(--radius-xs); margin-bottom:8px; font-size:11.5px; color:var(--emergency);">
+                <strong>Urgency Triggers:</strong> ${escapeHtml(triggers.join(', '))}
+                ${rep.priority_details?.recommendation ? `<span style="display:block; color:var(--text-muted); margin-top:2px;">Recommendation: ${escapeHtml(rep.priority_details.recommendation)}</span>` : ''}
               </div>
             ` : ''}
 
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; font-size:11px; color:var(--text-muted); margin-bottom:10px;">
-              <span>📍 GPS: ${Number(rep.latitude).toFixed(4)}, ${Number(rep.longitude).toFixed(4)}</span>
+              <span>GPS: ${Number(rep.latitude).toFixed(4)}, ${Number(rep.longitude).toFixed(4)}</span>
               ${rep.priority_details?.distance_km !== null && rep.priority_details?.distance_km !== undefined ? `
-                <span style="font-weight:700; color:var(--primary);">📏 ~${rep.priority_details.distance_km} km away</span>
+                <span style="font-weight:700; color:var(--primary);">~${rep.priority_details.distance_km} km away</span>
               ` : ''}
             </div>
 
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               ${!isMy && rep.status !== 'resolved' ? `
                 <button type="button" class="ui-btn ui-btn-primary" style="width:auto; padding:7px 14px; font-size:12px;" onclick="claimIncident(${rep.id})">
-                  ✋ Claim &amp; Respond
+                  Claim &amp; Respond
                 </button>
               ` : ''}
               ${isMy && rep.status === 'pending' ? `
                 <button type="button" class="ui-btn ui-btn-primary" style="width:auto; padding:7px 14px; font-size:12px;" onclick="advanceActiveMission('responding', ${rep.id})">
-                  🏃 Start Responding
+                  Start Responding
                 </button>
               ` : ''}
               ${isMy && rep.status === 'responding' ? `
-                <button type="button" class="ui-btn" style="width:auto; padding:7px 14px; font-size:12px; background:#1565C0; color:white;" onclick="advanceActiveMission('on_site', ${rep.id})">
-                  📍 Mark Arrived On-Site
+                <button type="button" class="ui-btn" style="width:auto; padding:7px 14px; font-size:12px; background:var(--primary); color:white;" onclick="advanceActiveMission('on_site', ${rep.id})">
+                  Mark Arrived On-Site
                 </button>
               ` : ''}
               ${isMy && rep.status !== 'resolved' ? `
-                <button type="button" class="ui-btn" style="width:auto; padding:7px 14px; font-size:12px; background:#2E7D32; color:white;" onclick="advanceActiveMission('resolved', ${rep.id})">
-                  ✅ Mark Resolved
+                <button type="button" class="ui-btn" style="width:auto; padding:7px 14px; font-size:12px; background:var(--success); color:white;" onclick="advanceActiveMission('resolved', ${rep.id})">
+                  Mark Resolved
                 </button>
               ` : ''}
               <a href="https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=${userPos ? userPos.lat + '%2C' + userPos.lng : '14.4106%2C121.0502'}%3B${rep.latitude}%2C${rep.longitude}" target="_blank" class="ui-btn ui-btn-secondary" style="width:auto; padding:7px 12px; font-size:12px; text-decoration:none;">
-                🧭 OpenStreetMap
+                OpenStreetMap
               </a>
             </div>
           </div>
@@ -581,94 +706,125 @@
       try {
         await api(`/api/reports/${id}/status`, {
           method: 'PUT',
-          body: JSON.stringify({ assigned_to: user.id, status: 'responding' })
+          body: JSON.stringify({ status: 'responding', assigned_to: user.id })
         });
-        showToast(`Claimed incident #${id}. En route!`, 'success');
+        showToast(`Claimed incident #${id}. Dispatch status: Responding`, 'success');
         loadIncidents();
       } catch (err) {
-        showToast(err.message, 'danger');
+        showToast(err.message || 'Failed to claim incident', 'danger');
       }
     }
 
-    // Load Incidents from Backend
+    async function advanceActiveMission(newStatus, optionalId) {
+      const targetId = optionalId || (currentActiveReport ? currentActiveReport.id : null);
+      if (!targetId) return;
+
+      try {
+        await api(`/api/reports/${targetId}/status`, {
+          method: 'PUT',
+          body: JSON.stringify({ status: newStatus })
+        });
+        showToast(`Mission #${targetId} updated to: ${newStatus.toUpperCase().replace('_', ' ')}`, 'success');
+        loadIncidents();
+      } catch (err) {
+        showToast(err.message || 'Failed to update mission status', 'danger');
+      }
+    }
+
+    // Load Incidents
     async function loadIncidents() {
       try {
         const { reports } = await api('/api/reports');
         allReports = reports || [];
 
-        // Count assigned to me
-        const myReports = allReports.filter(r => (r.assigned_to === user.id || r.status === 'responding' || r.status === 'on_site') && r.status !== 'resolved');
-        const triageReports = allReports.filter(r => r.status !== 'resolved');
-        document.getElementById('stat-assigned-count').textContent = myReports.length;
-        document.getElementById('my-count').textContent = myReports.length;
-        if (document.getElementById('triage-count')) {
-          document.getElementById('triage-count').textContent = triageReports.length;
-        }
-        document.getElementById('all-count').textContent = allReports.filter(r => r.status !== 'resolved').length;
+        // Count metrics
+        const myActive = allReports.filter(r => (r.assigned_to === user.id || r.status === 'responding' || r.status === 'on_site') && r.status !== 'resolved');
+        const triageCount = allReports.filter(r => r.status !== 'resolved').length;
+        
+        document.getElementById('stat-assigned-count').textContent = myActive.length;
+        document.getElementById('triage-count').textContent = triageCount;
+        document.getElementById('my-count').textContent = myActive.length;
+        document.getElementById('all-count').textContent = allReports.length;
 
-        // Set primary active mission
-        const activeOne = myReports[0] || (allReports.find(r => r.status === 'responding' || r.status === 'on_site')) || null;
-        setupActiveMission(activeOne);
+        // Set top highlighted active mission
+        const topMission = myActive[0] || null;
+        setupActiveMission(topMission);
 
-        // Render List
         renderIncidentsList();
       } catch (err) {
-        document.getElementById('incidents-list').innerHTML = `<p class="text-error">${escapeHtml(err.message)}</p>`;
+        // Fallback mock
+        allReports = DEFAULT_REPORTS;
+        setupActiveMission(allReports[0]);
+        renderIncidentsList();
       }
     }
 
-    // Socket.io Real-Time Listeners
-    initSocket({
-      'new-report': (report) => {
-        playMissionChime();
-        showToast(`🚨 New ${report.incident_type} (#${report.id}) received from citizen!`, 'warning');
-        loadIncidents();
-      },
-      'status-update': () => loadIncidents(),
-      'alert-broadcast': (alert) => {
+    // Load Alerts
+    async function loadAlerts() {
+      try {
+        const { alerts } = await api('/api/alerts');
         const box = document.getElementById('broadcast-alert-box');
-        box.classList.remove('hidden');
-        document.getElementById('broadcast-alert-text').textContent = alert.message;
-        showToast(`🚨 BDRRMC Alert: ${alert.message}`, 'danger');
-      }
-    });
+        if (alerts && alerts.length > 0) {
+          box.classList.remove('hidden');
+          document.getElementById('broadcast-alert-text').textContent = alerts[0].message;
+        } else {
+          box.classList.add('hidden');
+        }
+      } catch {}
+    }
 
-    // Live Cloud Push for Incoming Citizen Incident Reports & Broadcasts
+    // Real-Time Listeners
+    if (typeof io !== 'undefined') {
+      try {
+        const socket = io();
+        socket.on('new-report', (report) => {
+          showToast(`New ${report.incident_type} (#${report.id}) received from citizen.`, 'warning');
+          loadIncidents();
+        });
+        socket.on('status-update', () => loadIncidents());
+        socket.on('alert-broadcast', (alert) => {
+          loadAlerts();
+          showToast(`BDRRMC Alert: ${alert.message}`, 'danger');
+        });
+      } catch {}
+    }
+
+    // Cloud SSE Stream
     if (typeof EventSource !== 'undefined') {
       try {
         const repSource = new EventSource('https://ntfy.sh/geosafe_bayanan_reports_2026/sse');
         repSource.onmessage = () => {
-          playMissionChime();
-          showToast('🚨 New live citizen disaster report received!', 'warning');
+          showToast('New live citizen disaster report received.', 'warning');
           loadIncidents();
         };
 
         const alertSource = new EventSource('https://ntfy.sh/geosafe_bayanan_alerts_2026/sse');
         alertSource.onmessage = (e) => {
           try {
-            const parsed = JSON.parse(e.data);
-            if (parsed.message) {
-              const aData = JSON.parse(parsed.message);
-              if (aData && aData.message) {
-                const box = document.getElementById('broadcast-alert-box');
-                if (box) box.classList.remove('hidden');
-                document.getElementById('broadcast-alert-text').textContent = aData.message;
-                showToast(`🚨 BDRRMC Alert: ${aData.message}`, 'danger');
-              }
+            const aData = JSON.parse(e.data);
+            if (aData.message) {
+              loadAlerts();
+              showToast(`BDRRMC Alert: ${aData.message}`, 'danger');
             }
-          } catch (err) {}
+          } catch {}
         };
-      } catch (e) {}
+      } catch {}
     }
 
-    // Storage Event Listener (Instant Multi-Tab Sync)
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'geosafe_reports') loadIncidents();
-    });
+    // Window Tab Sync
+    if (typeof BroadcastChannel !== 'undefined') {
+      const bc = new BroadcastChannel('geosafe_channel');
+      bc.onmessage = (e) => {
+        if (e.data?.type === 'new-report' || e.data?.type === 'status-update') loadIncidents();
+        if (e.data?.type === 'new-alert') loadAlerts();
+      };
+    }
 
-    trackGPS();
-    loadIncidents();
-    setInterval(loadIncidents, 3000);
+    // Initialize
+    initResponderGPS().then(() => loadIncidents());
+    loadAlerts();
+    setInterval(loadIncidents, 3500);
+    setInterval(loadAlerts, 5000);
   </script>
 </body>
 </html>
