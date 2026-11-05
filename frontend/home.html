@@ -8,8 +8,6 @@
   <link rel="stylesheet" href="/critical.css" />
   <link rel="stylesheet" href="/mobile-ui.css?v=3.0" />
   <title>GeoSafe — Resident Dashboard</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     .weather-card {
       background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
@@ -54,12 +52,6 @@
       display: flex;
       align-items: center;
       gap: 6px;
-    }
-    #home-map {
-      width: 100%;
-      height: clamp(180px, 32vh, 260px);
-      min-height: 170px;
-      border-radius: var(--radius-md);
     }
   </style>
 </head>
@@ -231,19 +223,6 @@
       </div>
     </div>
 
-    <!-- Live Evacuation Safe Route Mini-Map Preview -->
-    <section class="map-card" aria-label="Evacuation route preview">
-      <div class="map-card__badge">
-        <span class="map-card__badge-dot"></span>
-        <span id="coord-status">Live Safe Haven Navigation</span>
-      </div>
-      <div id="home-map"></div>
-      <div class="map-card__legend">
-        <span class="map-card__legend-dot"></span>
-        <span>Route to nearest verified BDRRMC evacuation center</span>
-      </div>
-    </section>
-
     <!-- Recent Alerts Preview List -->
     <section class="ui-card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -266,7 +245,6 @@
   <script src="/firebase-config.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/app.js"></script>
-  <script src="/evacuation-routes.js"></script>
   <script>
     const user = requireAuth(['resident']);
     if (!user) throw new Error('unauthorized');
@@ -288,8 +266,6 @@
       if (m) m.style.display = 'none';
     }
 
-    let homeMap = null;
-    let homeLayers = null;
     let lastKnownAlertMsg = '';
 
     // Weather SVGs
@@ -301,39 +277,7 @@
       storm: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><polygon points="13 11 9 17 15 17 11 23"></polygon></svg>`
     };
 
-    // 1. Initialize Map with Street-Snapped Routing & Dark Mode Support
-    async function initHomeMap(lat, lng) {
-      if (!homeMap) {
-        homeMap = L.map('home-map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 15);
-        setupMapTileLayer(homeMap);
-      }
-
-      if (homeLayers) homeMap.removeLayer(homeLayers);
-      homeLayers = L.layerGroup().addTo(homeMap);
-
-      try {
-        const { haven } = getNearestHaven(lat, lng);
-        document.getElementById('coord-status').textContent = `Nearest: ${haven.name}`;
-
-        // Initial render
-        drawNavigationRoute(homeMap, lat, lng, haven, null, homeLayers);
-        fitMapToPath(homeMap, [[lat, lng], [haven.lat, haven.lng]]);
-
-        // Fetch real street road network
-        fetchWalkingRoute(lat, lng, haven.lat, haven.lng).then((routeData) => {
-          if (homeLayers) {
-            homeLayers.clearLayers();
-            drawNavigationRoute(homeMap, lat, lng, haven, routeData, homeLayers);
-            fitMapToPath(homeMap, routeData.coordinates);
-          }
-        }).catch(() => {});
-      } catch (e) {
-        L.marker([lat, lng]).addTo(homeLayers).bindPopup('Your Location').openPopup();
-      }
-      setTimeout(() => homeMap?.invalidateSize(), 200);
-    }
-
-    // 2. Real-Time Open-Meteo Weather Stream
+    // 1. Real-Time Open-Meteo Weather Stream
     async function loadRealtimeWeather(lat = 14.4106, lng = 121.0502) {
       try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&timezone=Asia%2FManila`;
@@ -462,12 +406,10 @@
 
     // 6. Background GPS & Weather Initialization
     async function loadCoords() {
-      initHomeMap(14.4106, 121.0502);
       loadRealtimeWeather(14.4106, 121.0502);
 
       try {
         const pos = await getGeolocation();
-        initHomeMap(pos.latitude, pos.longitude);
         loadRealtimeWeather(pos.latitude, pos.longitude);
       } catch (e) {
         // Default Bayanan coordinates active
@@ -516,8 +458,6 @@
     // 2.5s live polling
     setInterval(loadAlerts, 2500);
     setInterval(loadMyReports, 3000);
-
-    window.addEventListener('resize', () => homeMap?.invalidateSize());
   </script>
 </body>
 </html>
